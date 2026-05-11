@@ -48,5 +48,8 @@
       <p>Esta es una página de prueba con contenido básico y un botón interactivo.</p>
       <button type="button" onclick="alert('Prueba exitosa')">Probar alerta</button>
     </section>
+    {% if error %}
+      <p>{{error}}</p>
+    {% endif %}
   </body>
 </html>

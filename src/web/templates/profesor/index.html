@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    </head>
+    <body>
+        <header>
+            <h1>RehabilitAR - gestión para profesores</h1>
+
+        </header>
+        {% if profesor_en_clase %}
+            <section>
+                <h2>Gestión de mi clase actual</h2>
+                <!--<button type = 'Button' onclick="generarQR()">Generar QR</button>-->
+                <!--<button type = 'Button' onclick="verListaDeAlumnos()">Ver lista de alumnos</button>-->
+                <button type = 'Button' id="registrar_asistencia_manual" onclick="window.location.href='/presente_manual';">Registrar asistencia manual</button>
+                <!--NOTA: pensé que capaz no les copaba este tipo de redirección siendo que flask hace esto dinámicamente y nos permite (además) recopilar información-->
+                {% if exito %}
+                    <div>
+                        <p>Se ha registrado al paciente {{nombre}} exitosamente</p>
+                    </div>
+                {% endif %}
+            </section>
+        {% endif %}
+        <section>
+            <h2>Mis presentes</h2>
+        </section>
+        {% if error %}
+            <p>Error: {{error}}</p>
+        {% endif %}
+    </body>
