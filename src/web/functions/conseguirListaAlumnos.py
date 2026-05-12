@@ -1,4 +1,5 @@
 # ESTA ES UNA FUNCIÓN TEMPORAL
+# Consigue alumnos que reservaron la clase
 from src.web.objects.Alumno import Alumno
 
 def conseguirListaAlumnos (dni_profesor):

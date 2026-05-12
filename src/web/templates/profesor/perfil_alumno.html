@@ -5,11 +5,23 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     </head>
     <body>
-        <!--Por acá iría la búsqueda de alumnos, con su correspondiente cruz-->
         <section>
             <h1>Perfil de alumno {{alumno.nombre}} {{alumno.apellido}}</h1>
             <p>DNI {{alumno.dni}}</p>
             <p>Porcentaje de asistencias: {{alumno.porcentaje_asistencias*100}}%</p> <!--Me gustaría meter una barra de progreso acá-->
+        </section>
+        <section>
+            <h2>Dejar un comentario:</h2>
+            <form method="post" action="{{ url_for('profesor.subir_comentario', dni=alumno.dni) }}">
+                <textarea required type="text" name="comentario" id="comentario" placeholder="Ingrese el comentario"></textarea>
+                <button type="submit" value="Subir">Subir</button>
+            </form>
+            {% if error %}
+                <p>Error: {{error}}</p>
+            {% endif %}
+            {% if exito %}
+                <p>Se ha subido el comentario exitosamente</p>
+            {% endif %}
         </section>
     </body>
 </html>
