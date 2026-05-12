@@ -1,9 +1,5 @@
 from flask import render_template, session
 from src.web.functions.profesorEstáEnClase import profesorEstáEnClase
-from flask import Blueprint
-profesor_bp = Blueprint('profesor', __name__, url_prefix="/profesor")
-
-@profesor_bp.route('/', methods=['GET'])
 
 def renderizar_index_profesor ():
 

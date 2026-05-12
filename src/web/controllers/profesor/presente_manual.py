@@ -1,14 +1,9 @@
 from flask import render_template, request, session
-from flask import Blueprint
 
 from src.web.functions.perteneceASuClase import perteneceASuClase
 from src.web.functions.esDNI import esDNI
 from src.web.functions.conseguirNombre import conseguirNombre
 from src.web.functions.profesorEstáEnClase import profesorEstáEnClase
-
-presente_bp = Blueprint('presente_manual', __name__, url_prefix="/presente_manual")
-
-@presente_bp.route('/', methods=['GET', 'POST'])
 
 def registrar_asistencia_manual ():
 
@@ -20,11 +15,11 @@ def registrar_asistencia_manual ():
     
         print (session.get("rol"))
 
-        # Comprobación 1: el profesor está logeado [EN INSTANCIA] (recomendación: importar módulo porque lo voy a usar)
+        # Comprobación 1: el profesor está logeado [EN SESIÓN]
         if not (rol_profesor == "profesor"):
             return render_template('index.html', error="El profesor debe estar logueado")
 
-        # Comprobación 2: el profesor está en una clase [EN BD] (idem)
+        # Comprobación 2: el profesor está en una clase [EN BD]
         if not profesorEstáEnClase (dni_profesor):
             return render_template('profesor/index.html', error="El profesor no se encuentra en una clase")
 
@@ -37,17 +32,17 @@ def registrar_asistencia_manual ():
         if not (rol_profesor == "profesor"):
             return render_template('index.html', error="El profesor debe estar logueado")
         
-        # Comprobación 2: se ha ingresado el DNI [EN CLIENTE]
+        # Comprobación 2: el profesor está en una clase [EN BD]
+        if not profesorEstáEnClase (dni_profesor):
+            return render_template('profesor/index.html', error="El profesor no se encuentra en una clase")
+        
+        # Comprobación 3: se ha ingresado el DNI [EN CLIENTE]
         if not dni_alumno:
             return render_template('profesor/presente_manual.html', error="Debe ingresarse un DNI")
     
-        # Comprobación 3: no se ha ingresado un DNI [EN CLIENTE]
+        # Comprobación 4: no se ha ingresado un DNI [EN CLIENTE]
         if not esDNI(dni_alumno):
             return render_template('profesor/presente_manual.html', error="El dato ingresado no es un DNI")
-
-        # Comprobación 4: el profesor está en una clase [EN BD]
-        if not profesorEstáEnClase (dni_profesor):
-            return render_template('profesor/index.html', error="El profesor no se encuentra en una clase")
 
         # Comprobación 5: el alumno de ese DNI pertenece a esa clase [EN BD]
         if not perteneceASuClase (dni_profesor, dni_alumno):
