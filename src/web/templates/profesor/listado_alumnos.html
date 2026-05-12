@@ -13,7 +13,7 @@
             {% if lista_de_alumnos %}
                 <ul>
                     {% for alumno in lista_de_alumnos %}
-                        <li>
+                        <li action="{{ url_for('profesor.perfil_alumno', dni=alumno.dni) }}">
                             <p>Nombre y apellido: {{alumno.nombre}} {{alumno.apellido}}</p>
                             <p>DNI: {{alumno.dni}}</p>
                         </li>
