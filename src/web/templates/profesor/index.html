@@ -7,13 +7,12 @@
     <body>
         <header>
             <h1>RehabilitAR - gestión para profesores</h1>
-
         </header>
         {% if profesor_en_clase %}
             <section>
                 <h2>Gestión de mi clase actual</h2>
                 <!--<button type = 'Button' onclick="generarQR()">Generar QR</button>-->
-                <!--<button type = 'Button' onclick="verListaDeAlumnos()">Ver lista de alumnos</button>-->
+                <button type = 'Button' id="consultar_listado_alumnos" onclick="window.location.href='/profesor/listado_alumnos';">Ver lista de alumnos</button>
                 <button type = 'Button' id="registrar_asistencia_manual" onclick="window.location.href='/profesor/presente_manual';">Registrar asistencia manual</button>
                 <!--NOTA: pensé que capaz no les copaba este tipo de redirección siendo que flask hace esto dinámicamente y nos permite (además) recopilar información-->
                 {% if exito %}

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    </head>
+    <body>
+        <h1>Lista de alumnos</h1>
+        <section>
+            {% if error %}
+                <p>{{error}}</p>
+            {% endif %}
+            {% if lista_de_alumnos %}
+                <ul>
+                    {% for alumno in lista_de_alumnos %}
+                        <li>
+                            <p>Nombre y apellido: {{alumno.nombre}} {{alumno.apellido}}</p>
+                            <p>DNI: {{alumno.dni}}</p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+    </body>
+</html>
