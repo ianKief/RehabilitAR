@@ -4,6 +4,8 @@ from src.web.functions.profesorEstáEnClase import profesorEstáEnClase
 from src.web.functions.perteneceASuClase import perteneceASuClase
 from src.web.functions.conseguirPerfilAlumno import conseguirPerfilAlumno
 from src.web.functions.subirComentario import subirComentario
+from src.web.functions.seSubióComentario import seSubióComentario
+
 
 def subir_comentario_alumnoXclase (dni):
 
@@ -26,8 +28,8 @@ def subir_comentario_alumnoXclase (dni):
 
     # Comprobación 4: el comentario tiene contenido
     if not comentario:
-         return {"exito": False, "mensaje": "El comentario no tiene contenido"}
+         return render_template('profesor/perfil_alumno/<dni>', error="El comentario no tiene contenido")
     
     subirComentario (dni, comentario)
     
-    return {"exito": True, "mensaje": "Se ha subido el comentario exitosamente"}
+    return render_template('profesor/perfil_alumno/<dni>', exito=True)   

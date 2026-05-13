@@ -5,14 +5,15 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     </head>
     <body>
-        <script src="{{ url_for('static', filename='js/presente_manual.js') }}" defer></script>
         <h1>Registrar manualmente a un paciente:</h1>
 
-            <div id="mensaje_error", nombre="mensaje_error" style="display:none; color: red; border: 1px solid red; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
-                <strong>Error:</strong><p id="error", name="error"></p>
+        {% if error %}
+            <div style="color: red; border: 1px solid red; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
+                <strong>Error:</strong> {{ error }}
             </div>
-        
-        <form method="post" id="formulario">
+        {% endif %}
+
+        <form method="post" action="{{ url_for('profesor.presente_manual') }}">
             <input required type="text" name="dni" id="dni" maxlength="8" placeholder="Ingrese el DNI sin puntos">
             <button type="submit" value="Enviar">Dar presente</button>
         </form>
