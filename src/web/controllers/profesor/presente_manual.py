@@ -4,6 +4,7 @@ from src.web.functions.perteneceASuClase import perteneceASuClase
 from src.web.functions.esDNI import esDNI
 from src.web.functions.conseguirNombre import conseguirNombre
 from src.web.functions.profesorEstáEnClase import profesorEstáEnClase
+from src.web.functions.alumnoTieneAsistencia import alumnoTieneAsistencia
 
 def registrar_asistencia_manual ():
 
@@ -47,6 +48,10 @@ def registrar_asistencia_manual ():
         # Comprobación 5: el alumno de ese DNI pertenece a esa clase [EN BD]
         if not perteneceASuClase (dni_profesor, dni_alumno):
                 return render_template('profesor/presente_manual.html', error="El DNI del alumno no corresponde a la clase del profesor o no existe")
+
+        # Comprobación 6: el alumno aún no tiene la asistencia de su clase [EN BD]
+        if alumnoTieneAsistencia (dni_alumno):
+                return render_template('profesor/presente_manual.html', error="El alumno ya tiene su asistencia marcada")
 
         # Registrar presente
         return render_template('/profesor/index.html', exito=True, nombre = conseguirNombre(dni_alumno), profesor_en_clase = True)

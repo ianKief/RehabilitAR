@@ -13,8 +13,10 @@
                 <form action="{{ url_for('profesor.listado_alumnos') }}" method="get" id="form-busqueda">
                     <label for="busqueda">Buscar:</label>
                     <input type="text" name="busqueda" id="busqueda" placeholder="Buscar alumno" {% if busqueda != None %} value="{{busqueda}} {% endif %}">
-                    {% if busqueda != None%}
-                        <button type="button", id="limpiar">✕</button>
+                    {% if busqueda %}
+                        {% if busqueda != None%}
+                            <button type="button", id="limpiar">✕</button>
+                        {% endif %}
                     {% endif %}
                     <button type="submit">Buscar</button>
                 </form>

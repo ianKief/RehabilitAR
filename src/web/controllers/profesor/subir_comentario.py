@@ -24,11 +24,12 @@ def subir_comentario_a_alumnoXclase (dni):
             return render_template('profesor/listado_alumnos.html', error="El DNI del alumno no corresponde a la clase actual del profesor o no existe")
     
     comentario = request.form.get("comentario")
+    perfil_alumno = conseguirPerfilAlumno(dni)
 
-    # Comprobación 4: el comentario tiene contenido
+    # Comprobación 4: el comentario tiene contenido [EN CLIENTE]
     if not comentario:
-         return render_template('profesor/perfil_alumno.html', error="El comentario no tiene contenido")
+         return render_template('profesor/perfil_alumno.html', error="El comentario no tiene contenido", alumno=perfil_alumno)
     
     subirComentario (dni, comentario)
     
-    return render_template('profesor/perfil_alumno.html', exito=True, alumno=conseguirPerfilAlumno(dni))   
+    return render_template('profesor/perfil_alumno.html', exito=True, alumno=perfil_alumno)   
