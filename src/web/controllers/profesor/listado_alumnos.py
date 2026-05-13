@@ -23,14 +23,18 @@ def consultar_listado_alumnos ():
         return render_template ('profesor/listado_alumnos.html', error="No se han encontrado resultados")
 
     busqueda = request.args.get("busqueda")
-    
+
     if (busqueda):
         lista_de_alumnos = filtrarPorNombre(busqueda, conseguirListaAlumnos(dni_profesor))
         if (lista_de_alumnos == []):
-            return render_template ('profesor/listado_alumnos.html', error="No se han encontrado resultados")
+            return render_template ('profesor/listado_alumnos.html',
+                                    error="No se han encontrado resultados",
+                                    busqueda=busqueda
+                                    )
     else:
         lista_de_alumnos = conseguirListaAlumnos(dni_profesor)
 
     return render_template ('profesor/listado_alumnos.html',
-                        lista_de_alumnos=lista_de_alumnos
+                        lista_de_alumnos=lista_de_alumnos,
+                        busqueda=busqueda
                            )

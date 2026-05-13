@@ -1,0 +1,20 @@
+.inline_block {
+    display: inline-block
+}
+
+.buscador-container {
+    position: relative;
+    display: inline-block;
+}
+
+#busqueda {
+    padding-right: 30px;
+}
+
+#limpiar {
+
+    border: black 1px solid;
+    background: none;
+
+    cursor: pointer;
+}
