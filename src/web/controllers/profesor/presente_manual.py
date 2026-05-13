@@ -38,15 +38,15 @@ def registrar_asistencia_manual ():
         
         # Comprobación 3: se ha ingresado el DNI [EN CLIENTE]
         if not dni_alumno:
-            return render_template('profesor/presente_manual.html', error="Debe ingresarse un DNI")
+            return {"error": "Debe ingresarse un DNI"}
     
         # Comprobación 4: no se ha ingresado un DNI [EN CLIENTE]
         if not esDNI(dni_alumno):
-            return render_template('profesor/presente_manual.html', error="El dato ingresado no es un DNI")
+            return {"error": "El dato ingresado no es un DNI"}
 
         # Comprobación 5: el alumno de ese DNI pertenece a esa clase [EN BD]
         if not perteneceASuClase (dni_profesor, dni_alumno):
-                return render_template('profesor/presente_manual.html', error="El DNI del alumno no corresponde a la clase del profesor o no existe")
+                return {"error": "El DNI del alumno no corresponde a la clase del profesor o no existe"}
 
         # Registrar presente
         return render_template('/profesor/index.html', exito=True, nombre = conseguirNombre(dni_alumno), profesor_en_clase = True)
