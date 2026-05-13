@@ -6,7 +6,6 @@ from src.web.controllers.profesor.listado_alumnos import consultar_listado_alumn
 from src.web.controllers.profesor.perfil_alumno import cargar_perfil_alumno
 from src.web.controllers.profesor.subir_comentario import subir_comentario_a_alumnoXclase
 
-
 profesor_bp = Blueprint('profesor', __name__, url_prefix="/profesor")
 
 @profesor_bp.route('/', methods=['GET'])
