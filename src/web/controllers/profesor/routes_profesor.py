@@ -4,7 +4,7 @@ from src.web.controllers.profesor.presente_manual import registrar_asistencia_ma
 from src.web.controllers.profesor.index_profesor import renderizar_index_profesor
 from src.web.controllers.profesor.listado_alumnos import consultar_listado_alumnos
 from src.web.controllers.profesor.perfil_alumno import cargar_perfil_alumno
-from src.web.controllers.profesor.subir_comentario import subir_comentario_alumnoXclase
+from src.web.controllers.profesor.subir_comentario import subir_comentario_a_alumnoXclase
 
 
 profesor_bp = Blueprint('profesor', __name__, url_prefix="/profesor")
@@ -27,4 +27,4 @@ def perfil_alumno (dni):
 
 @profesor_bp.route('/perfil_alumno/<dni>', methods=['POST'])
 def subir_comentario (dni):
-    return subir_comentario_alumnoXclase (dni)
+    return subir_comentario_a_alumnoXclase (dni)
