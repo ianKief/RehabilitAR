@@ -7,6 +7,6 @@ def conseguirPerfilAlumno (dni_alumno):
     elif (dni_alumno == "22222222"):
         return AlumnoDetallado("Martin", "Maroni", "22222222", 1)
     elif (dni_alumno == "33333333"):
-        AlumnoDetallado("Julian", "Serrano", "33333333", 2/3)
+        return AlumnoDetallado("Julian", "Serrano", "33333333", 2/3)
     
     return AlumnoDetallado("Momonto", "Magoya", "00000000", 3/4)

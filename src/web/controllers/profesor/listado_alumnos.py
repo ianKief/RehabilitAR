@@ -19,11 +19,11 @@ def consultar_listado_alumnos ():
         return render_template('profesor/index.html', error="El profesor no se encuentra en una clase")
 
     # Comprobación 3: lista vacía
-    if (tieneAlumnos(dni_profesor)):
+    if not (tieneAlumnos(dni_profesor)):
         return render_template ('profesor/listado_alumnos.html', error="No se han encontrado resultados")
 
     busqueda = request.args.get("busqueda")
-
+    
     if (busqueda):
         lista_de_alumnos = filtrarPorNombre(busqueda, conseguirListaAlumnos(dni_profesor))
         if (lista_de_alumnos == []):
