@@ -2,12 +2,13 @@ from src.web.objects.Clase import Clase
 from src.web.objects.AsistenciaAlumno import AsistenciaAlumno
 from src.web.functions.conseguirListaAlumnos import conseguirListaAlumnos
 
-def conseguirTodasLasAsistenciasAlumnos (dni_profesor):
+def  conseguirTodasLasAsistenciasAlumnos (dni_profesor):
+
     clase1 = Clase ("Espalda", "20260301")
     clase2 = Clase ("Rodilla", "20260402")
     clase3 = Clase ("Codo", "20250722")
 
-    lista_alumnos = conseguirListaAlumnos
+    lista_alumnos = conseguirListaAlumnos(dni_profesor)
 
     comentario_pedro = "Llegó tarde"
     comentario_julian1 = "Nada que comentar"

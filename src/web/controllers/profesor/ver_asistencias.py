@@ -14,6 +14,6 @@ def ver_comentarios_y_asistencias ():
 
     # Comprobación 2: lista vacía
     if not (tieneAlumnos(dni_profesor)):
-        return render_template ('profesor/listado_alumnos.html', error="No se han encontrado resultados")
+        return render_template ('profesor/ver_asistencias.html', error="No se han encontrado resultados")
 
-    return render_template ('profesor/ver_asistencias.html', conseguirTodasLasAsistenciasAlumnos(dni_profesor))
+    return render_template ('profesor/ver_asistencias.html', lista_de_asistencias=conseguirTodasLasAsistenciasAlumnos(dni_profesor))

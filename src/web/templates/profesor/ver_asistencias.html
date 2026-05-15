@@ -15,7 +15,7 @@
                              - Posee comentario -->
             </div>
             <div>
-                {% if lista_de_asistencias != [] %}    
+                {% if (lista_de_asistencias != []) %}    
                     <ul>
                         {% for asistencia in lista_de_asistencias %}
                             <li>
@@ -29,10 +29,12 @@
                                             <p>{{comentario}}</p>
                                         </li>
                                     {% endfor %}
-                                {% endif }
+                                {% endif %}
                             </li>
+                            <hr>
                         {% endfor %}
                     </ul>
+                {% endif %}
                 {% if error %}
                     <p>{{error}}</p>
                 {% endif %}
