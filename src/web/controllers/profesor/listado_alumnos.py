@@ -3,7 +3,7 @@ from flask import render_template, session, request
 from src.web.functions.profesorEstáEnClase import profesorEstáEnClase
 from src.web.functions.conseguirListaAlumnos import conseguirListaAlumnos
 from src.web.functions.filtrarPorNombre import filtrarPorNombre
-from src.web.functions.tieneAlumnos import tieneAlumnos
+from src.web.functions.tieneAlumnos import tieneAlumnosEnClase
 
 def consultar_listado_alumnos ():
 
@@ -19,7 +19,7 @@ def consultar_listado_alumnos ():
         return render_template('profesor/index.html', error="El profesor no se encuentra en una clase")
 
     # Comprobación 3: lista vacía
-    if not (tieneAlumnos(dni_profesor)):
+    if not (tieneAlumnosEnClase(dni_profesor)):
         return render_template ('profesor/listado_alumnos.html', error="No se han encontrado resultados")
 
     busqueda = request.args.get("busqueda")

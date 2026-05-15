@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    </head>
+    <body>
+        <div>
+            <h1>Asistencias de alumnos</h1>
+            <div>
+                    <!--Busqueda botón de buscar
+                    Filtros: - Fecha
+                             - Contenido
+                             - Presente / ausente
+                             - Posee comentario -->
+            </div>
+            <div>
+                {% if lista_de_asistencias != [] %}    
+                    <ul>
+                        {% for asistencia in lista_de_asistencias %}
+                            <li>
+                                <p>{{asistencia.alumno.nombre}} {{asistencia.alumno.apellido}}</p>
+                                <p>DNI: {{asistencia.alumno.dni}}</p>
+                                <p>Estado en la clase {{asistencia.clase.nombre}} del día {{asistencia.clase.fecha}}: {{asistencia.presencia}}</p>
+                                {% if asistencia.comentarios != [] %}
+                                    <p>Comentarios:</p>
+                                    {% for comentario in asistencia.comentarios %}
+                                        <li>
+                                            <p>{{comentario}}</p>
+                                        </li>
+                                    {% endfor %}
+                                {% endif }
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% if error %}
+                    <p>{{error}}</p>
+                {% endif %}
+            </div>
+        </div>
+    </body>
+</html>

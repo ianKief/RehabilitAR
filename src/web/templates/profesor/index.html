@@ -8,8 +8,8 @@
         <header>
             <h1>RehabilitAR - gestión para profesores</h1>
         </header>
-        {% if profesor_en_clase %}
-            <section>
+        <section>
+            {% if profesor_en_clase %}
                 <h2>Gestión de mi clase actual</h2>
                 <!--<button type = 'Button' onclick="generarQR()">Generar QR</button>-->
                 <button type = 'Button' id="consultar_listado_alumnos" onclick="window.location.href='/profesor/listado_alumnos';">Ver lista de alumnos</button>
@@ -20,10 +20,13 @@
                         <p>Se ha registrado al paciente {{nombre}} exitosamente</p>
                     </div>
                 {% endif %}
-            </section>
-        {% endif %}
+            {% else %}
+                <h2>Actualmente no hay ninguna clase disponible</h2>
+                <p>Cuando esté transcurriendo una clase, aparecerán los detalles aquí</p>
+            {% endif %}
+        </section>
         <section>
-            <h2>Mis presentes</h2>
+            <h2 onclick="window.location.href='/profesor/ver_asistencias';">Gestionar mis asistencias</h2>
         </section>
         {% if error %}
             <p>Error: {{error}}</p>
