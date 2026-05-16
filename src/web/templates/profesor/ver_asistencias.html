@@ -3,17 +3,43 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
     </head>
     <body>
+        <script src="{{ url_for('static', filename='js/ver_asistencias.js') }}" defer></script>
         <div>
             <h1>Asistencias de alumnos</h1>
-            <div>
                     <!--Busqueda botón de buscar
                     Filtros: - Fecha
                              - Contenido
                              - Presente / ausente
                              - Posee comentario -->
-            </div>
+            <form action="{{ url_for('profesor.ver_asistencias') }}" method="get" id="form-busqueda">
+                <div class="buscador_container">
+                    <label for="busqueda">Buscar:</label>
+                    <input type="text" name="busqueda" id="busqueda" placeholder="Buscar alumno" {% if busqueda != "" %} value="{{busqueda}} {% endif %}">
+                        {% if hay_filtro %}
+                            <button type="button", id="limpiar">✕</button>
+                        {% endif %}
+                    <button type="submit">Buscar</button>
+                </div>
+                <p>Filtrar por</p>
+                <div style="display: flex">
+                    <div style="display: block">
+                        <p>Asistencia efectuada</p>
+                        <input type="radio" name="estado" id="seleccionar_todos" value="seleccionar_todos" {% if (estado == 'seleccionar_todos') %} checked {% endif %}>Seleccionar todos
+                        <input type="radio" name="estado" id="presente" value="presente" {% if estado == 'presente' %} checked {% endif %}>Presente
+                        <input type="radio" name="estado" id="ausente" value="ausente" {% if estado == 'ausente' %} checked {% endif %}>Ausente
+                    </div>
+                    <div>
+                        <p>Fecha: </p><input type="date" name="fecha" id="fecha" {% if fecha != "" %} value="{{fecha}}" {% endif %}>
+                    </div>
+                    <div>
+                        <p>Ver solo comentarios</p><input type="checkbox" name="solo_comentarios" id="solo_comentarios" {% if solo_comentarios %} checked {% endif %}>
+                    </div>
+                </div>
+            </form>
+                             <!--AAAAAAA-->
             <div>
                 {% if (lista_de_asistencias != []) %}    
                     <ul>
@@ -34,9 +60,8 @@
                             <hr>
                         {% endfor %}
                     </ul>
-                {% endif %}
-                {% if error %}
-                    <p>{{error}}</p>
+                {% else %}
+                    <p>No se han encontrado resultados</p>
                 {% endif %}
             </div>
         </div>

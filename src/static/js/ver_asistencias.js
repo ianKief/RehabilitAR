@@ -3,5 +3,5 @@
     limpiar.addEventListener("click", () => {
 
         window.location.href =
-            "/profesor/listado_alumnos"
+            "/profesor/ver_asistencias"
     })
