@@ -2,6 +2,7 @@ from flask import Flask, request,render_template
 from src.web.config import config
 from src.core.database import db, init_db, reset_db, seed_db
 from src.web.controllers.salas import bp as salas_bp
+from src.web.controllers.usuarios import users_bp
 
 def create_app():
     app = Flask(__name__, static_folder="static")
@@ -14,6 +15,8 @@ def create_app():
 
     # Registrar blueprints
     app.register_blueprint(salas_bp)
+    app.register_blueprint(users_bp)
+    
     
     # Registrar CLI commands
     @app.cli.command("reset-db")
