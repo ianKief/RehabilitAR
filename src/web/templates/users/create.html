@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Crear Usuario - RehabilitAR</title>
+</head>
+<body>
+    <h1>Crear Usuario</h1>
+    
+    {% if error %}
+        <div style="color: red; border: 1px solid red; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
+            <strong>Error:</strong> {{ error }}
+        </div>
+    {% endif %}
+    
+    <form action="{{ url_for('users.crear_usuario') }}" method="POST">
+        
+        <label for="nombre">Nombre:</label>
+        <input type="text" id="nombre" name="nombre" required><br><br>
+
+        <label for="email">Correo Electrónico:</label>
+        <input type="email" id="email" name="email" required><br><br>
+
+        <label for="password">Contraseña provisional (Mínimo 6 caracteres):</label>
+        <input type="password" id="password" name="password" minlength="6" required><br><br>
+
+        <label for="rol">Rol del Usuario:</label>
+        <select id="rol" name="rol" required>
+            <option value="" disabled selected>Seleccione un rol...</option>
+    
+            <option value="Recepcionista">Recepcionista</option>
+            <option value="Profesor">Profesor</option>
+            <option value="Administrador">Administrador</option>
+        </select>
+
+        <button type="submit">Registrarme</button>
+    </form>
+</body>
+</html>
