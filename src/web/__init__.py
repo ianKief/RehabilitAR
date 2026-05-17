@@ -1,12 +1,13 @@
 from flask import Flask, request,render_template
 from src.web.config import config
 from src.core.database import db, init_db, reset_db, seed_db
+
 from src.web.controllers.salas import bp as salas_bp
 from src.web.controllers.profesor.routes_profesor import profesor_bp
 # from src.web.controllers.dev.routes_dev import dev_bp
 
 def create_app():
-    app = Flask(__name__, static_folder="../static"
+    app = Flask(__name__, static_folder="static"
                 #, env="development"
                 )
 
