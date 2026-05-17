@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light" class="is-flex is-flex-direction-column" style="min-height: 100vh;">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}RehabilitAR{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    {% block head %}{% endblock %}
+</head>
+<body class="is-flex is-flex-direction-column is-flex-grow-1" style="min-height: 100vh;">
+    <nav class="navbar has-shadow" role="navigation" aria-label="main navigation">
+        <div class="container py-3">
+            <div class="navbar-brand">
+                <a class="navbar-item px-3 py-2" href="/">
+                    <div class="image mr-3"
+                        style="width: 48px; height: 48px; min-width: 48px; flex-shrink: 0; border-radius: 50%; padding: 2px; display: flex; align-items: center; justify-content: center;">
+                        <img src="{{ url_for('static', filename='logo_RehabilitAR.png') }}" alt="Logo" class="is-rounded"
+                            style="object-fit: cover; width: 100%; height: 100%; max-height: none;">
+                    </div>
+                    <strong class="is-size-4 has-text-title">RehabilitAR</strong>
+                </a>
+                <div class="navbar-item is-hidden-desktop ml-auto py-0 px-4">
+                    <div class="is-flex is-align-items-center">
+                        <button class="button theme-toggle is-text px-2" title="Alternar tema"
+                            style="background: transparent; border: none;">
+                            <span class="icon"><i class="far fa-moon"></i></span>
+                        </button>
+                        <a class="button is-primary is-outlined is-small ml-2" href="/perfil"
+                            style="padding-left: 0.75rem; padding-right: 0.75rem;">
+                            <span class="icon"><i class="far fa-user"></i></span>
+                        </a>
+                    </div>
+                </div>
+        
+                <a role="button" class="navbar-burger ml-0 has-text-primary" aria-label="menu" aria-expanded="false"
+                    data-target="navbarMain">
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                </a>
+            </div>
+            <div id="navbarMain" class="navbar-menu">
+                <div class="navbar-start is-hidden-desktop">
+                    <a class="navbar-item py-3 px-4" href="/">
+                        <span class="icon mr-2"><i class="fas fa-home"></i></span>Inicio
+                    </a>
+                    <!-- Navegación para personal (ocultar según rol) -->
+                    <a class="navbar-item py-3 px-4" href="/salas">
+                        <span class="icon mr-2"><i class="far fa-hospital"></i></span>Salas
+                    </a>
+                    <!-- Agrega más enlaces según sea necesario -->
+                    <!-- Navegación para clientes (solo si son clientes) -->
+                    <a class="navbar-item py-3 px-4" href="/reservas">
+                        <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Reservas
+                    </a>
+                    <a class="navbar-item py-3 px-4" href="/mis-clases">
+                        <span class="icon mr-2"><i class="fas fa-chalkboard-user"></i></span>Mis Clases
+                    </a>
+                    <!-- Agrega más enlaces según sea necesario -->
+                </div>
+                <div class="navbar-end is-hidden-touch">
+                    <div class="navbar-item">
+                        <div class="buttons">
+                            <button class="button theme-toggle mr-3 has-text-grey" title="Alternar tema"
+                                style="background: transparent; border: none;">
+                                <span class="icon is-medium"><i class="far fa-moon is-size-5"></i></span>
+                            </button>
+                            <a class="button is-primary is-rounded px-5" href="/perfil">
+                                <span class="icon mr-2"><i class="far fa-user"></i></span>
+                                <span>Mi Perfil</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="section is-flex is-flex-direction-column px-3 py-5">
+        <div class="container is-flex is-flex-direction-column is-flex-grow-1">
+            <div class="columns is-variable is-4-desktop is-flex-grow-1 is-stretch">
+                <aside class="column is-3 is-hidden-touch is-flex is-flex-direction-column is-flex-grow-1">
+                    <div class="box is-flex-grow-1">
+                        <p class="menu-label has-text-weight-bold px-2 mb-3 has-text-grey-light">
+                            Navegación
+                        </p>
+                        <ul class="menu-list">
+                            <li>
+                                <a href="/"
+                                    class="py-2.5 px-3 {% if current_path == '/' %} has-text-primary{% endif %}">
+                                    <span class="icon mr-2"><i class="fas fa-house"></i></span>Inicio
+                                </a>
+                            </li>
+                            <!-- Navegación para personal (ocultar según rol) -->
+                            <li>
+                                <a href="/salas"
+                                    class="py-2.5 px-3 {% if current_path == '/salas/' %}has-text-primary{% endif %}">
+                                    <span class="icon mr-2"><i class="far fa-hospital"></i></span>Salas
+                                </a>
+                            </li>
+                            <!-- Agrega más enlaces según sea necesario -->
+                            <!-- Navegación para clientes (solo si son clientes) -->
+                            <li>
+                                <a href="/reservas"
+                                    class="py-2.5 px-3 {% if current_path == '/reservas/' %}has-text-primary{% endif %}">
+                                    <span class="icon mr-2"><i class="far fa-calendar-check"></i></span>Reservas
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/mis-clases"
+                                    class="py-2.5 px-3 {% if current_path == '/mis-clases/' %}has-text-primary{% endif %}">
+                                    <span class="icon mr-2"><i class="fas fa-chalkboard-user"></i></span>Mis Clases
+                                </a>
+                            </li>
+                            <!-- Agrega más enlaces según sea necesario -->
+                        </ul>
+                    </div>
+                </aside>
+
+                <div class="column is-9-desktop is-12-tablet">
+                    <div class="block is-flex is-flex-direction-column is-flex-grow-1">
+                        {% block content %}
+                        {% endblock %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer py-6" style="border-top: 1px solid var(--bulma-border-weak); margin-top: auto;">
+        <div class="container">
+            <div class="content has-text-centered is-size-7 has-text-grey-light">
+                <p>
+                    <strong class="has-text-grey">RehabilitAR</strong> &copy; 2026. Todos los derechos reservados.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Lógica del Menu Burger
+            const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+            $navbarBurgers.forEach( el => {
+                el.addEventListener('click', () => {
+                    const target = el.dataset.target;
+                    const $target = document.getElementById(target);
+                    el.classList.toggle('is-active');
+                    $target.classList.toggle('is-active');
+                });
+            });
+
+            // Lógica de Cambio de Tema Nativo
+            const htmlTag = document.documentElement;
+            const themeToggles = document.querySelectorAll('.theme-toggle');
+
+            const updateToggleIcons = (theme) => {
+                themeToggles.forEach(btn => {
+                    const icon = btn.querySelector('i');
+                    if (theme === 'dark') {
+                        icon.className = 'far fa-sun';
+                        btn.classList.add('has-text-warning');
+                        btn.classList.remove('has-text-grey');
+                    } else {
+                        icon.className = 'far fa-moon';
+                        btn.classList.remove('has-text-warning');
+                        btn.classList.add('has-text-grey');
+                    }
+                });
+            };
+
+            const initialTheme = localStorage.getItem('theme') || 
+                (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            
+            htmlTag.setAttribute('data-theme', initialTheme);
+            updateToggleIcons(initialTheme);
+
+            themeToggles.forEach(toggle => {
+                toggle.addEventListener('click', () => {
+                    const current = htmlTag.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    htmlTag.setAttribute('data-theme', next);
+                    localStorage.setItem('theme', next);
+                    updateToggleIcons(next);
+                });
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
