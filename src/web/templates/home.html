@@ -1,0 +1,106 @@
+{% extends "layout.html" %}
+
+{% block title %}Inicio - RehabilitAR{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h1 class="title is-3 mb-2">Bienvenido a RehabilitAR</h1>
+    <p class="subtitle is-6 has-text-grey">Tu plataforma integral de rehabilitación y terapia física</p>
+</div>
+
+<div class="columns is-multiline mb-6">
+    <div class="column is-3-desktop is-6-tablet">
+        <div class="box">
+            <div class="has-text-centered">
+                <p class="heading has-text-info">Salas Disponibles</p>
+                <p class="title is-3 has-text-info">8</p>
+            </div>
+        </div>
+    </div>
+    <div class="column is-3-desktop is-6-tablet">
+        <div class="box">
+            <div class="has-text-centered">
+                <p class="heading has-text-success">Clases Hoy</p>
+                <p class="title is-3 has-text-success">5</p>
+            </div>
+        </div>
+    </div>
+    <div class="column is-3-desktop is-6-tablet">
+        <div class="box">
+            <div class="has-text-centered">
+                <p class="heading has-text-warning">Pacientes Activos</p>
+                <p class="title is-3 has-text-warning">24</p>
+            </div>
+        </div>
+    </div>
+    <div class="column is-3-desktop is-6-tablet">
+        <div class="box">
+            <div class="has-text-centered">
+                <p class="heading has-text-danger">Próximas Reservas</p>
+                <p class="title is-3 has-text-danger">12</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="columns is-multiline">
+    <div class="column is-12">
+        <div class="box">
+            <h2 class="title is-5 mb-4">
+                <span class="icon mr-2"><i class="fas fa-calendar-alt"></i></span>
+                Próximas Clases
+            </h2>
+            <div class="content is-small">
+                <table class="table is-fullwidth is-hoverable is-size-7">
+                    <tbody>
+                        <tr>
+                            <td><strong>Terapia Física</strong></td>
+                            <td>Sala A</td>
+                            <td class="has-text-right">10:00 AM</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pilates</strong></td>
+                            <td>Sala B</td>
+                            <td class="has-text-right">11:30 AM</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Yoga Terapéutico</strong></td>
+                            <td>Sala C</td>
+                            <td class="has-text-right">02:00 PM</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Recuperación</strong></td>
+                            <td>Sala D</td>
+                            <td class="has-text-right">03:30 PM</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="box">
+    <h2 class="title is-5 mb-3">
+        <span class="icon mr-2"><i class="fas fa-info-circle"></i></span>
+        Acerca de RehabilitAR
+    </h2>
+    <div class="content is-small">
+        <p>
+            RehabilitAR es una plataforma moderna de gestión de rehabilitación y terapia física.
+            Conectamos pacientes con profesionales de la salud para optimizar procesos de recuperación
+            mediante una interfaz intuitiva y herramientas especializadas.
+        </p>
+        <p>
+            Nuestros servicios incluyen:
+        </p>
+        <ul>
+            <li>Gestión integral de reservas y clases</li>
+            <li>Seguimiento de progreso de pacientes</li>
+            <li>Administración de salas y recursos</li>
+            <li>Reportes y estadísticas detalladas</li>
+            <li>Comunicación directa con terapeutas</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
