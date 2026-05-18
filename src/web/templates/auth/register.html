@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro - RehabilitAR</title>
+</head>
+<body>
+    <h1>Registrar Cliente</h1>
+    
+    {% if error %}
+        <div style="color: red; border: 1px solid red; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
+            <strong>Error:</strong> {{ error }}
+        </div>
+    {% endif %}
+    
+    <form action="{{ url_for('auth.registrar_cliente') }}" method="POST">
+        
+        <label for="nombre">Nombre:</label>
+        <input type="text" id="nombre" name="nombre" required><br><br>
+
+        <label for="apellido">Apellido:</label>
+        <input type="text" id="apellido" name="apellido" required><br><br>
+
+        <label for="dni">DNI:</label>
+        <input type="number" id="dni" name="dni" required><br><br>
+
+        <label for="telefono">Teléfono:</label>
+        <input type="tel" id="telefono" name="telefono" required><br><br>
+
+        <label for="fecha_nacimiento">Fecha de Nacimiento:</label>
+        <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" required><br><br>
+
+        <label for="direccion">Dirección:</label>
+        <input type="text" id="direccion" name="direccion" required><br><br>
+
+        <label for="email">Correo Electrónico:</label>
+        <input type="email" id="email" name="email" required><br><br>
+
+        <label for="apto_fisico">Apto Físico:</label>
+        <input type="file" id="apto_fisico" name="apto_fisico" accept=".pdf, .jpeg, .png"><br><br>
+
+        <label for="password">Contraseña (Mínimo 6 caracteres):</label>
+        <input type="password" id="password" name="password" minlength="6" required><br><br>
+
+        <button type="submit">Registrarme</button>
+    </form>
+</body>
+</html>
