@@ -1,34 +1,28 @@
-<!DOCTYPE html>
-<html lang="es">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    </head>
-    <body>
-        <header>
-            <h1>RehabilitAR - gestión para profesores</h1>
-        </header>
-        <section>
-            {% if profesor_en_clase %}
-                <h2>Gestión de mi clase actual</h2>
-                <!--<button type = 'Button' onclick="generarQR()">Generar QR</button>-->
-                <button type = 'Button' id="consultar_listado_alumnos" onclick="window.location.href='/profesor/listado_alumnos';">Ver lista de alumnos</button>
-                <button type = 'Button' id="registrar_asistencia_manual" onclick="window.location.href='/profesor/presente_manual';">Registrar asistencia manual</button>
-                <!--NOTA: pensé que capaz no les copaba este tipo de redirección siendo que flask hace esto dinámicamente y nos permite (además) recopilar información-->
-                {% if exito %}
-                    <div>
-                        <p>Se ha registrado al paciente {{nombre}} exitosamente</p>
-                    </div>
-                {% endif %}
-            {% else %}
-                <h2>Actualmente no hay ninguna clase disponible</h2>
-                <p>Cuando esté transcurriendo una clase, aparecerán los detalles aquí</p>
+{% extends "layout.html" %}
+
+{% block title %} Inicio - Gestión de profesores {% endblock %}
+
+{% block content %}
+    <section>
+        {% if profesor_en_clase %}
+            <h2>Gestión de mi clase actual</h2>
+            <!--<button type = 'Button' onclick="generarQR()">Generar QR</button>-->
+            <button type = 'Button' id="consultar_listado_alumnos" onclick="window.location.href='/profesor/listado_alumnos';">Ver lista de alumnos</button>
+            <button type = 'Button' id="registrar_asistencia_manual" onclick="window.location.href='/profesor/presente_manual';">Registrar asistencia manual</button>
+            {% if exito %}
+                <div>
+                    <p>Se ha registrado al paciente {{nombre}} exitosamente</p>
+                </div>
             {% endif %}
-        </section>
-        <section>
-            <h2 onclick="window.location.href='/profesor/ver_asistencias';">Gestionar mis asistencias</h2>
-        </section>
-        {% if error %}
-            <p>Error: {{error}}</p>
+        {% else %}
+            <h2>Actualmente no hay ninguna clase disponible</h2>
+            <p>Cuando esté transcurriendo una clase, aparecerán los detalles aquí</p>
         {% endif %}
-    </body>
+    </section>
+    <section>
+        <h2 onclick="window.location.href='/profesor/ver_asistencias';">Gestionar mis asistencias</h2>
+    </section>
+    {% if error %}
+        <p>Error: {{error}}</p>
+    {% endif %}
+{% endblock %}

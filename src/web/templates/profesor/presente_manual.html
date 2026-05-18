@@ -1,21 +1,16 @@
-<!DOCTYPE html>
-<html lang="es">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    </head>
-    <body>
-        <h1>Registrar manualmente a un paciente:</h1>
+{% extends "layout_profesor" %}
 
-        {% if error %}
-            <div style="color: red; border: 1px solid red; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
-                <strong>Error:</strong> {{ error }}
-            </div>
-        {% endif %}
+{% block title %} Registro manual a paciente {% endblock %}
 
-        <form method="post" action="{{ url_for('profesor.presente_manual') }}">
-            <input required type="text" name="dni" id="dni" maxlength="8" placeholder="Ingrese el DNI sin puntos">
-            <button type="submit" value="Enviar">Dar presente</button>
-        </form>
-    </body>
-</html>
+{% block content %}
+    {% if error %}
+        <div style="color: red; border: 1px solid red; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
+            <strong>Error:</strong> {{ error }}
+        </div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('profesor.presente_manual') }}">
+        <input required type="text" name="dni" id="dni" maxlength="8" placeholder="Ingrese el DNI sin puntos">
+        <button type="submit" value="Enviar">Dar presente</button>
+    </form>
+{% endblock %}

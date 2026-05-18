@@ -1,39 +1,37 @@
-<!DOCTYPE html>
-<html lang="es">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
-    </head>
-    <body>
-        <script src="{{ url_for('static', filename='js/listado_alumnos.js') }}" defer></script>
-        <h1>Lista de alumnos</h1>
-        <section>
-            <div class="buscador_container">
-                <form action="{{ url_for('profesor.listado_alumnos') }}" method="get" id="form-busqueda">
-                    <label for="busqueda">Buscar:</label>
-                    <input type="text" name="busqueda" id="busqueda" placeholder="Buscar alumno" {% if busqueda != None %} value="{{busqueda}} {% endif %}">
-                    {% if busqueda %}
-                        {% if busqueda != None%}
-                            <button type="button", id="limpiar">✕</button>
-                        {% endif %}
+{% extends "layout_profesor" %}
+
+{% block title %} Profesores - lista de alumnos de la clase actual {% endblock %}
+
+    {% block styles %} <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}"> {% endblock %}
+
+{% block content %}
+    
+    <script src="{{ url_for('static', filename='js/listado_alumnos.js') }}" defer></script>
+    <section>
+        <div class="buscador_container">
+            <form action="{{ url_for('profesor.listado_alumnos') }}" method="get" id="form-busqueda">
+                <label for="busqueda">Buscar:</label>
+                <input type="text" name="busqueda" id="busqueda" placeholder="Buscar alumno" {% if busqueda != None %} value="{{busqueda}} {% endif %}">
+                {% if busqueda %}
+                    {% if busqueda != None%}
+                        <button type="button", id="limpiar">✕</button>
                     {% endif %}
-                    <button type="submit">Buscar</button>
-                </form>
-            </div>
-            {% if error %}
-                <p>{{error}}</p>
-            {% endif %}
-            {% if lista_de_alumnos %}
-                <ul>
-                    {% for alumno in lista_de_alumnos %}
-                        <li onclick="window.location.href='/profesor/perfil_alumno/{{alumno.dni}}'">
-                            <p>Nombre y apellido: {{alumno.nombre}} {{alumno.apellido}}</p>
-                            <p>DNI: {{alumno.dni}}</p>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        </section>
-    </body>
-</html>
+                {% endif %}
+                <button type="submit">Buscar</button>
+            </form>
+        </div>
+        {% if error %}
+            <p>{{error}}</p>
+        {% endif %}
+        {% if lista_de_alumnos %}
+            <ul>
+                {% for alumno in lista_de_alumnos %}
+                    <li onclick="window.location.href='/profesor/perfil_alumno/{{alumno.dni}}'">
+                        <p>Nombre y apellido: {{alumno.nombre}} {{alumno.apellido}}</p>
+                        <p>DNI: {{alumno.dni}}</p>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+{% endblock %}

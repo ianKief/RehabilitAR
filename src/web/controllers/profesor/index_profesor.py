@@ -8,6 +8,6 @@ def renderizar_index_profesor ():
 
     # Comprobación 1: el profesor está logeado [EN INSTANCIA]
     if not (rol_profesor == "profesor"):
-        return render_template('index.html', error="El profesor debe estar logueado")
+        return render_template('home.html', error="El profesor debe estar logueado")
     
     return render_template('/profesor/index.html', profesor_en_clase = profesorEstáEnClase (dni_profesor))

@@ -12,7 +12,7 @@ def consultar_listado_alumnos ():
 
     # Comprobación 1: el profesor está logeado [EN SESIÓN]
     if not (rol_profesor == "profesor"):
-        return render_template('index.html', error="El profesor debe estar logueado")
+        return render_template('home.html', error="El profesor debe estar logueado")
 
     # Comprobación 2: el profesor está en una clase [EN BD]
     if not profesorEstáEnClase (dni_profesor):

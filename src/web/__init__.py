@@ -4,12 +4,9 @@ from src.core.database import db, init_db, reset_db, seed_db
 
 from src.web.controllers.salas import bp as salas_bp
 from src.web.controllers.profesor.routes_profesor import profesor_bp
-# from src.web.controllers.dev.routes_dev import dev_bp
 
 def create_app():
-    app = Flask(__name__, static_folder="static"
-                #, env="development"
-                )
+    app = Flask(__name__, static_folder="static")
 
     # Cargar configuración
     app.config.from_object(config)
@@ -17,10 +14,10 @@ def create_app():
     # Inicializar base de datos
     init_db(app)
 
+
     # Registrar blueprints
     app.register_blueprint(salas_bp)
     app.register_blueprint (profesor_bp)
-    # app.register_blueprint(dev_bp)
     
     # Registrar CLI commands
     @app.cli.command("reset-db")
