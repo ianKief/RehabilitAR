@@ -13,7 +13,7 @@ def create_app():
     init_db(app)
 
     # Registrar blueprints
-    from web.controllers.clases import clases_bp # hago el import acá porque creo que puede generarse un bucle de imports si se coloca al inicio
+    from src.web.controllers.clases import clases_bp # hago el import acá porque creo que puede generarse un bucle de imports si se coloca al inicio
     
     app.register_blueprint(salas_bp)
     app.register_blueprint(clases_bp)
