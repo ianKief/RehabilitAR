@@ -3,14 +3,18 @@
 {% block title %} Registro manual a paciente {% endblock %}
 
 {% block content %}
+
+    <form class="control has-icons-left" style="position:relative" method="post" action="{{ url_for('profesor.presente_manual') }}">
+        <input class="input is-rounded" required type="text" name="dni" id="dni" maxlength="8" placeholder="Ingrese el DNI sin puntos">
+        <button type="submit" value="Enviar" class="icon is-small is-left" style="background: none; border: none; cursor: pointer; pointer-events: auto; z-index: 5;">
+            <i class="fas fa-search"></i>
+        </button>
+    </form>
+
     {% if error %}
-        <div style="color: red; border: 1px solid red; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
-            <strong>Error:</strong> {{ error }}
+        <div class="box is-multiline">
+            <p class="has-text-danger is-4">Error: {{error}}</p>
         </div>
     {% endif %}
 
-    <form method="post" action="{{ url_for('profesor.presente_manual') }}">
-        <input required type="text" name="dni" id="dni" maxlength="8" placeholder="Ingrese el DNI sin puntos">
-        <button type="submit" value="Enviar">Dar presente</button>
-    </form>
 {% endblock %}

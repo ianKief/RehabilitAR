@@ -5,6 +5,7 @@ from src.web.functions.esDNI import esDNI
 from src.web.functions.conseguirNombre import conseguirNombre
 from src.web.functions.profesorEstáEnClase import profesorEstáEnClase
 from src.web.functions.alumnoTieneAsistencia import alumnoTieneAsistencia
+from src.web.functions.getClaseActual import getClaseActual
 
 def registrar_asistencia_manual ():
 
@@ -53,4 +54,4 @@ def registrar_asistencia_manual ():
                 return render_template('profesor/presente_manual.html', error="El alumno ya tiene su asistencia marcada")
 
         # Registrar presente
-        return render_template('/profesor/index.html', exito=True, nombre = conseguirNombre(dni_alumno), profesor_en_clase = True)
+        return render_template('/profesor/index.html', exito=True, nombre = conseguirNombre(dni_alumno), clase_actual = getClaseActual (dni_profesor))

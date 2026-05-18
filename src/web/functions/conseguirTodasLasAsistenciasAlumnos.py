@@ -1,12 +1,13 @@
 from src.web.objects.Clase import Clase
 from src.web.objects.AsistenciaAlumno import AsistenciaAlumno
 from src.web.functions.conseguirListaAlumnos import conseguirListaAlumnos
+from datetime import datetime
 
 def  conseguirTodasLasAsistenciasAlumnos (dni_profesor):
 
-    clase1 = Clase ("Espalda", "2026-03-01")
-    clase2 = Clase ("Rodilla", "2026-04-02")
-    clase3 = Clase ("Codo", "2025-07-22")
+    clase1 = Clase ("Espalda", "2026-03-01", datetime.now().replace(hour=8, minute=0, second=0), datetime.now().replace(hour=10, minute=0, second=0))
+    clase2 = Clase ("Rodilla", "2026-04-02", datetime.now().replace(hour=14, minute=0, second=0), datetime.now().replace(hour=15, minute=0, second=0))
+    clase3 = Clase ("Codo", "2025-07-22", datetime.now().replace(hour=16, minute=30, second=0), datetime.now().replace(hour=19, minute=0, second=0))
 
     lista_alumnos = conseguirListaAlumnos(dni_profesor)
 
