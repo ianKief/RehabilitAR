@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+
+{% block title %}Error {{error.codigo}} | RehabilitAR{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-half">
+        <div class="notification is-danger">
+          <h1 class="title is-4">Error {{ error.codigo }}: {{ error.mensaje }}</h1>
+          <p class="subtitle is-6 mt-4">{{ error.description }}</p>
+        </div>
+        <div class="has-text-centered mt-4">
+          <a href="/" class="button is-primary">Volver al inicio</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
