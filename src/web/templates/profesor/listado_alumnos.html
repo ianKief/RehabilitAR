@@ -41,8 +41,6 @@
         </div>
     </form>
 
-    <!--POR ACÁ VA EL ERROR :p-->
-
     <!-- 2. LISTA DE ALUMNOS -->
 
     {% if lista_de_alumnos %}
@@ -66,22 +64,6 @@
                     </div>
                 </a>
             {% endfor %}
-
-    <!--
-        <a href="/alumno/1" class="box alumno-card">
-            <div class="columns is-mobile is-vcentered">
-                <div class="column">
-                    <p class="title is-5 mb-1">Pérez, Juan</p>
-                    <p class="subtitle is-6 has-text-grey mt-0">DNI: 12.345.678</p>
-                </div>
-                <div class="column is-narrow">
-                    <span class="icon has-text-info">
-                        <i class="fas fa-chevron-right"></i>
-                    </span>
-                </div>
-            </div>
-        </a>
-    -->
         
         </div>
     {% endif %}
@@ -90,6 +72,17 @@
             <p class="has-text-danger is-4">Error: {{error}}</p>
         </div>
     {% endif %}
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <!-- Usamos la categoría como clase CSS (ej. success, error) -->
+                <div class="alert has-text-{{ category }}">
+                    <p>{{ message }}</p>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 </div>
 
 {% endblock %}

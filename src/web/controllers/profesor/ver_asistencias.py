@@ -1,4 +1,4 @@
-from flask import render_template, session, request
+from flask import render_template, session, request, flash, url_for, redirect
 
 from src.web.functions.tieneAlumnos import tieneAlumnos
 from src.web.functions.conseguirTodasLasAsistenciasAlumnos import conseguirTodasLasAsistenciasAlumnos
@@ -8,13 +8,15 @@ def ver_comentarios_y_asistencias ():
     
     dni_profesor = session.get("dni")
 
-    # Comprobación 1: el profesor está logeado [EN SESIÓN]
+    # Comprobación 1: el profesor está logeado [EN INSTANCIA]
     # COMPROBAR LOGIN
-    #    return render_template('home.html', error="El profesor debe estar logueado")
+    #   flash('El profesor no está logueado', 'warning')
+    #   return redirect(url_for('home'))
 
     # Comprobación 2: lista vacía
     if not (tieneAlumnos(dni_profesor)):
-        return render_template ('profesor/ver_asistencias.html', error="No se han encontrado resultados")
+        flash ("No se han encontrado resultados", "warning")
+        return render_template ('profesor/ver_asistencias.html')
 
 # Explicación de cómo HTML devuelve las variables:
 # Búsqueda: si se deja vacío devuelve "", pero si no se especifica búsqueda (cosa que va a pasar cuando se cargue la página), devuelve None. A fin de uniformalizar, se establece un if debajo que cambie esto.
@@ -34,14 +36,14 @@ def ver_comentarios_y_asistencias ():
     if (estado == None):
         estado="seleccionar_todos"
 
-    print ("busqueda (tiene que ser distinta a ''):", busqueda)
-    print ("Fecha (Tiene que ser distinta a ''):", fecha)
-    print ("solo_comentarios (tiene que ser distinto a False):", solo_comentarios)
-    print ("estado (tiene que ser distinto a 'seleccionar_todos'):", estado)
+    # print ("busqueda (tiene que ser distinta a ''):", busqueda)
+    # print ("Fecha (Tiene que ser distinta a ''):", fecha)
+    # print ("solo_comentarios (tiene que ser distinto a False):", solo_comentarios)
+    # print ("estado (tiene que ser distinto a 'seleccionar_todos'):", estado)
 
     hay_filtro = busqueda!="" or fecha!="" or solo_comentarios==True or estado != "seleccionar_todos"
 
-    print ("HAY FILTRO", hay_filtro)
+    # print ("HAY FILTRO", hay_filtro)
 
     return render_template ('profesor/ver_asistencias.html', lista_de_asistencias=filtrarAsistencias (conseguirTodasLasAsistenciasAlumnos(dni_profesor),
                                                                                            busqueda=busqueda,

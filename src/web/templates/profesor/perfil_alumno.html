@@ -89,16 +89,16 @@
         </form>
     </div>
 
-    {% if error %}
-        <div class="box is-multiline">
-            <p class="has-text-danger is-4">Error: {{error}}</p>
-        </div>
-    {% endif %}
-    {% if exito %}
-        <div class="box is-multiline">
-            <p class="has-text-success is-4">Se ha subido el comentario exitosamente</p>
-        </div>
-    {% endif %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <!-- Usamos la categoría como clase CSS (ej. success, error) -->
+                <div class="alert has-text-{{ category }}">
+                    <p>{{ message }}</p>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 </div>
 
 {% endblock %}

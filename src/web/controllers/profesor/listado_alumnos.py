@@ -1,4 +1,4 @@
-from flask import render_template, session, request
+from flask import render_template, session, request, flash, redirect, url_for
 
 from src.web.functions.profesorEstáEnClase import profesorEstáEnClase
 from src.web.functions.conseguirListaAlumnos import conseguirListaAlumnos
@@ -9,27 +9,29 @@ def consultar_listado_alumnos ():
 
     dni_profesor = session.get("dni")
 
-    # Comprobación 1: el profesor está logeado [EN SESIÓN]
+    # Comprobación 1: el profesor está logeado [EN INSTANCIA]
     # COMPROBAR LOGIN
-    #    return render_template('home.html', error="El profesor debe estar logueado")
+    #   flash('El profesor no está logueado', 'warning')
+    #   return redirect(url_for('home'))
 
     # Comprobación 2: el profesor está en una clase [EN BD]
     if not profesorEstáEnClase (dni_profesor):
-        return render_template('profesor/index.html', error="El profesor no se encuentra en una clase")
+        flash ("El profesor no se encuentra en una clase", 'warning')
+        return redirect(url_for("profesor.index_profesor"))
 
     # Comprobación 3: lista vacía
     if not (tieneAlumnosEnClase(dni_profesor)):
-        return render_template ('profesor/listado_alumnos.html', error="No se han encontrado resultados")
+        flash ("No se han encontrado resultados", "warning")
+        return render_template ('profesor/listado_alumnos.html')
 
     busqueda = request.args.get("busqueda")
+    # esto tiene un error en el filtrado. Se verá luego de la integración con BD si se puede hacer andar.
 
     if (busqueda):
         lista_de_alumnos = filtrarPorNombre(busqueda, conseguirListaAlumnos(dni_profesor))
         if (lista_de_alumnos == []):
-            return render_template ('profesor/listado_alumnos.html',
-                                    error="No se han encontrado resultados",
-                                    busqueda=busqueda
-                                    )
+            flash ("No se han encontrado resultados", "warning")
+            return render_template ('profesor/listado_alumnos.html', busqueda=busqueda)
     else:
         lista_de_alumnos = conseguirListaAlumnos(dni_profesor)
 

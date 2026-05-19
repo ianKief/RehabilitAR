@@ -19,10 +19,15 @@
         </button>
     </form>
 
-    {% if error %}
-        <div class="box is-multiline">
-            <p class="has-text-danger is-4">Error: {{error}}</p>
-        </div>
-    {% endif %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <!-- Usamos la categoría como clase CSS (ej. success, error) -->
+                <div class="alert has-text-{{ category }}">
+                    <p>{{ message }}</p>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
 {% endblock %}

@@ -1,4 +1,4 @@
-from flask import render_template, session
+from flask import render_template, session, redirect, url_for, flash
 from src.web.functions.profesorEstáEnClase import profesorEstáEnClase
 from src.web.functions.getClaseActual import getClaseActual
 
@@ -8,6 +8,7 @@ def renderizar_index_profesor ():
 
     # Comprobación 1: el profesor está logeado [EN INSTANCIA]
     # COMPROBAR LOGIN
-    #    return render_template('home.html', error="El profesor debe estar logueado")
+    #   flash('El profesor no está logueado', 'warning')
+    #   return redirect(url_for('home'))
     
     return render_template('/profesor/index.html', clase_actual = getClaseActual (dni_profesor))
