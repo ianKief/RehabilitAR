@@ -10,7 +10,15 @@
 
 <!--Formulario de búsqueda-->
 
-    <form action="{{ url_for('profesor.ver_asistencias') }}" method="get" id="form-busqueda" id="search-form" action="/tu-ruta-post" method="POST">
+    <!-- Botón para volver al menú -->
+    <div class="mb-4">
+        <a href="/profesor" class="button is-ghost pl-0 has-text-grey">
+            <span class="icon"><i class="fas fa-arrow-left"></i></span>
+            <span>Volver al menú de profesores</span>
+        </a>
+    </div>
+    
+    <form class="mb-4" action="{{ url_for('profesor.ver_asistencias') }}" method="get" id="form-busqueda" id="search-form" action="/tu-ruta-post" method="POST">
         <!-- Contenedor principal móvil-friendly -->
         <div class="field has-addons mb-0">
     

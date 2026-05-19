@@ -4,6 +4,14 @@
 
 {% block content %}
 
+    <!-- Botón para volver al menú -->
+    <div class="mb-4">
+        <a href="/profesor" class="button is-ghost pl-0 has-text-grey">
+            <span class="icon"><i class="fas fa-arrow-left"></i></span>
+            <span>Volver al menú de profesores</span>
+        </a>
+    </div>
+    
     <form class="control has-icons-left" style="position:relative" method="post" action="{{ url_for('profesor.presente_manual') }}">
         <input class="input is-rounded" required type="text" name="dni" id="dni" maxlength="8" placeholder="Ingrese el DNI sin puntos">
         <button type="submit" value="Enviar" class="icon is-small is-left" style="background: none; border: none; cursor: pointer; pointer-events: auto; z-index: 5;">
