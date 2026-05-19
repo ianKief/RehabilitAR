@@ -18,6 +18,8 @@ class Clase(Base):
     suspendida: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     fecha_clase: Mapped[date] = mapped_column(Date, nullable=False)
     horario: Mapped[time] = mapped_column(Time, nullable=False)
+    aprobada:Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    tipo: Mapped[str] = mapped_column(String(20), nullable=False)
 
     # Campos de auditoría
     fecha_creacion: Mapped[datetime] = mapped_column(

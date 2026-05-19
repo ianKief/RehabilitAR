@@ -26,3 +26,7 @@ def seed_db():
     from src.core.seeds.salas_seeds import SalaSeeder
     seeder = SalaSeeder(db) 
     seeder.run()
+    # seeder de clases
+    from src.core.seeds.clases_seeds import ClaseSeeder
+    seeder_clases = ClaseSeeder(db)
+    seeder_clases.run()
