@@ -36,3 +36,9 @@ def create_app():
     app.register_error_handler(401, error.unauthorized)
     app.register_error_handler(403, error.forbidden)
     app.register_error_handler(500, error.internal_server_error)
+
+    @app.route("/")
+    def home():
+        return render_template("home.html", current_path=request.path)
+
+    return app
