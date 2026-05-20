@@ -29,6 +29,7 @@ class Usuario(Base):
     
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     nombre: Mapped[str] = mapped_column(String(100), nullable=False)
+    apellido: Mapped[str] = mapped_column(String(100), nullable=False)
     dni: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -40,6 +41,9 @@ class Usuario(Base):
     
     rol: Mapped[RolUsuario] = mapped_column(Enum(RolUsuario), default=RolUsuario.CLIENTE, nullable=False)
     estado: Mapped[EstadoUsuario] = mapped_column(Enum(EstadoUsuario), default=EstadoUsuario.PENDIENTE, nullable=False)
+
+    codigo_verificacion : Mapped[str] = mapped_column(String(6), nullable=True)
+    codigo_verificacion_expira : Mapped[datetime] = mapped_column(DateTime, nullable=True)
     
     fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
