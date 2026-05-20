@@ -9,6 +9,12 @@ def listar_usuarios():
 
 def crear_usuario(**kwargs):
     """Crea un nuevo usuario en la base de datos."""
+    stmt = select(Usuario).filter_by(email=kwargs.get('email'))
+    usuario_existente = db.session.execute(stmt).scalar_one_or_none()
+
+    if usuario_existente:
+        raise ValueError("El correo electrónico ya está registrado.")
+    
     nuevo_usuario = Usuario(**kwargs)
     db.session.add(nuevo_usuario)
     db.session.commit()

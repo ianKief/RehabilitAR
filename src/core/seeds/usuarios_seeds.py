@@ -14,6 +14,7 @@ class UsuarioSeeder:
         roles = [RolUsuario.CLIENTE, RolUsuario.RECEPCIONISTA, RolUsuario.PROFESOR, RolUsuario.ADMINISTRADOR]
         for i in range(1, 11):
             nombre = f"Usuario {i}"
+            apellido = f"Apellido {i}"
             dni = f"{random.randint(10000000, 99999999)}"
             email = f"user{i}@gmail.com"
             password = f"password{i}"
@@ -26,6 +27,7 @@ class UsuarioSeeder:
 
             usuario = Usuario(
                 nombre=nombre,
+                apellido=apellido,
                 dni=dni, 
                 email=email, 
                 password=password, 
