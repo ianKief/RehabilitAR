@@ -2,6 +2,7 @@ from flask import Flask, request,render_template
 from src.web.config import config
 from src.core.database import db, init_db, reset_db, seed_db
 
+from src.web.handlers import error
 from src.web.controllers.salas import bp as salas_bp
 from src.web.controllers.profesor.routes_profesor import profesor_bp
 
@@ -29,6 +30,12 @@ def create_app():
     def seed_db_command():
         """Pobla la base de datos con datos de prueba."""
         seed_db()
+
+    # Registrar manejadores de errores
+    app.register_error_handler(404, error.not_found)
+    app.register_error_handler(401, error.unauthorized)
+    app.register_error_handler(403, error.forbidden)
+    app.register_error_handler(500, error.internal_server_error)
 
     @app.route("/")
     def home():
