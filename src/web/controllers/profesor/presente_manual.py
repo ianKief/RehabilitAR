@@ -31,26 +31,26 @@ def registrar_asistencia_manual ():
     
     elif request.method == 'POST':
 
-        # Comprobación 1: el profesor está logeado [EN INSTANCIA]
-        # COMPROBAR LOGIN
-        #   flash('El profesor no está logueado', 'warning')
-        #   return redirect(url_for('home'))
-        
-        # Comprobación 2: el profesor está en una clase [EN BD]
-        if not profesorEstáEnClase (dni_profesor):
-            flash ("El profesor no se encuentra en una clase", 'warning')
-            return redirect(url_for("profesor.index_profesor"))
-        
-        # Comprobación 3: se ha ingresado el DNI [EN CLIENTE]
+        # Comprobación 1: se ha ingresado el DNI [EN CLIENTE]
         if not dni_alumno:
             flash ("Debe ingresarse un DNI", "warning")
             return render_template('profesor/presente_manual.html')
     
-        # Comprobación 4: no se ha ingresado un DNI [EN CLIENTE]
+        # Comprobación 2: no se ha ingresado un DNI [EN CLIENTE]
         if not esDNI(dni_alumno):
             flash ("El dato ingresado no es un DNI", "warning")
             return render_template('profesor/presente_manual.html')
 
+        # Comprobación 3: el profesor está logeado [EN INSTANCIA]
+        # COMPROBAR LOGIN
+        #   flash('El profesor no está logueado', 'warning')
+        #   return redirect(url_for('home'))
+        
+        # Comprobación 4: el profesor está en una clase [EN BD]
+        if not profesorEstáEnClase (dni_profesor):
+            flash ("El profesor no se encuentra en una clase", 'warning')
+            return redirect(url_for("profesor.index_profesor"))
+        
         # Comprobación 5: el alumno de ese DNI pertenece a esa clase [EN BD]
         if not perteneceASuClase (dni_profesor, dni_alumno):
             flash ("El DNI del alumno no corresponde a la clase del profesor o no existe", "warning")

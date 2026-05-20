@@ -26,24 +26,3 @@ clearBtn.addEventListener("click", () => {
   window.location.href =
   "/profesor/ver_asistencias"
 })
-
-/*
-// Lógica del botón Limpiar Filtros
-clearBtn.addEventListener('click', () => {
-  // 1. Resetear el campo de texto de búsqueda
-  form.querySelector('input[name="search"]').value = '';
-  
-  // 2. Resetear el campo de fecha
-  form.querySelector('input[name="fecha"]').value = '';
-  
-  // 3. Desmarcar el checkbox
-  form.querySelector('input[name="solo_activos"]').checked = false;
-  
-  // 4. Resetear los radios a la primera opción por defecto
-  const radios = form.querySelectorAll('input[name="categoria"]');
-  radios.forEach((radio, index) => {
-    radio.checked = (index === 0); // Marca solo el primero
-  });
-});
-
-*/

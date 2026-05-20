@@ -19,7 +19,7 @@ def consultar_listado_alumnos ():
         flash ("El profesor no se encuentra en una clase", 'warning')
         return redirect(url_for("profesor.index_profesor"))
 
-    # Comprobación 3: lista vacía
+    # Comprobación 3: lista vacía [EN BD]
     if not (tieneAlumnosEnClase(dni_profesor)):
         flash ("No se han encontrado resultados", "warning")
         return render_template ('profesor/listado_alumnos.html')
