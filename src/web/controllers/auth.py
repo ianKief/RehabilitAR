@@ -22,32 +22,32 @@ def registrar_cliente():
         # 1. Validar que no falte ningún campo obligatorio
         if not all([nombre, apellido, dni, telefono, fecha_nacimiento, direccion, email, password]):
             # Si falta algún campo obligatorio, podríamos mostrar un mensaje de error
-            return render_template('auth/register.html', error="Por favor, complete todos los campos obligatorios.")
+            return render_template('auth/registro.html', error="Por favor, complete todos los campos obligatorios.")
         
         # 2. Validar mayoría de edad
         today = datetime.now()
         birthdate = datetime.strptime(fecha_nacimiento, '%Y-%m-%d')
         age = (today - birthdate).days // 365
         if age < 18:
-            return render_template('auth/register.html', error="Debes ser mayor de edad para registrarte.")
+            return render_template('auth/registro.html', error="Debes ser mayor de edad para registrarte.")
 
         # 3. Validar que el DNI/Email no existan en la Base de Datos
         # ...
 
         # 4. Validar formato de la contraseña
         if len(password) < 6:
-            return render_template('auth/register.html', error="La contraseña debe tener al menos 6 caracteres.")
+            return render_template('auth/registro.html', error="La contraseña debe tener al menos 6 caracteres.")
         
         # 5. Validar formato del email
         allowed_domains = ['gmail.com', 'hotmail.com', 'outlook.com']
         if not email.endswith(tuple(allowed_domains)):
-            return render_template('auth/register.html', error="El correo electrónico debe ser del dominio @gmail.com, @hotmail.com o @outlook.com.")
+            return render_template('auth/registro.html', error="El correo electrónico debe ser del dominio @gmail.com, @hotmail.com o @outlook.com.")
 
         # 6. Validar que el archivo de apto físico sea del tipo permitido
         if apto_fisico:
             allowed_extensions = ['pdf', 'jpeg', 'png']
             if not apto_fisico.endswith(tuple(allowed_extensions)):
-                return render_template('auth/register.html', error="El archivo de apto físico debe ser PDF, JPEG o PNG.")
+                return render_template('auth/registro.html', error="El archivo de apto físico debe ser PDF, JPEG o PNG.")
         
         # 7. Guardar el usuario con rol 'CLIENTE' y estado 'Pendiente'
         
@@ -56,4 +56,4 @@ def registrar_cliente():
         return render_template('auth/verificacion.html')
     
     # Si es un GET (el usuario recién entra a la página), mostramos el formulario
-    return render_template('auth/register.html')
+    return render_template('auth/registro.html')
