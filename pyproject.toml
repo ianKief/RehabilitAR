@@ -13,6 +13,7 @@ dependencies = [
     "python-dotenv (>=1.2.2,<2.0.0)",
     "psycopg2-binary (>=2.9.12,<3.0.0)",
     "flask-sqlalchemy-lite (>=0.2.1,<0.3.0)",
+    "tzdata (>=2026.2,<2027.0)",
 ]
 
 packages = [{include = "web", from = "src"}]
