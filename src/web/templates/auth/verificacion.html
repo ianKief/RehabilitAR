@@ -1,0 +1,64 @@
+{% extends "layout.html" %}
+
+{% block title %}Verificación de Cuenta | RehabilitAR{% endblock %}
+
+{% block content %}
+<div class="columns is-centered mt-6">
+    <div class="column is-5">
+        <div class="box has-text-centered p-5" style="border-top: 5px solid #00d1b2;">
+            
+            <div class="block">
+                <span class="icon is-large has-text-primary mb-3">
+                    <i class="fas fa-envelope-open-text fa-3x"></i>
+                </span>
+                <h1 class="title is-4">Verificá tu correo electrónico</h1>
+                <p class="subtitle is-6 has-text-grey">
+                    Hemos enviado un código de seguridad a tu email. Por favor, ingresalo a continuación.
+                </p>
+            </div>
+
+            {% if error %}
+            <div class="notification is-danger is-light py-2">
+                <span class="icon is-small"><i class="fas fa-exclamation-circle"></i></span>
+                <strong>Error:</strong> {{ error }}
+            </div>
+            {% endif %}
+
+            <form action="{{ url_for('auth.verificar') }}" method="POST">
+                <div class="field mb-5">
+                    <div class="control has-icons-left">
+                        <input class="input is-large has-text-centered" 
+                               type="text" 
+                               name="codigo_verificacion" 
+                               placeholder="123456" 
+                               maxlength="6" 
+                               pattern="\d{6}" 
+                               title="El código debe ser de 6 números"
+                               required 
+                               style="letter-spacing: 8px; font-weight: bold;">
+                        <span class="icon is-large is-left">
+                            <i class="fas fa-key"></i>
+                        </span>
+                    </div>
+                    <p class="help has-text-grey-dark mt-2">
+                        <span class="icon is-small"><i class="far fa-clock"></i></span>
+                        Este código expira en 15 minutos.
+                    </p>
+                </div>
+
+                <div class="block">
+                    <button type="submit" class="button is-primary is-fullwidth is-medium">
+                        Confirmar Código
+                    </button>
+                </div>
+            </form>
+
+            <hr>
+
+            <p class="is-size-7 has-text-grey">
+                ¿No recibiste el correo? Revisá la carpeta de Spam o reintentá el registro.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
