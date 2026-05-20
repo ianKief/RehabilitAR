@@ -1,7 +1,7 @@
 from flask import render_template, session, request, flash, redirect, url_for
 
 from src.core.clases import profesor_está_en_clase
-from src.core.usuarios import tiene_alumnos_en_clase, conseguir_lista_alumnos_clase_actual
+from src.core.usuarios import tiene_alumnos, conseguir_lista_alumnos_clase_actual
 
 def consultar_listado_alumnos ():
 
@@ -18,7 +18,7 @@ def consultar_listado_alumnos ():
         return redirect(url_for("profesor.index_profesor"))
 
     # Comprobación 3: lista vacía [EN BD]
-    if not (tiene_alumnos_en_clase(id_profesor)):
+    if not (tiene_alumnos(id_profesor, en_clase=True)):
         flash ("No se han encontrado resultados", "warning")
         return render_template ('profesor/listado_alumnos.html')
 

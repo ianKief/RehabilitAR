@@ -37,3 +37,15 @@ class Clase(Base):
         return (f"<ClaseRehabilitacion(id={self.id}, nombre='{self.nombre}', "
                 f"especialidad='{self.especialidad}', fecha='{self.fecha_clase}', "
                 f"horario='{self.horario}', suspendida={self.suspendida})>")
+
+class ProfesorDictaClase (Base):
+    __tablename__ = "profesor_clase"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id_profesor: Mapped[int] = mapped_column(Integer, nullable=False)
+    id_clase: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # Campos de auditoría
+    fecha_creacion: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
+        nullable=False
+    )

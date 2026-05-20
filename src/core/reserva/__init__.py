@@ -1,50 +1,48 @@
-
+from sqlalchemy import or_, func, text
+from sqlalchemy.orm import joinedload, selectinload, contains_eager
+from src.core.database import db
 
 def alumno_tiene_asistencia (dni_alumno):
 
     query = (
         db.session.query(Reserva.asiste)
-        .join(Alumno)
-        .join(Usuario)
-        .join(Clase)
+        .join(Alumno, Reserva.id_alumno == Alumno.id)
+        .join(Clase, Reserva.id_clase == Clase.id)
+
         .filter(Usuario.dni == dni_alumno)
         .filter(func.now() > Clase.fecha_hora)
-        .filter(
-            func.now() <
-            (
-                Clase.fecha_hora +
-                (
-                    Clase.duracion *
-                    text("INTERVAL '1 minute'")
-                )
-            )
-        )
+        .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
     )
 
-def conseguir_asistencias (profesor_id, busqueda="", estado='seleccionar_todos', fecha="", solo_comentarios=False):
+    return db.session.scalars(query).all()
+
+def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos', fecha="", solo_comentarios=False):
+    # Inicializaciones necesarias
     filters = []
     joins = []
     cliente_filtrado = False
 
+    # Aplicando filtros al query
     if (busqueda != ""):
-        joins.append(Cliente)
-        joins.append(Usuario)
+        joins.append(Cliente, Reserva.id_cliente == Cliente.id)
+        joins.append(Comentario, Comentario.id_reserva == Reserva.id)
         cliente_filtrado = True
-        filters.append(or_(Cliente.nombre.ilike(f"%{busqueda}%"), Cliente.apellido.ilike(f"%{busqueda}%"), Usuario.dni.ilike(f"%{busqueda}%"), Comentario.comentario.ilike(f"%{busqueda}%")))
+        filters.append(or_(Cliente.nombre.like(f"%{busqueda}%"), Cliente.apellido.like(f"%{busqueda}%"), Cliente.dni.like(f"%{busqueda}%"), Comentario.comentario.like(f"%{busqueda}%")))
     if (estado != "seleccionar_todos"):
         filters.append(estado == reserva.asiste) # NOTA: estado es presente o ausente. Si se registra otra cosa ver
     if (fecha != ""):
-        joins.append(Clase)
         filters.append(fecha == CLASE.fecha)
     if solo_comentarios == True:
         filters.append(Comentario.any())
 
+    # query en sí
     query = (
         db.session.query(Reserva)
-        .join(Clase)
-        .join (Profesor)
+        .join(Clase, Clase.id == Reserva.id_clase)
+        .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
+        .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
         .join(*joins)
-        .filter(Profesor.id == profesor_id)
+        .filter(Profesor.id == id_profesor)
         .filter(*filters)
     )
     if cliente_filtrado:
@@ -58,27 +56,19 @@ def conseguir_asistencias (profesor_id, busqueda="", estado='seleccionar_todos',
             selectinload(Comentario.id_reserva)
         )
 
-    return bd.session.scalars(query).all()
+    return db.session.scalars(query).all()
 
 def subir_comentario (dni_alumno, comentario):
 
-    query = (
+    id_reserva = (
         db.session.query(Reserva.id)
-        .join (Cliente)
-        .join (Usuario)
-        .join (Clase)
+        .join (Cliente, Reserva.id_cliente == Cliente.id)
+        .join (ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
+        .join (Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
+
         .filter(dni_alumno == Usuario.dni)
         .filter(func.now() > Clase.fecha_hora)
-        .filter(
-            func.now() <
-            (
-                Clase.fecha_hora +
-                (
-                    Clase.duracion *
-                    text("INTERVAL '1 minute'")
-                )
-            )
-        )
+        .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
     )
 
     nuevo_comentario = Comentario(comentario=comentario, id_reserva = id_reserva)
