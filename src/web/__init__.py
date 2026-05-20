@@ -17,8 +17,11 @@ def create_app():
 
 
     # Registrar blueprints
+    from src.web.controllers.clases import bp as clases_bp # hago el import acá porque creo que puede generarse un bucle de imports si se coloca al inicio
+    
     app.register_blueprint(salas_bp)
     app.register_blueprint (profesor_bp)
+    app.register_blueprint(clases_bp)
     
     # Registrar CLI commands
     @app.cli.command("reset-db")
