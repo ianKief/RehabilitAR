@@ -34,13 +34,10 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
 
     # Inicializaciones necesarias
     filters = []
-    joins = []
     cliente_filtrado = False
 
     # Aplicando filtros al query
     if (busqueda != ""):
-        joins.append(Cliente, Reserva.id_cliente == Cliente.id)
-        joins.append(Comentario, Comentario.id_reserva == Reserva.id)
         cliente_filtrado = True
         filters.append(or_(Cliente.nombre.like(f"%{busqueda}%"), Cliente.apellido.like(f"%{busqueda}%"), Cliente.dni.like(f"%{busqueda}%"), Comentario.comentario.like(f"%{busqueda}%")))
         filters.append(Cliente.rol == "cliente")
@@ -61,7 +58,9 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
         .join(Clase, Clase.id == Reserva.id_clase)
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
         .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
-        .join(*joins)
+        .join(Cliente, Reserva.id_cliente == Cliente.id)
+        .outerjoin(Comentario, Comentario.id_reserva == Reserva.id)
+
         .filter(Profesor.id == id_profesor)
         .filter(Profesor.rol == "profesor")
         .filter(*filters)
@@ -90,6 +89,7 @@ def subir_comentario (dni_alumno, comentario):
     query = (
         db.session.query(Reserva.id)
         .join (Cliente, Reserva.id_cliente == Cliente.id)
+        .join (Clase, Clase.id, Reserva.id_clase)
         .join (ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
         .join (Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
 
@@ -102,7 +102,7 @@ def subir_comentario (dni_alumno, comentario):
 
     id_reserva = db.session.scalars(query).one()
 
-    nuevo_comentario = Comentario(comentario=comentario, id_reserva = id_reserva)
+    nuevo_comentario = Comentario(comentario = comentario, id_reserva = id_reserva)
     db.session.add(nuevo_comentario)
     db.session.commit()
 

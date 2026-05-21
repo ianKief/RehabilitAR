@@ -32,6 +32,7 @@ def conseguir_clase_actual (id_profesor):
 
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
         .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
+        # Las reglas de negocio no permiten que se de una clase sin alumnos, pero, dado el caso, outerjoin prepara el escenario
         .outerjoin(Reserva, Reserva.id_clase == Clase.id)
 
         .filter(Profesor.id == id_profesor)

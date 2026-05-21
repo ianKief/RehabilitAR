@@ -19,6 +19,7 @@ def alumno_pertenece_a_clase_actual_profesor (id_profesor, dni_alumno):
         .join(Clase, Clase.id == Reserva.id_clase)
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
         .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
+
         .filter(Profesor.id == id_profesor)
         .filter(Cliente.dni == dni_alumno)
         .filter(Profesor.rol == "profesor")
@@ -27,7 +28,7 @@ def alumno_pertenece_a_clase_actual_profesor (id_profesor, dni_alumno):
         .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
     )
 
-    return db.session.scalars(query).all()
+    return db.session.scalars(query).one()
 
 def conseguir_lista_alumnos_clase_actual (id_profesor, filtro_nombre = ""):
     """Dado un ID de profesor, consigue la lista de alumnos de la clase actual si lo hay.
@@ -59,6 +60,7 @@ def conseguir_lista_alumnos_clase_actual (id_profesor, filtro_nombre = ""):
         .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
 
         .group_by(Cliente.id)
+        .order_by(Cliente.apellido, Cliente.nombre)
     )
 
     return db.session.execute(query).all()
@@ -76,14 +78,14 @@ def conseguir_perfil_alumno (dni_alumno):
 
     return db.session.scalars(query).one_or_none()
 
-def tiene_alumnos (id_profesor, en_clase=False):
-    """Devuelve True si tiene alumnos, False si no. Esto es en general, pero el parámetro en_clase=False filtra (si está en True) si tiene alumnos en la clase actual (si la hay). False en caso contrario (no tira excepción)."""
+def tiene_alumnos (id_profesor, en_clase_actual=False):
+    """Devuelve True si tiene alumnos, False si no. Esto es en general, pero el parámetro en_clase_actual=False filtra (si está en True) si tiene alumnos en la clase actual (si la hay). False en caso contrario (no tira excepción)."""
 
     Profesor = aliased(Usuario)
     Cliente = aliased(Usuario)
 
     filters= []
-    if en_clase:
+    if en_clase_actual:
         filters.append(func.now() > Clase.fecha_hora)
         filters.append(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
 
