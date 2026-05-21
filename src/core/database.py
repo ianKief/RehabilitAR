@@ -15,6 +15,7 @@ class Base(DeclarativeBase):
 def reset_db():
     from src.core.salas import Sala
     from src.core.clases.clases import Clase
+    from src.core.usuarios import Usuario
     """Reinicia la base de datos eliminando todas las tablas y volviéndolas a crear."""
     print("Reiniciando la base de datos...")
     Base.metadata.drop_all(bind=db.engine)
@@ -30,3 +31,6 @@ def seed_db():
     from src.core.seeds.clases_seeds import ClaseSeeder
     seeder_clases = ClaseSeeder(db)
     seeder_clases.run()
+    from src.core.seeds.usuarios_seeds import UsuarioSeeder
+    usuario_seeder = UsuarioSeeder(db)
+    usuario_seeder.run()

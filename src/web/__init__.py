@@ -5,6 +5,8 @@ from src.core.database import db, init_db, reset_db, seed_db
 from src.web.handlers import error
 from src.web.controllers.salas import bp as salas_bp
 from src.web.controllers.profesor.routes_profesor import profesor_bp
+from src.web.controllers.auth import auth_bp
+from src.web.controllers.usuarios import users_bp as usuarios_bp
 
 def create_app():
     app = Flask(__name__, static_folder="static")
@@ -22,7 +24,9 @@ def create_app():
     app.register_blueprint(salas_bp)
     app.register_blueprint (profesor_bp)
     app.register_blueprint(clases_bp)
-    
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(usuarios_bp)
+
     # Registrar CLI commands
     @app.cli.command("reset-db")
     def reset_db_command():
