@@ -1,5 +1,7 @@
 from sqlalchemy import func, text, or_
 from src.core.database import db
+from src.core.clases.clases import Clase, ProfesorDictaClase
+from src.core.reserva.reservas import Reserva
 
 def alumno_pertenece_a_clase_actual_profesor (id_profesor, dni_alumno):
     query = (
@@ -9,7 +11,7 @@ def alumno_pertenece_a_clase_actual_profesor (id_profesor, dni_alumno):
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
         .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
         .filter(Profesor.id == id_profesor)
-        .filter(Usuario.dni == dni_alumno)
+        .filter(Cliente.dni == dni_alumno)
         .filter(func.now() > Clase.fecha_hora)
         .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
     )
@@ -21,7 +23,7 @@ def conseguir_lista_alumnos_clase_actual (id_profesor, filtro_nombre = ""):
     filters = []
     busqueda = filtro_nombre.lower()
     if (busqueda != ""):
-        filters.append(or_(Cliente.nombre.like(f"%{busqueda}%"), Cliente.apellido.like(f"%{busqueda}%"), Usuario.dni.like(f"%{busqueda}%")))
+        filters.append(or_(Cliente.nombre.like(f"%{busqueda}%"), Cliente.apellido.like(f"%{busqueda}%"), Cliente.dni.like(f"%{busqueda}%")))
 
     # Preparo consulta
     query = (
@@ -57,8 +59,8 @@ def tiene_alumnos (id_profesor, en_clase=False):
         filters.append(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
 
     query = (
-        db.session.query(Alumno.exists())
-        .join (Reserva, Alumno.id == Reserva.id_alumno)
+        db.session.query(Cliente.exists())
+        .join (Reserva, Cliente.id == Reserva.id_cliente)
         .join (Clase, Clase.id == Reserva.id_clase)
         .join (ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
         .join (Profesor, ProfesorDictaClase.id_profesor == Profesor.id)

@@ -1,6 +1,7 @@
 from sqlalchemy import select, text, func, case
 from src.core.database import db
-from src.core.clases.clases import Clase
+from src.core.clases.clases import Clase, ProfesorDictaClase
+from src.core.reserva.reservas import Reserva
 
 def listar_clases():
     """Retorna todas las clases de rehabilitación ordenadas por fecha y hora."""
@@ -17,7 +18,7 @@ def conseguir_clase_actual (id_profesor):
             Reserva.id
         ).label("reservas_totales"), func.sum(
             case(
-                (Reserva.asiste == "presente", 1),
+                (Reserva.asiste, 1),
                 else_=0
             )
         ).label("asistencias_actuales"))

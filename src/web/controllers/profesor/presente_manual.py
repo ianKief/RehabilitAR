@@ -2,7 +2,7 @@ from flask import render_template, request, session, flash, url_for, redirect
 
 from src.core.clases import profesor_está_en_clase
 from src.core.usuarios import alumno_pertenece_a_clase_actual_profesor
-from src.core.reserva import alumno_tiene_asistencia
+from src.core.reserva import alumno_tiene_asistencia, registrar_presente_alumno
 from src.web.functions import esDNI
 
 def registrar_asistencia_manual ():
@@ -59,7 +59,7 @@ def registrar_asistencia_manual ():
             flash ("El alumno ya tiene su asistencia marcada", "success")
             return render_template('profesor/presente_manual.html')
 
-        # Registrar presente
+        registrar_presente_alumno (dni_alumno)
 
         flash ("Se ha registrado el presente exitosamente", "success")
         return redirect(url_for("profesor.index_profesor"))
