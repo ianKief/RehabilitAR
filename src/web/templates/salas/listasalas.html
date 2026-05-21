@@ -1,6 +1,6 @@
 {% extends "layout.html" %}
 
-{% block title %}Listado de Salas | Rehabilitar{% endblock %}
+{% block title %}Rehabilitar - Listado de Salas{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='toggle-switch.css') }}">
@@ -53,13 +53,7 @@
                     <td class="has-text-centered font-weight-bold">
                         <span class="tag is-primary is-medium">{{ sala.numero_puerta }}</span>
                     </td>
-                    <td class="is-vcentered">
-                        {% if sala.descripcion %}
-                            {{ sala.descripcion }}
-                        {% else %}
-                            <span class="has-text-grey is-italic">Sin descripción</span>
-                        {% endif %}
-                    </td>
+                    <td class="is-vcentered">{{ sala.descripcion }}</td>
                     <td class="has-text-centered is-vcentered">
                         <span class="icon-text">
                             <span class="icon has-text-grey">
@@ -70,7 +64,7 @@
                     </td>
                     <td class="has-text-centered">
                         <label class="switch">
-                            <input type="checkbox" {% if sala.estado.name == "HABILITADA" %}checked{% endif %} onchange="window.location.href='/salas/{{ sala.id }}/toggle'">
+                            <input type="checkbox" {% if sala.estado == "HABILITADA" %}checked{% endif %}>
                             <span class="slider"></span>
                         </label>
                     </td>

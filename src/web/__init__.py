@@ -1,8 +1,8 @@
 from flask import Flask, request,render_template
 from src.web.config import config
-from src.web.handlers import error
-from src.core.database import init_db, reset_db, seed_db
+from src.core.database import db, init_db, reset_db, seed_db
 from src.web.controllers.salas import bp as salas_bp
+from src.web.controllers.abonos import bp as abonos_bp
 
 def create_app():
     app = Flask(__name__, static_folder="static")
@@ -15,6 +15,7 @@ def create_app():
 
     # Registrar blueprints
     app.register_blueprint(salas_bp)
+    app.register_blueprint(abonos_bp)
     
     # Registrar CLI commands
     @app.cli.command("reset-db")
@@ -27,14 +28,9 @@ def create_app():
         """Pobla la base de datos con datos de prueba."""
         seed_db()
 
-    # Registrar manejadores de errores
-    app.register_error_handler(404, error.not_found)
-    app.register_error_handler(401, error.unauthorized)
-    app.register_error_handler(403, error.forbidden)
-    app.register_error_handler(500, error.internal_server_error)
-
     @app.route("/")
     def home():
         return render_template("home.html", current_path=request.path)
+    
 
     return app

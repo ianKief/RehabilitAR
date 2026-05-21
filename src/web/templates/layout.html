@@ -81,20 +81,6 @@
 
     <main class="section is-flex is-flex-direction-column px-3 py-5">
         <div class="container is-flex is-flex-direction-column is-flex-grow-1">
-            
-            <!-- Mensajes Flash Globales -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-              {% if messages %}
-                <div class="block mb-4">
-                {% for category, message in messages %}
-                  <div class="notification is-{{ category }} auto-dismiss">
-                    {{ message }}
-                  </div>
-                {% endfor %}
-                </div>
-              {% endif %}
-            {% endwith %}
-
             <div class="columns is-variable is-4-desktop is-flex-grow-1 is-stretch">
                 <aside class="column is-3 is-hidden-touch is-flex is-flex-direction-column is-flex-grow-1">
                     <div class="box is-flex-grow-1">
@@ -201,17 +187,6 @@
                     localStorage.setItem('theme', next);
                     updateToggleIcons(next);
                 });
-            });
-
-            // Ocultar notificaciones automáticamente después de 5 segundos
-            const flashMessages = document.querySelectorAll('.auto-dismiss');
-            flashMessages.forEach(msg => {
-                setTimeout(() => {
-                    msg.style.transition = 'opacity 0.5s ease';
-                    msg.style.opacity = '0';
-                    // Esperar a que termine la transición (300ms) para eliminar el elemento del DOM
-                    setTimeout(() => msg.remove(), 300); 
-                }, 5000);
             });
         });
     </script>
