@@ -52,13 +52,32 @@ def confirmar_codigo(user_id, codigo_ingresado):
     usuario = db.session.get(Usuario, user_id)
     if not usuario:
         raise ValueError("Usuario no encontrado.")
+    
+    # Validación 1: Código inválido por intentos
+    if usuario.intentos_codigo >= 3:
+        raise ValueError("Este código ya no es válido por superar el número máximo de intentos. Por favor, solicita uno nuevo.")
+    
+    # Validación 2: Código incorrecto
     if usuario.codigo_verificacion != codigo_ingresado:
-        raise ValueError("El codigo ingresado es incorrecto")
+        usuario.intentos_codigo += 1
+        db.session.commit()
+
+        # Validación 2.1: Si el usuario supera los 3 intentos, se invalida el código
+        if usuario.intentos_codigo >= 3:
+            usuario.codigo_verificacion = None
+            db.session.commit()
+            raise ValueError("Código incorrecto. Has superado el número máximo de intentos. Por favor, solicita uno nuevo.")
+        intentos_restantes = 3 - usuario.intentos_codigo
+        raise ValueError(f"El codigo ingresado es incorrecto. Te quedan {intentos_restantes} intentos.")
+
+    # Validación 3: Código expirado
     if datetime.now() > usuario.codigo_verificacion_expira:
         raise ValueError("El codigo ha expirado. Por favor, solicita uno nuevo.")
     
+    
     usuario.codigo_verificacion = None
     usuario.codigo_verificacion_expira = None
+    usuario.intentos_codigo = 0
     usuario.estado = EstadoUsuario.ACTIVO
 
     db.session.commit()
