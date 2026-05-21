@@ -1,11 +1,18 @@
 from sqlalchemy import or_, func, text
-from sqlalchemy.orm import joinedload, selectinload, contains_eager
+from sqlalchemy.orm import joinedload, selectinload, contains_eager, aliased
+
 from src.core.database import db
+
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reserva.reservas import Comentario, Reserva
+from src.core.usuarios.usuarios import Usuario
 
 def alumno_tiene_asistencia (dni_alumno):
+    """Devuelve True si el alumno tiene asistencia en la clase actual, False si no.
+    Si no existe clase actual, devuleve None"""
 
+    Cliente = aliased(Usuario)
+    
     query = (
         db.session.query(Reserva.asiste)
         .join(Cliente, Reserva.id_cliente == Cliente.id)
@@ -16,9 +23,14 @@ def alumno_tiene_asistencia (dni_alumno):
         .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
     )
 
-    return db.session.scalars(query).all()
+    return db.session.scalars(query).one_or_none()
 
 def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos', fecha="", solo_comentarios=False):
+    """Devuelve todas las asistencias basado en una serie de filtros. Si no encuentra nada, devuelve una lista vacía"""
+
+    Profesor = aliased(Usuario)
+    Cliente = aliased(Usuario)
+
     # Inicializaciones necesarias
     filters = []
     joins = []
@@ -33,11 +45,11 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
     # Nota: estado puede ser "seleccionar_todos", "presente" o "ausente". Reserva.asiste guarda True o False
     if (estado != "seleccionar_todos"):
         if (estado == "presente"):
-            filters.append(True == reserva.asiste)
+            filters.append(True == Reserva.asiste)
         else:
-            filters.append(False == reserva.asiste)
+            filters.append(False == Reserva.asiste)
     if (fecha != ""):
-        filters.append(fecha == CLASE.fecha)
+        filters.append(fecha == Clase.fecha)
     if solo_comentarios == True:
         filters.append(Comentario.any())
 
@@ -66,6 +78,11 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
     return db.session.scalars(query).all()
 
 def subir_comentario (dni_alumno, comentario):
+    """Sube un comentario del alumno en la clase actual según su DNI.
+    No tengo idea de qué sucede si no existe clase, aunque dado el contexto de su controller, no debería llegar hasta ese punto."""
+
+    Profesor = aliased(Usuario)
+    Cliente = aliased(Usuario)
 
     query = (
         db.session.query(Reserva.id)
@@ -85,8 +102,10 @@ def subir_comentario (dni_alumno, comentario):
     db.session.commit()
 
 def registrar_presente_alumno (dni_alumno):
+    """Registra el presente de un alumno. En caso de que ya tenga el presente devuelve una excepción."""
 
-    # conseguir presente que marcar
+    Cliente = aliased(Usuario)
+
     query = (
         db.session.query(Reserva)
         .join (Cliente, Cliente.id == Reserva.id_cliente)
@@ -98,4 +117,7 @@ def registrar_presente_alumno (dni_alumno):
     )
 
     reserva_a_actualizar = db.session.scalars(query).one()
+    if (reserva_a_actualizar.asiste == True):
+        print ("No deberíamos haber llegado acá. Méteme una excepción :P")
+        return
     reserva_a_actualizar.asiste = True

@@ -1,7 +1,11 @@
 from sqlalchemy import select, text, func, case
+from sqlalchemy.orm import aliased
+
 from src.core.database import db
+
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reserva.reservas import Reserva
+from src.core.usuarios.usuarios import Usuario
 
 def listar_clases():
     """Retorna todas las clases de rehabilitación ordenadas por fecha y hora."""
@@ -13,6 +17,9 @@ def listar_clases():
 
 def conseguir_clase_actual (id_profesor):
     """Retorna la clase actual del profesor o None. profesor/index.html maneja None de manera adaptativa"""
+
+    Profesor = aliased(Usuario)
+    
     query = (
         db.session.query(Clase, func.count(
             Reserva.id
@@ -38,6 +45,9 @@ def conseguir_clase_actual (id_profesor):
 
 def profesor_está_en_clase (id_profesor):
     """Retorna un valor booleano que representa si el profesor está en clase"""
+
+    Profesor = aliased(Usuario)
+
     query = (
         db.session.query(Clase.exists())
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
