@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from src.core.database import db
-from src.core.usuarios.usuarios import Usuario
+from src.core.usuarios.usuarios import Usuario, RolUsuario
 
 def listar_usuarios():
     """Devuelve una lista con todos los usuarios registrados."""
@@ -15,7 +15,8 @@ def crear_usuario(**kwargs):
     if usuario_existente:
         raise ValueError("El correo electrónico ya está registrado.")
     
-    nuevo_usuario = Usuario(**kwargs)
+    rol_str = kwargs.pop('rol')
+    nuevo_usuario = Usuario(**kwargs, rol=RolUsuario(rol_str))
     db.session.add(nuevo_usuario)
     db.session.commit()
     return nuevo_usuario
