@@ -1,4 +1,4 @@
-from sqlalchemy import func, text, or_, select, cast, Integer
+from sqlalchemy import func, text, or_, select, cast, Integer, and_
 from sqlalchemy.orm import aliased
 
 from src.core.database import db
@@ -6,6 +6,8 @@ from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reserva.reservas import Reserva
 from src.core.usuarios.usuarios import Usuario
+
+from src.core.functions import filtro_clase_actual
 
 def alumno_pertenece_a_clase_actual_profesor (id_profesor, dni_alumno):
     """Dado el ID del profesor y el DNI del alumno (que es el único dato que el profesor conoce de él), devuelve si el alumno pertenece a la clase actual del profesor"""
@@ -24,8 +26,7 @@ def alumno_pertenece_a_clase_actual_profesor (id_profesor, dni_alumno):
         .filter(Cliente.dni == dni_alumno)
         .filter(Profesor.rol == "profesor")
         .filter(Cliente.rol == "cliente")
-        .filter(func.now() > Clase.fecha_hora)
-        .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
+        .filter(*filtro_clase_actual())
     )
 
     return db.session.scalars(query).one()
@@ -55,9 +56,9 @@ def conseguir_lista_alumnos_clase_actual (id_profesor, filtro_nombre = ""):
         .filter(Profesor.id == id_profesor)
         .filter(Profesor.rol == "profesor")
         .filter(Cliente.rol == "cliente")
+        .filter(Reserva.asiste != "cancelada")
         .filter(*filters)
-        .filter(func.now() > Clase.fecha_hora)
-        .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
+        .filter(*filtro_clase_actual())
 
         .group_by(Cliente.id)
         .order_by(Cliente.apellido, Cliente.nombre)
@@ -86,8 +87,7 @@ def tiene_alumnos (id_profesor, en_clase_actual=False):
 
     filters= []
     if en_clase_actual:
-        filters.append(func.now() > Clase.fecha_hora)
-        filters.append(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
+        filters.append(*filtro_clase_actual()) # Puede que haya que sacar el *
 
     query = (
         db.session.query(Cliente.exists())
@@ -121,3 +121,20 @@ def crear_usuario(**kwargs):
     db.session.add(nuevo_usuario)
     db.session.commit()
     return nuevo_usuario
+
+def cliente_tiene_horario_disponible (clase):
+    """Recibe una clase. Se fija el horario y se fija si hay alguna reserva no cancelada que coincida en dicho horario"""
+
+    Cliente = aliased(Usuario)
+
+    query = (
+        db.session.query(Usuario.exists())
+        .join (Reserva, Reserva.id_cliente == Cliente.id)
+        .join (Clase, Clase.id == Reserva.id_clase)
+        .filter(clase.fecha_clase == Clase.fecha_clase)
+        .filter(or_(and_(clase.horario > Clase.fecha_hora), (clase.horario < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))), (and_(clase.horario + (clase.duracion * text("INTERVAL '1 minute'")) > Clase.fecha_hora), (clase.horario + (clase.duracion * text("INTERVAL '1 minute'")) < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))))
+        # Protip: Ctrl + z activa salto de línea
+    )
+
+    return not db.session.scalars(query).one()
+

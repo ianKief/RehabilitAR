@@ -7,6 +7,8 @@ from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reserva.reservas import Reserva
 from src.core.usuarios.usuarios import Usuario
 
+from src.core.functions import filtro_clase_actual
+
 def listar_clases():
     """Retorna todas las clases de rehabilitación ordenadas por fecha y hora."""
     query = select(Clase).order_by(
@@ -25,7 +27,7 @@ def conseguir_clase_actual (id_profesor):
             Reserva.id
         ).label("reservas_totales"), func.sum(
             case(
-                (Reserva.asiste, 1),
+                (Reserva.asiste == "presente", 1),
                 else_=0
             )
         ).label("asistencias_actuales"), 0)
@@ -37,8 +39,7 @@ def conseguir_clase_actual (id_profesor):
 
         .filter(Profesor.id == id_profesor)
         .filter(Profesor.rol == "profesor")
-        .filter(func.now() > Clase.fecha_hora)
-        .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
+        .filter(*filtro_clase_actual())
 
         .group_by(Clase.id)
     )
@@ -56,8 +57,23 @@ def profesor_está_en_clase (id_profesor):
         .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
         .filter(Profesor.id == id_profesor)
         .filter(Profesor.rol == "profesor")
-        .filter(func.now() > Clase.fecha_hora)
-        .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
+        .filter(*filtro_clase_actual())
     )
 
     return db.session.scalars(query).one()
+
+def clase_tiene_lugar (clase):
+
+    cantidad_lugares_ocupados = (
+        db.session.query(func.sum(
+            case(
+                (Reserva.asiste != "cancelada", 1),
+                else_=0
+            )
+        ).label("lugares_ocupados"))
+        .outerjoin(Reserva, clase.id == Reserva.id_clase)
+        .filter (clase.id == Clase.id)
+        .group_by(Clase.id)
+    )
+
+    return clase.capacidad != db.session.scalars(cantidad_lugares_ocupados).one() # No sé si funciona con scalars

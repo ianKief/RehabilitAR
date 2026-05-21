@@ -7,6 +7,8 @@ from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reserva.reservas import Comentario, Reserva
 from src.core.usuarios.usuarios import Usuario
 
+from src.core.functions import filtro_clase_actual
+
 def alumno_tiene_asistencia (dni_alumno):
     """Devuelve True si el alumno tiene asistencia en la clase actual, False si no.
     Si no existe clase actual, devuleve None"""
@@ -20,8 +22,7 @@ def alumno_tiene_asistencia (dni_alumno):
 
         .filter(Cliente.dni == dni_alumno)
         .filter(Cliente.rol == "cliente")
-        .filter(func.now() > Clase.fecha_hora)
-        .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
+        .filter(*filtro_clase_actual())
     )
 
     return db.session.scalars(query).one_or_none()
@@ -41,12 +42,12 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
         cliente_filtrado = True
         filters.append(or_(Cliente.nombre.like(f"%{busqueda}%"), Cliente.apellido.like(f"%{busqueda}%"), Cliente.dni.like(f"%{busqueda}%"), Comentario.comentario.like(f"%{busqueda}%")))
         filters.append(Cliente.rol == "cliente")
-    # Nota: estado puede ser "seleccionar_todos", "presente" o "ausente". Reserva.asiste guarda True o False
+    # Nota: estado puede ser "seleccionar_todos", "presente" o "ausente". Reserva.asiste guarda "presente", "ausente" o "cancelada"
     if (estado != "seleccionar_todos"):
         if (estado == "presente"):
-            filters.append(True == Reserva.asiste)
+            filters.append(Reserva.asiste == "presente")
         else:
-            filters.append(False == Reserva.asiste)
+            filters.append(Reserva.asiste == "ausente")
     if (fecha != ""):
         filters.append(fecha == Clase.fecha)
     if solo_comentarios == True:
@@ -63,6 +64,7 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
 
         .filter(Profesor.id == id_profesor)
         .filter(Profesor.rol == "profesor")
+        .filter(Reserva.asiste != "cancelada")
         .filter(*filters)
         .order_by(Reserva.fecha_modificacion.desc())
     )
@@ -96,8 +98,7 @@ def subir_comentario (dni_alumno, comentario):
         .filter(dni_alumno == Cliente.dni)
         .filter(Profesor.rol == "profesor")
         .filter(Cliente.rol == "cliente")
-        .filter(func.now() > Clase.fecha_hora)
-        .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
+        .filter(*filtro_clase_actual())
     )
 
     id_reserva = db.session.scalars(query).one()
@@ -118,12 +119,11 @@ def registrar_presente_alumno (dni_alumno):
 
         .filter(dni_alumno == Cliente.dni)
         .filter(Cliente.rol == "cliente")
-        .filter(func.now() > Clase.fecha_hora)
-        .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
+        .filter(*filtro_clase_actual())
     )
 
     reserva_a_actualizar = db.session.scalars(query).one()
-    if (reserva_a_actualizar.asiste == True):
+    if (reserva_a_actualizar.asiste != "ausente"):
         print ("No deberíamos haber llegado acá. Méteme una excepción :P")
         return
-    reserva_a_actualizar.asiste = True
+    reserva_a_actualizar.asiste = "presente"
