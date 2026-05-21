@@ -19,6 +19,7 @@ def alumno_tiene_asistencia (dni_alumno):
         .join(Clase, Reserva.id_clase == Clase.id)
 
         .filter(Cliente.dni == dni_alumno)
+        .filter(Cliente.rol == "cliente")
         .filter(func.now() > Clase.fecha_hora)
         .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
     )
@@ -42,6 +43,7 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
         joins.append(Comentario, Comentario.id_reserva == Reserva.id)
         cliente_filtrado = True
         filters.append(or_(Cliente.nombre.like(f"%{busqueda}%"), Cliente.apellido.like(f"%{busqueda}%"), Cliente.dni.like(f"%{busqueda}%"), Comentario.comentario.like(f"%{busqueda}%")))
+        filters.append(Cliente.rol == "cliente")
     # Nota: estado puede ser "seleccionar_todos", "presente" o "ausente". Reserva.asiste guarda True o False
     if (estado != "seleccionar_todos"):
         if (estado == "presente"):
@@ -61,6 +63,7 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
         .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
         .join(*joins)
         .filter(Profesor.id == id_profesor)
+        .filter(Profesor.rol == "profesor")
         .filter(*filters)
         .order_by(Reserva.fecha_modificacion.desc())
     )
@@ -91,6 +94,8 @@ def subir_comentario (dni_alumno, comentario):
         .join (Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
 
         .filter(dni_alumno == Cliente.dni)
+        .filter(Profesor.rol == "profesor")
+        .filter(Cliente.rol == "cliente")
         .filter(func.now() > Clase.fecha_hora)
         .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
     )
@@ -112,6 +117,7 @@ def registrar_presente_alumno (dni_alumno):
         .join (Clase, Clase.id == Reserva.id_clase)
 
         .filter(dni_alumno == Cliente.dni)
+        .filter(Cliente.rol == "cliente")
         .filter(func.now() > Clase.fecha_hora)
         .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
     )

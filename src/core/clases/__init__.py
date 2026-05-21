@@ -28,13 +28,14 @@ def conseguir_clase_actual (id_profesor):
                 (Reserva.asiste, 1),
                 else_=0
             )
-        ).label("asistencias_actuales"))
+        ).label("asistencias_actuales"), 0)
 
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
         .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
-        .join(Reserva, Reserva.clase_id == Clase.id)
+        .outerjoin(Reserva, Reserva.id_clase == Clase.id)
 
         .filter(Profesor.id == id_profesor)
+        .filter(Profesor.rol == "profesor")
         .filter(func.now() > Clase.fecha_hora)
         .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
 
@@ -53,6 +54,7 @@ def profesor_está_en_clase (id_profesor):
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
         .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
         .filter(Profesor.id == id_profesor)
+        .filter(Profesor.rol == "profesor")
         .filter(func.now() > Clase.fecha_hora)
         .filter(func.now() < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))
     )
