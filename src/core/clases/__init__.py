@@ -77,3 +77,4 @@ def clase_tiene_lugar (clase):
     )
 
     return clase.capacidad != db.session.scalars(cantidad_lugares_ocupados).one() # No sé si funciona con scalars
+

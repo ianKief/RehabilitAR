@@ -9,7 +9,6 @@ from src.core.clases.clases import Clase
 from src.core.reserva.reservas import Reserva, Comentario
 
 from src.core.clases import clase_tiene_lugar
-from src.core.usuarios import cliente_tiene_horario_disponible
 
 class ReservaSeeder:
     """ Dependencias: ClaseSeeder, UsuarioSeeder.
@@ -40,7 +39,7 @@ class ReservaSeeder:
             encontre = False
             while not encontre:
                 clase = random.choice(clases)
-                if (clase_tiene_lugar (clase) and (cliente_tiene_horario_disponible(clase))):
+                if (clase_tiene_lugar (clase)):
                     id_cliente = cliente.id
                     id_clase = clase.id
                     asiste = "ausente"

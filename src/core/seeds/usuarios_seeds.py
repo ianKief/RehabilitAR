@@ -9,10 +9,10 @@ class UsuarioSeeder:
         self.db = db
     
     def run(self):
-        print("Insertando 10 usuarios de prueba...")
+        print("Insertando 20 usuarios de prueba...")
 
         roles = [RolUsuario.CLIENTE, RolUsuario.RECEPCIONISTA, RolUsuario.PROFESOR, RolUsuario.ADMINISTRADOR]
-        for i in range(1, 11):
+        for i in range(20):
             nombre = f"Usuario {i}"
             apellido = f"Apellido {i}"
             dni = f"{random.randint(10000000, 99999999)}"

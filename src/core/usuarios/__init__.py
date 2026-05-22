@@ -122,20 +122,3 @@ def crear_usuario(**kwargs):
     db.session.add(nuevo_usuario)
     db.session.commit()
     return nuevo_usuario
-
-def cliente_tiene_horario_disponible (clase):
-    """Recibe una clase. Se fija el horario y se fija si hay alguna reserva no cancelada que coincida en dicho horario"""
-
-    Cliente = aliased(Usuario)
-
-    query = (
-        db.session.query(Usuario.exists())
-        .join (Reserva, Reserva.id_cliente == Cliente.id)
-        .join (Clase, Clase.id == Reserva.id_clase)
-        .filter(clase.fecha_clase == Clase.fecha_clase)
-        .filter(or_(and_(clase.horario > Clase.fecha_hora), (clase.horario < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))), (and_(clase.horario + (clase.duracion * text("INTERVAL '1 minute'")) > Clase.fecha_hora), (clase.horario + (clase.duracion * text("INTERVAL '1 minute'")) < (Clase.fecha_hora + (Clase.duracion * text("INTERVAL '1 minute'"))))))
-        # Protip: Ctrl + z activa salto de línea
-    )
-
-    return not db.session.scalars(query).one()
-
