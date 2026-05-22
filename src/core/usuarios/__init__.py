@@ -2,6 +2,11 @@ from sqlalchemy import select
 from src.core.database import db
 from src.core.usuarios.usuarios import Usuario, RolUsuario
 
+
+def obtener_usuario_por_id_core(user_id):
+    """Devuelve un usuario dado su ID."""
+    return db.session.get(Usuario, user_id)
+
 def listar_usuarios():
     """Devuelve una lista con todos los usuarios registrados."""
     stmt = select(Usuario).order_by(Usuario.id)
