@@ -24,13 +24,24 @@ def reset_db():
 
 def seed_db():
     """Pobla la base de datos con datos de prueba."""
+
     from src.core.seeds.salas_seeds import SalaSeeder
     seeder = SalaSeeder(db) 
     seeder.run()
+
     # seeder de clases
-    from src.core.seeds.clases_seeds import ClaseSeeder
+    from src.core.seeds.clases_seeds import ClaseSeeder, ProfesorDictaClaseSeeder
     seeder_clases = ClaseSeeder(db)
     seeder_clases.run()
+    seeder_profesor_clases = ProfesorDictaClaseSeeder(db)
+    seeder_profesor_clases.run()
+
     from src.core.seeds.usuarios_seeds import UsuarioSeeder
     usuario_seeder = UsuarioSeeder(db)
     usuario_seeder.run()
+
+    from src.core.seeds.reserva_seeds import ReservaSeeder, ComentarioSeeder
+    seeder_reserva = ReservaSeeder(db) 
+    seeder_reserva.run()
+    seeder_comentario = ComentarioSeeder (db)
+    seeder_comentario.run()
