@@ -36,15 +36,8 @@ def registrar_cliente(nombre, apellido, dni, telefono, fecha_nacimiento, direcci
     )
 
     db.session.add(nuevo_cliente)
-    db.session.commit()
+    db.session.flush()
     db.session.refresh(nuevo_cliente)
-
-    # Aca se enviaría el email con el código de verificación
-    print(f"--- EMAIL SIMULADO ---")
-    print(f"Para: {email}")
-    print(f"Tu código de verificación para RehabilitAR es: {codigo_verificacion}")
-    print(f"Válido hasta: {tiempo_expiracion}")
-    print(f"----------------------")
     
     return nuevo_cliente
 
