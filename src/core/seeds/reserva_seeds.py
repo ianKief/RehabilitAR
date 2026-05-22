@@ -4,9 +4,9 @@ from sqlalchemy import select
 
 from src.core.database import db
 
-from src.core.usuarios.usuarios import Usuario
+from src.core.usuarios.usuarios import Usuario, RolUsuario
 from src.core.clases.clases import Clase
-from src.core.reserva.reservas import Reserva, Comentario
+from src.core.reserva.reservas import Reserva, Comentario, AsistenciaReserva
 
 from src.core.clases import clase_tiene_lugar
 
@@ -17,15 +17,15 @@ class ReservaSeeder:
     def __init__(self, db):
         self.db = db
 
-    def devolver_clientes():
+    def devolver_clientes(self):
         """Devuelve todos los clientes definidos en la anterior seed."""
-        stmt = select(Usuario).filter(Usuario.rol == "cliente")
-        return db.session.execute(stmt).scalars().all()
+        stmt = select(Usuario).filter(Usuario.rol == RolUsuario.CLIENTE)
+        return self.db.session.execute(stmt).scalars().all()
 
-    def devolver_clases():
+    def devolver_clases(self):
         """Devuelve todas las clases definidas en la anterior seed."""
         stmt = select(Clase)
-        return db.session.execute(stmt).scalars().all()
+        return self.db.session.execute(stmt).scalars().all()
     
     """Limitaciones a tener en cuenta:
     1. Una clase posee un límite de alumnos
@@ -34,17 +34,20 @@ class ReservaSeeder:
         print("Insertando una reserva a cada alumno...")
         clientes = self.devolver_clientes()
         clases = self.devolver_clases()
+        i = 1
 
         for cliente in clientes:
             encontre = False
             while not encontre:
                 clase = random.choice(clases)
-                if (clase_tiene_lugar (clase)):
+                if clase_tiene_lugar (clase):
+                    print ("Insertando reserva", i)
+                    i+=1
+                    encontre = True
+
                     id_cliente = cliente.id
                     id_clase = clase.id
-                    asiste = "ausente"
-
-                    encontre = True
+                    asiste = AsistenciaReserva.AUSENTE
 
                     reserva = Reserva (
                         id_cliente=id_cliente,
@@ -52,7 +55,7 @@ class ReservaSeeder:
                         asiste=asiste
                     )
 
-                    self.db.session.add(Reserva)
+                    self.db.session.add(reserva)
         self.db.session.commit()
 
 class ComentarioSeeder:
@@ -60,7 +63,7 @@ class ComentarioSeeder:
     def __init__(self, db):
         self.db = db
     
-    def devolver_reservas ():
+    def devolver_reservas (self):
         stmt = select(Reserva)
         return db.session.execute(stmt).scalars().all()
     
@@ -75,5 +78,5 @@ class ComentarioSeeder:
                comentario=contenido,
                id_reserva=id_reserva
            )
-            self.db.session.add(Comentario)
+            self.db.session.add(comentario)
         self.db.session.commit()

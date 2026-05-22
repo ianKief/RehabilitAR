@@ -1,7 +1,7 @@
 import random
 from datetime import date, time, timedelta
 
-from sqlalchemy import or_, and_, text
+from sqlalchemy import or_, and_, text, func
 from sqlalchemy.orm import aliased
 
 from src.core.clases import Clase, listar_clases  # El import de tu modelo de clases
@@ -67,16 +67,6 @@ class ProfesorDictaClaseSeeder ():
     """NOTA: según las HU #90 y #91, se considera especialidad a las 3 de arriba."""
     def __init__(self, db):
         self.db = db
-
-        self.especialidades = ["Tren Superior", "Tren Inferior", "Tren Medio"]
-        self.tipos_clases = ["Fija", "Individual"]
-        
-        # Nombres de clases
-        self.nombres_por_especialidad = {
-            "Tren Superior": ["Rehabilitación de Hombro", "Fortalecimiento Cervical", "Post-Quirúrgico de Codo/Muñeca"],
-            "Tren Inferior": ["Rehabilitación de Rodilla", "Estabilidad de Tobillo", "Fisioterapia de Cadera"],
-            "Tren Medio": ["Estabilización de Core", "Reeducación Postural Lumbar", "Gimnasia Correctiva de Columna"]
-        }
     
     def conseguir_profesor_con_disponibilidad (self, clase):
         Profesor = aliased(Usuario)
@@ -84,7 +74,7 @@ class ProfesorDictaClaseSeeder ():
         query = (self.db.session.query(Profesor)
             .outerjoin (ProfesorDictaClase, Profesor.id == ProfesorDictaClase.id_profesor)
             .outerjoin (Clase, Clase.id == ProfesorDictaClase.id_clase)
-            .filter(or_((clase.fecha_clase != Clase.fecha_clase), (and_((clase.horario < Clase.horario), (clase.horario + (clase.duracion * text("INTERVAL '1 minute'") < Clase.horario)))), (and_((clase.horario > Clase.horario), (clase.horario > Clase.horario + (clase.duracion * text("INTERVAL '1 minute'")))))))
+            .filter(or_((clase.fecha_clase != Clase.fecha_clase), (and_((clase.horario < Clase.horario), (clase.horario + func.make_interval (clase.duracion) < Clase.horario))), (and_((clase.horario > Clase.horario), (clase.horario > Clase.horario + func.make_interval (clase.duracion))))))
             # Acá debería filtrar por tren, si el profesor tuviese alguno
         )
 
@@ -94,10 +84,15 @@ class ProfesorDictaClaseSeeder ():
     1. La especialidad del profesor debe coincidir con la especialidad de la clase
     2. El profesor debe tener el horario disponible"""
     def run (self):
+        print ("Creando tantas relaciones entre clases con profesores como clases haya...")
         clases = listar_clases ()
+        i = 1
         for clase in clases:
+            print ("Creando clase", i)
+            i+=1
             profesor = self.conseguir_profesor_con_disponibilidad (clase)
             if profesor != None:
+                print ("Clase", i, "tiene asignado al profesor id", profesor.id)
                 profesor_clase = ProfesorDictaClase(
                     id_profesor = profesor.id,
                     id_clase = clase.id

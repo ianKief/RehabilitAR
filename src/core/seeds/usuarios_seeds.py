@@ -1,4 +1,4 @@
-import random
+import random, datetime
 from src.core.usuarios.usuarios import Usuario
 from src.core.usuarios.usuarios import RolUsuario
 from src.core.usuarios.usuarios import EstadoUsuario as Estado
@@ -22,7 +22,7 @@ class UsuarioSeeder:
             estado = Estado.PENDIENTE
             direccion = f"Direccion {i}"
             telefono = f"123456789{i}"
-            fecha_nacimiento = f"1990-01-{i:02d}"
+            fecha_nacimiento = datetime.datetime(1990, 1, (i % 28) + 1)
             estado_apto_fisico = EstadoApto.SIN_CARGAR
 
             usuario = Usuario(
@@ -43,4 +43,4 @@ class UsuarioSeeder:
             self.db.session.add(usuario)
 
         self.db.session.commit()
-        print("¡Se han guardado los 10 usuarios con éxito!")
+        print("¡Se han guardado los 20 usuarios con éxito!")

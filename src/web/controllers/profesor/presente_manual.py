@@ -3,7 +3,7 @@ from flask import render_template, request, session, flash, url_for, redirect
 from src.core.clases import profesor_está_en_clase
 from src.core.usuarios import alumno_pertenece_a_clase_actual_profesor
 from src.core.reserva import alumno_tiene_asistencia, registrar_presente_alumno
-from src.web.functions import esDNI
+from src.web.functions import es_dni
 
 def registrar_asistencia_manual ():
 
@@ -35,7 +35,7 @@ def registrar_asistencia_manual ():
             return render_template('profesor/presente_manual.html')
     
         # Comprobación 2: no se ha ingresado un DNI [EN CLIENTE]
-        if not esDNI(dni_alumno):
+        if not es_dni(dni_alumno):
             flash ("El dato ingresado no es un DNI", "warning")
             return render_template('profesor/presente_manual.html')
 
