@@ -132,6 +132,22 @@ async = ["asgiref (>=3.2)"]
 dotenv = ["python-dotenv"]
 
 [[package]]
+name = "flask-mail"
+version = "0.10.0"
+description = "Flask extension for sending email"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "flask_mail-0.10.0-py3-none-any.whl", hash = "sha256:a451e490931bb3441d9b11ebab6812a16bfa81855792ae1bf9c1e1e22c4e51e7"},
+    {file = "flask_mail-0.10.0.tar.gz", hash = "sha256:44083e7b02bbcce792209c06252f8569dd5a325a7aaa76afe7330422bd97881d"},
+]
+
+[package.dependencies]
+blinker = "*"
+flask = "*"
+
+[[package]]
 name = "flask-sqlalchemy-lite"
 version = "0.2.1"
 description = "Integrate SQLAlchemy with Flask."
@@ -762,4 +778,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13"
-content-hash = "160acb6a84509be189d018b1f75c7a5337833c230a9bba2a47b932958827c0ba"
+content-hash = "92d9dcc3a51955597aaee76924e0485adcd79fc4f4128a2edee8068f3c248bcc"
