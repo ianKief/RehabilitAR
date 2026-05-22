@@ -1,9 +1,12 @@
 import os
-from flask import Blueprint, render_template, request, redirect, url_for, session
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from flask_mail import Message
 from datetime import datetime
 from werkzeug.utils import secure_filename
-from src.core.auth import registrar_cliente as registrar_cliente_core
-from src.core.auth import confirmar_codigo as confirmar_codigo_core
+from src.core.auth import registrar_cliente as registrar_cliente_core, confirmar_codigo as confirmar_codigo_core
+from src.core.usuarios import obtener_usuario_por_id_core
+from src.core.database import db
+from src.web import mail
 
 # Creamos el Blueprint llamado 'auth'
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -70,11 +73,37 @@ def registrar_cliente():
                 password=password,
                 nombre_archivo_apto=nombre_archivo_apto
             )
+
+            msg = Message(
+                subject="RehabilitAR - Código de Verificación",
+                recipients=[nuevo_cliente.email]
+            )
+
+            msg.body = f"""Hola {nuevo_cliente.nombre},
+        
+                    ¡Gracias por registrarte en RehabilitAR!
+
+                    Tu código de verificación de 6 dígitos es: {nuevo_cliente.codigo_verificacion}
+
+                    Por razones de seguridad, este código expirará en 15 minutos. 
+                    Si no solicitaste este registro, por favor ignorá este correo.
+
+                    Saludos,
+                    El equipo de RehabilitAR."""
+
+            mail.send(msg)
+
+            db.session.commit()
             
-            session['registro_user_id'] = nuevo_cliente.id
+            session['verificacion_user_id'] = nuevo_cliente.id
+            session['verificacion_origen'] = 'registro'
             return redirect(url_for('auth.verificar'))
         except ValueError as e:
+            db.session.rollback()
             return render_template('auth/registro.html', error=str(e))
+        except Exception as e:
+            db.session.rollback()
+            return render_template('auth/registro.html', error="Ocurrió un error inesperado. Por favor, intente nuevamente.")
 
     # Si es un GET (el usuario recién entra a la página), mostramos el formulario
     return render_template('auth/registro.html')
@@ -82,7 +111,10 @@ def registrar_cliente():
 @auth_bp.route('/verificar', methods=['GET', 'POST'])
 def verificar():
     # Sacamos el ID del usuario que se está registrando de la sesión
-    user_id = session.get('registro_user_id')
+    user_id = session.get('verificacion_user_id')
+
+    # Leemos de donde viene
+    origen = session.get('verificacion_origen')
     
     if not user_id:
         return redirect(url_for('auth.registrar_cliente'))
@@ -94,9 +126,18 @@ def verificar():
             confirmar_codigo_core(user_id, codigo)
             
             # Limpiamos la sesión del proceso de registro
-            session.pop('registro_user_id', None)
+            session.pop('verificacion_user_id', None)
+            session.pop('verificacion_origen', None)
 
-            return redirect(url_for('home')) 
+            if origen == 'registro':
+                flash("Verificación exitosa. Ya podes iniciar sesión.", "success")
+                return redirect(url_for('auth.login'))
+            elif origen == 'login':
+                usuario = obtener_usuario_por_id_core(user_id)
+                session['user_id'] = usuario.id
+                session['rol'] = usuario.rol
+                flash("Verificación exitosa. Bienvenido!", "success")
+                return redirect(url_for('home'))
             
         except ValueError as e:
             return render_template('auth/verificacion.html', error=str(e))
