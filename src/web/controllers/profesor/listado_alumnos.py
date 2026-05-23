@@ -5,7 +5,9 @@ from src.core.usuarios import tiene_alumnos, conseguir_lista_alumnos_clase_actua
 
 def consultar_listado_alumnos ():
 
-    id_profesor = session.get("id")
+    # id_profesor = session.get("id")
+
+    id_profesor = 15
 
     # Comprobación 1: el profesor está logeado [EN INSTANCIA]
     # COMPROBAR LOGIN
@@ -22,10 +24,13 @@ def consultar_listado_alumnos ():
         flash ("No se han encontrado resultados", "warning")
         return render_template ('profesor/listado_alumnos.html')
 
+    print ("LA BÚSQUEDA QUE HICE ES DE", request.args.get("busqueda"))
     busqueda = request.args.get("busqueda")
 
     lista_de_alumnos = conseguir_lista_alumnos_clase_actual(id_profesor, filtro_nombre=busqueda)
+    print (lista_de_alumnos)
     if (lista_de_alumnos == []):
+        print("XDD")
         flash ("No se han encontrado resultados", "warning")
         return render_template ('profesor/listado_alumnos.html', busqueda=busqueda)
 

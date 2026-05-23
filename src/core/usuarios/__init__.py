@@ -1,4 +1,4 @@
-from sqlalchemy import func, text, or_, select, cast, Integer, and_
+from sqlalchemy import func, text, or_, select, cast, Integer, and_, case
 from sqlalchemy.orm import aliased
 
 from src.core.database import db
@@ -31,7 +31,7 @@ def alumno_pertenece_a_clase_actual_profesor (id_profesor, dni_alumno):
 
     return db.session.scalars(query).one()
 
-def conseguir_lista_alumnos_clase_actual (id_profesor, filtro_nombre = ""):
+def conseguir_lista_alumnos_clase_actual (id_profesor, filtro_nombre = None):
     """Dado un ID de profesor, consigue la lista de alumnos de la clase actual si lo hay.
     Con filtro_nombre="" se pueden filtrar los alumnos obtenidos"""
 
@@ -40,14 +40,13 @@ def conseguir_lista_alumnos_clase_actual (id_profesor, filtro_nombre = ""):
 
     # Inicializo el filtro de búsqueda
     filters = []
-    if (filtro_nombre != ""):
-        filters.append(or_(Cliente.nombre.like(f"%{filtro_nombre}%"), Cliente.apellido.like(f"%{filtro_nombre}%"), Cliente.dni.like(f"%{filtro_nombre}%")))
+    print ("EL FILTRO NOMBRE ES PARAAA", filtro_nombre)
+    if (filtro_nombre != None):
+        filters.append(or_(Cliente.nombre.ilike(f"%{filtro_nombre}%"), Cliente.apellido.ilike(f"%{filtro_nombre}%"), Cliente.dni.ilike(f"%{filtro_nombre}%")))
 
     # Preparo consulta
     query = (
-        db.session.query(Cliente, func.avg(
-            cast(Reserva.asiste, Integer), 0
-        ).label("promedio_asistencia"))
+        db.session.query(Cliente)
         .join(Reserva, Reserva.id_cliente == Cliente.id)
         .join(Clase, Clase.id == Reserva.id_clase)
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
@@ -64,7 +63,7 @@ def conseguir_lista_alumnos_clase_actual (id_profesor, filtro_nombre = ""):
         .order_by(Cliente.apellido, Cliente.nombre)
     )
 
-    return db.session.execute(query).all()
+    return db.session.scalars(query).all()
 
 def conseguir_perfil_alumno (dni_alumno):
     """Consigue el perfil del alumno con solo el DNI"""
@@ -72,12 +71,16 @@ def conseguir_perfil_alumno (dni_alumno):
     Cliente = aliased(Usuario)
 
     query = (
-        db.session.query(Cliente)
+        db.session.query(Cliente, func.avg(
+            case (
+                (Reserva.asiste == AsistenciaReserva.PRESENTE, 1),
+                else_=0
+            ).label("promedio_asistencia")))
         .filter(Cliente.dni == dni_alumno)
         .filter(Cliente.rol == RolUsuario.CLIENTE)
     )
 
-    return db.session.scalars(query).one_or_none()
+    return db.session.execute(query).one_or_none()
 
 def tiene_alumnos (id_profesor, en_clase_actual=False):
     """Devuelve True si tiene alumnos, False si no. Esto es en general, pero el parámetro en_clase_actual=False filtra (si está en True) si tiene alumnos en la clase actual (si la hay). False en caso contrario (no tira excepción)."""
@@ -87,10 +90,10 @@ def tiene_alumnos (id_profesor, en_clase_actual=False):
 
     filters= []
     if en_clase_actual:
-        filters.append(*filtro_clase_actual()) # Puede que haya que sacar el *
+        filters.extend(filtro_clase_actual())
 
     query = (
-        db.session.query(Cliente.exists())
+        db.session.query(Cliente)
         .join (Reserva, Cliente.id == Reserva.id_cliente)
         .join (Clase, Clase.id == Reserva.id_clase)
         .join (ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
@@ -102,7 +105,9 @@ def tiene_alumnos (id_profesor, en_clase_actual=False):
         .filter(*filters)
     )
 
-    return db.session.scalars(query).one()
+    return db.session.query(
+        query.exists()
+    ).scalar()
 
 def listar_usuarios():
     """Devuelve una lista con todos los usuarios registrados."""

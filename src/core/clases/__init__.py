@@ -52,7 +52,7 @@ def profesor_está_en_clase (id_profesor):
     Profesor = aliased(Usuario)
 
     query = (
-        db.session.query(Clase.exists())
+        db.session.query(Clase)
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
         .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
         .filter(Profesor.id == id_profesor)
@@ -60,7 +60,9 @@ def profesor_está_en_clase (id_profesor):
         .filter(*filtro_clase_actual())
     )
 
-    return db.session.scalars(query).one()
+    return db.session.query(
+        query.exists()
+    ).scalar()
 
 def clase_tiene_lugar(clase):
 
