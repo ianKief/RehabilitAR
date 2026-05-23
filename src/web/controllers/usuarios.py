@@ -5,7 +5,7 @@ from src.web.helpers.decorator import requiere_rol
 users_bp = Blueprint('usuarios', __name__, url_prefix='/usuarios')
 
 @users_bp.route('/crear', methods=['GET', 'POST'])
-#@requiere_rol(['ADMIN'])
+@requiere_rol(['ADMIN'])
 def crear_usuario():
     if request.method == 'POST':
         # Aca podemos manejar la creación del usuario
