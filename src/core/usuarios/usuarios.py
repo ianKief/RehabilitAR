@@ -45,6 +45,9 @@ class Usuario(Base):
     codigo_verificacion : Mapped[str] = mapped_column(String(6), nullable=True)
     codigo_verificacion_expira : Mapped[datetime] = mapped_column(DateTime, nullable=True)
     intentos_codigo: Mapped[int] = mapped_column(Integer, default=0, nullable=True)
+
+    intentos_login: Mapped[int] = mapped_column(Integer, default=0, nullable=True)
+    bloqueado_hasta: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     
     fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
