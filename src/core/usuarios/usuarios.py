@@ -38,6 +38,7 @@ class Usuario(Base):
     fecha_nacimiento: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     ruta_apto_fisico: Mapped[str] = mapped_column(String(255), nullable=True)
     estado_apto_fisico: Mapped[EstadoAptoFisico] = mapped_column(Enum(EstadoAptoFisico), default=EstadoAptoFisico.SIN_CARGAR, nullable=True)
+    fecha_apto_fisico: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     
     rol: Mapped[RolUsuario] = mapped_column(Enum(RolUsuario), default=RolUsuario.CLIENTE, nullable=False)
     estado: Mapped[EstadoUsuario] = mapped_column(Enum(EstadoUsuario), default=EstadoUsuario.PENDIENTE, nullable=True)
