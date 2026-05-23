@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+
+{% block title %}Crear Usuario | RehabilitAR{% endblock %}
+
+{% block content %}
+<div class="columns is-centered">
+    <div class="column is-8">
+        <div class="box">
+            <div class="block mb-5">
+                <h1 class="title is-3">
+                    <span class="icon has-text-primary mr-2"><i class="fas fa-user-plus"></i></span>
+                    Crear Usuario
+                </h1>
+                <p class="subtitle is-6 has-text-grey">Completa los datos para registrar un nuevo usuario en el sistema.</p>
+            </div>
+
+            {% if error %}
+            <div class="notification is-danger is-light">
+                <button class="delete"></button>
+                <strong>Error:</strong> {{ error }}
+            </div>
+            {% endif %}
+
+            <form action="{{ url_for('usuarios.crear_usuario') }}" method="POST">
+                <div class="columns is-multiline">
+                    
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Nombre</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="text" name="nombre" placeholder="Ej: Juan Pérez" required>
+                                <span class="icon is-small is-left"><i class="fas fa-user"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Correo Electrónico</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="email" name="email" placeholder="Ej: juan@email.com" required>
+                                <span class="icon is-small is-left"><i class="fas fa-envelope"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Contraseña provisional</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="password" name="password" minlength="6" placeholder="Mínimo 6 caracteres" required>
+                                <span class="icon is-small is-left"><i class="fas fa-lock"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Rol del Usuario</label>
+                            <div class="control has-icons-left">
+                                <div class="select is-fullwidth">
+                                    <select name="rol" required>
+                                        <option value="" disabled selected>Seleccione un rol...</option>
+                                        <option value="cliente">Cliente</option>
+                                        <option value="recepcionista">Recepcionista</option>
+                                        <option value="profesor">Profesor</option>
+                                        <option value="administrador">Administrador</option>
+                                    </select>
+                                </div>
+                                <span class="icon is-small is-left"><i class="fas fa-id-badge"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="buttons is-right mt-5">
+                    <a href="{{ url_for('usuarios.listar_usuarios') }}" class="button is-light">Cancelar</a>
+                    <button type="submit" class="button is-primary">Registrar Usuario</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
