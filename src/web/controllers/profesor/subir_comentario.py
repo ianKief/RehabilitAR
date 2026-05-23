@@ -5,13 +5,14 @@ from src.core.usuarios import alumno_pertenece_a_clase_actual_profesor
 from src.core.reserva import subir_comentario
 
 def subir_comentario_a_alumnoXclase (dni):
-    id_profesor = session.get("id")
+    # id_profesor = session.get("id")
+    id_profesor = 4
     comentario = request.form.get("comentario")
 
     # Comprobación 1: el comentario tiene contenido [EN CLIENTE]
     if not comentario:
         flash ("El comentario no tiene contenido", "warning")
-        return redirect(url_for('profesor.perfil_alumno'))
+        return redirect(url_for('profesor.perfil_alumno', dni=dni))
             
     # Comprobación 2: el profesor está logeado [EN INSTANCIA]
     # COMPROBAR LOGIN
@@ -31,4 +32,4 @@ def subir_comentario_a_alumnoXclase (dni):
     subir_comentario (dni, comentario)
 
     flash ("Se ha subido el comentario exitosamente", "success")
-    return redirect(url_for('profesor.perfil_alumno'))
+    return redirect(url_for('profesor.perfil_alumno', dni=dni))

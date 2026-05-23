@@ -91,7 +91,7 @@ def subir_comentario (dni_alumno, comentario):
     query = (
         db.session.query(Reserva.id)
         .join (Cliente, Reserva.id_cliente == Cliente.id)
-        .join (Clase, Clase.id, Reserva.id_clase)
+        .join (Clase, Clase.id == Reserva.id_clase)
         .join (ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
         .join (Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
 
