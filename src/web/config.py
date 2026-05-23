@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -35,6 +36,9 @@ class DevelopmentConfig:
     MAIL_USERNAME = os.getenv("MAIL_USERNAME")
     MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
     MAIL_DEFAULT_SENDER = os.getenv("MAIL_USERNAME")
+
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=20)
+    SESSION_REFRESH_EACH_REQUEST = True
 
 # Instancia única de configuración de desarrollo
 config = DevelopmentConfig
