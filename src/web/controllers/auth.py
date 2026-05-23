@@ -13,6 +13,9 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 @auth_bp.route('/registro', methods=['GET', 'POST'])
 def registrar_cliente():
+    if session.get('usuario_id'):
+        return redirect(url_for('home'))
+    
     if request.method == 'POST':
         # Acá capturamos los datos del formulario HTML
         nombre = request.form.get('nombre')
@@ -110,6 +113,9 @@ def registrar_cliente():
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    if session.get('usuario_id'):
+        return redirect(url_for('home'))
+    
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
@@ -151,6 +157,12 @@ def login():
 
     return render_template('auth/login.html')
 
+@auth_bp.route('/logout')
+def logout():
+    session.clear() 
+    
+    flash("Has cerrado sesión de forma segura.", "success")
+    return redirect(url_for('home'))
 
 @auth_bp.route('/verificar', methods=['GET', 'POST'])
 def verificar():
@@ -178,7 +190,8 @@ def verificar():
                 return redirect(url_for('auth.login'))
             elif origen == 'login':
                 usuario = obtener_usuario_por_id_core(user_id)
-                session['user_id'] = usuario.id
+                session.permanent = True
+                session['usuario_id'] = usuario.id
                 session['rol'] = usuario.rol.value
                 flash("Verificación exitosa. Bienvenido!", "success")
                 return redirect(url_for('home'))
