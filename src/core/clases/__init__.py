@@ -5,7 +5,7 @@ from src.core.database import db
 
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reserva.reservas import Reserva, AsistenciaReserva
-from src.core.usuarios.usuarios import Usuario
+from src.core.usuarios.usuarios import Usuario, RolUsuario
 
 from src.core.functions import filtro_clase_actual
 
@@ -27,7 +27,7 @@ def conseguir_clase_actual (id_profesor):
             Reserva.id
         ).label("reservas_totales"), func.sum(
             case(
-                (Reserva.asiste == "presente", 1),
+                (Reserva.asiste == AsistenciaReserva.PRESENTE, 1),
                 else_=0
             )
         ).label("asistencias_actuales"), 0)
@@ -38,7 +38,7 @@ def conseguir_clase_actual (id_profesor):
         .outerjoin(Reserva, Reserva.id_clase == Clase.id)
 
         .filter(Profesor.id == id_profesor)
-        .filter(Profesor.rol == "profesor")
+        .filter(Profesor.rol == RolUsuario.PROFESOR)
         .filter(*filtro_clase_actual())
 
         .group_by(Clase.id)
@@ -56,7 +56,7 @@ def profesor_está_en_clase (id_profesor):
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
         .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
         .filter(Profesor.id == id_profesor)
-        .filter(Profesor.rol == "profesor")
+        .filter(Profesor.rol == RolUsuario.PROFESOR)
         .filter(*filtro_clase_actual())
     )
 

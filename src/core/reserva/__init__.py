@@ -4,8 +4,8 @@ from sqlalchemy.orm import joinedload, selectinload, contains_eager, aliased
 from src.core.database import db
 
 from src.core.clases.clases import Clase, ProfesorDictaClase
-from src.core.reserva.reservas import Comentario, Reserva
-from src.core.usuarios.usuarios import Usuario
+from src.core.reserva.reservas import Comentario, Reserva, AsistenciaReserva
+from src.core.usuarios.usuarios import Usuario, RolUsuario
 
 from src.core.functions import filtro_clase_actual
 
@@ -21,7 +21,7 @@ def alumno_tiene_asistencia (dni_alumno):
         .join(Clase, Reserva.id_clase == Clase.id)
 
         .filter(Cliente.dni == dni_alumno)
-        .filter(Cliente.rol == "cliente")
+        .filter(Cliente.rol == RolUsuario.CLIENTE)
         .filter(*filtro_clase_actual())
     )
 
@@ -41,13 +41,13 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
     if (busqueda != ""):
         cliente_filtrado = True
         filters.append(or_(Cliente.nombre.like(f"%{busqueda}%"), Cliente.apellido.like(f"%{busqueda}%"), Cliente.dni.like(f"%{busqueda}%"), Comentario.comentario.like(f"%{busqueda}%")))
-        filters.append(Cliente.rol == "cliente")
+        filters.append(Cliente.rol == RolUsuario.CLIENTE)
     # Nota: estado puede ser "seleccionar_todos", "presente" o "ausente". Reserva.asiste guarda "presente", "ausente" o "cancelada"
     if (estado != "seleccionar_todos"):
         if (estado == "presente"):
-            filters.append(Reserva.asiste == "presente")
+            filters.append(Reserva.asiste == AsistenciaReserva.PRESENTE)
         else:
-            filters.append(Reserva.asiste == "ausente")
+            filters.append(Reserva.asiste == AsistenciaReserva.AUSENTE)
     if (fecha != ""):
         filters.append(fecha == Clase.fecha)
     if solo_comentarios == True:
@@ -63,8 +63,8 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
         .outerjoin(Comentario, Comentario.id_reserva == Reserva.id)
 
         .filter(Profesor.id == id_profesor)
-        .filter(Profesor.rol == "profesor")
-        .filter(Reserva.asiste != "cancelada")
+        .filter(Profesor.rol == RolUsuario.PROFESOR)
+        .filter(Reserva.asiste != AsistenciaReserva.AUSENTE)
         .filter(*filters)
         .order_by(Reserva.fecha_modificacion.desc())
     )
@@ -96,8 +96,8 @@ def subir_comentario (dni_alumno, comentario):
         .join (Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
 
         .filter(dni_alumno == Cliente.dni)
-        .filter(Profesor.rol == "profesor")
-        .filter(Cliente.rol == "cliente")
+        .filter(Profesor.rol == RolUsuario.PROFESOR)
+        .filter(Cliente.rol == RolUsuario.CLIENTE)
         .filter(*filtro_clase_actual())
     )
 
@@ -118,12 +118,12 @@ def registrar_presente_alumno (dni_alumno):
         .join (Clase, Clase.id == Reserva.id_clase)
 
         .filter(dni_alumno == Cliente.dni)
-        .filter(Cliente.rol == "cliente")
+        .filter(Cliente.rol == RolUsuario.CLIENTE)
         .filter(*filtro_clase_actual())
     )
 
     reserva_a_actualizar = db.session.scalars(query).one()
-    if (reserva_a_actualizar.asiste != "ausente"):
+    if (reserva_a_actualizar.asiste != AsistenciaReserva.AUSENTE):
         print ("No deberíamos haber llegado acá. Méteme una excepción :P")
         return
-    reserva_a_actualizar.asiste = "presente"
+    reserva_a_actualizar.asiste = AsistenciaReserva.PRESENTE

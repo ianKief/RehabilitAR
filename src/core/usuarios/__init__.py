@@ -4,7 +4,7 @@ from sqlalchemy.orm import aliased
 from src.core.database import db
 
 from src.core.clases.clases import Clase, ProfesorDictaClase
-from src.core.reserva.reservas import Reserva
+from src.core.reserva.reservas import Reserva, AsistenciaReserva
 from src.core.usuarios.usuarios import Usuario, RolUsuario
 
 from src.core.functions import filtro_clase_actual
@@ -24,8 +24,8 @@ def alumno_pertenece_a_clase_actual_profesor (id_profesor, dni_alumno):
 
         .filter(Profesor.id == id_profesor)
         .filter(Cliente.dni == dni_alumno)
-        .filter(Profesor.rol == "profesor")
-        .filter(Cliente.rol == "cliente")
+        .filter(Profesor.rol == RolUsuario.PROFESOR)
+        .filter(Cliente.rol == RolUsuario.CLIENTE)
         .filter(*filtro_clase_actual())
     )
 
@@ -54,9 +54,9 @@ def conseguir_lista_alumnos_clase_actual (id_profesor, filtro_nombre = ""):
         .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
 
         .filter(Profesor.id == id_profesor)
-        .filter(Profesor.rol == "profesor")
-        .filter(Cliente.rol == "cliente")
-        .filter(Reserva.asiste != "cancelada")
+        .filter(Profesor.rol == RolUsuario.PROFESOR)
+        .filter(Cliente.rol == RolUsuario.CLIENTE)
+        .filter(Reserva.asiste != AsistenciaReserva.CANCELADA)
         .filter(*filters)
         .filter(*filtro_clase_actual())
 
@@ -74,7 +74,7 @@ def conseguir_perfil_alumno (dni_alumno):
     query = (
         db.session.query(Cliente)
         .filter(Cliente.dni == dni_alumno)
-        .filter(Cliente.rol == "cliente")
+        .filter(Cliente.rol == RolUsuario.CLIENTE)
     )
 
     return db.session.scalars(query).one_or_none()
@@ -97,8 +97,8 @@ def tiene_alumnos (id_profesor, en_clase_actual=False):
         .join (Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
 
         .filter(Profesor.id == id_profesor)
-        .filter(Profesor.rol == "profesor")
-        .filter(Cliente.rol == "cliente")
+        .filter(Profesor.rol == RolUsuario.PROFESOR)
+        .filter(Cliente.rol == RolUsuario.CLIENTE)
         .filter(*filters)
     )
 
