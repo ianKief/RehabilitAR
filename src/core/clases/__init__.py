@@ -25,12 +25,12 @@ def conseguir_clase_actual (id_profesor):
     query = (
         db.session.query(Clase, func.count(
             Reserva.id
-        ).label("reservas_totales"), func.sum(
-            case(
+        ).label("reservas_totales"), func.coalesce(
+            func.sum(case(
                 (Reserva.asiste == AsistenciaReserva.PRESENTE, 1),
                 else_=0
-            )
-        ).label("asistencias_actuales"), 0)
+            )), 0
+        ).label("asistencias_actuales"))
 
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
         .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)

@@ -1,10 +1,28 @@
-from sqlalchemy import func, text, Date
+from sqlalchemy import func, text, Date, literal_column, Time
 from src.core.clases.clases import Clase
 
 def filtro_clase_actual ():
-    """Devuelve dos filtros para agarrar una clase actual. Para usar, hacer .filter(*filtro_clase_actual())"""
+    """Devuelve dos filtros para filtrar que actualmente está sucediendo una clase. Para usar, hacer .filter(*filtro_clase_actual())"""
+    
+    hora_actual = func.timezone(
+        'America/Argentina/Buenos_Aires',
+        func.now()
+    ).cast(Time)
+
     return [
-        (func.now().cast(Date) == Clase.fecha_clase),
-        (func.now() > Clase.horario),
-        (func.now() < (Clase.horario + (Clase.duracion * text("INTERVAL '1 minute'"))))
+
+        func.current_date() == Clase.fecha_clase,
+
+        hora_actual > Clase.horario,
+
+        hora_actual < (
+            Clase.horario
+            +
+            (
+                Clase.duracion
+                * literal_column(
+                    "INTERVAL '1 minute'"
+                )
+            )
+        )
     ]

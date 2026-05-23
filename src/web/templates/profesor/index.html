@@ -7,13 +7,13 @@
         {% if clase_actual %}
             <h2 class="title is-3 mb-2">Gestión de mi clase actual</h2>
             <p class="subtitle is-5 has-text-grey">Ahora: {{clase_actual.nombre}}</p>
-            <p class="subtitle is-6 has-text-grey">Hasta las {{clase_actual.getHoraFin()}}</p>
+            <p class="subtitle is-6 has-text-grey">Hasta las {{hora_fin}}</p>
             <div class="columns is-multiline mb-6 center">
                 <div class="column is-3-desktop is-6-tablet">
                     <div class="box">
                         <div class="has-text-centered">
                             <p class="heading has-text-success">Reservas</p>
-                            <p class="title is-3 has-text-success">5</p>
+                            <p class="title is-3 has-text-success">{{reservas}}</p>
                         </div>
                     </div>
                 </div>
@@ -21,16 +21,11 @@
                     <div class="box">
                         <div class="has-text-centered">
                             <p class="heading has-text-warning">Asistencias</p>
-                            <p class="title is-3 has-text-warning">24</p>
+                            <p class="title is-3 has-text-warning">{{asistencias}}</p>
                         </div>
                     </div>
                 </div>
             </div>
-            {% if exito %}
-                <div class="box is-multiline">
-                    <p class="has-text-success is-4">Se ha registrado al paciente {{nombre}} exitosamente</p>
-                </div>
-            {% endif %}
         {% else %}
             <span></span>
             <h2 class="title is-4 mb-2">Actualmente no hay ninguna clase disponible</h2>
