@@ -5,10 +5,13 @@ from src.core.usuarios import alumno_pertenece_a_clase_actual_profesor
 from src.core.reserva import alumno_tiene_asistencia, registrar_presente_alumno
 from src.web.functions import es_dni
 
+from src.core.reserva import AsistenciaReserva
+
 def registrar_asistencia_manual ():
 
     dni_alumno = request.form.get('dni')
-    id_profesor = session.get("id")
+    # id_profesor = session.get("id")
+    id_profesor=4
 
     if request.method == 'GET':
     
@@ -54,11 +57,22 @@ def registrar_asistencia_manual ():
             flash ("El DNI del alumno no corresponde a la clase del profesor o no existe", "warning")
             return render_template('profesor/presente_manual.html')
 
+        estado_asistencia_alumno = alumno_tiene_asistencia (dni_alumno)
+
+        # Comprobación 5.5: caso que no debería existir porque se asume que es el único alumno perteneciente a la clase y que se va a conseguir True o False
+        if estado_asistencia_alumno == None:
+            flash("Ha ocurrido un error desconocido. Prueba de vuelta", "warning")
+
         # Comprobación 6: el alumno aún no tiene la asistencia de su clase [EN BD]
-        if alumno_tiene_asistencia (dni_alumno):
+        if estado_asistencia_alumno == AsistenciaReserva.PRESENTE:
             flash ("El alumno ya tiene su asistencia marcada", "success")
             return render_template('profesor/presente_manual.html')
 
+        # Comprobación 7: el alumno canceló su reserva (dado que no queremos comprometer los datos del cliente más de la cuenta, la interfaz es la misma a la de si no pertenece a la clase)
+        if estado_asistencia_alumno == AsistenciaReserva.CANCELADA:
+            flash ("El DNI del alumno no corresponde a la clase del profesor o no existe", "warning")
+            return render_template('profesor/presente_manual.html')
+        
         registrar_presente_alumno (dni_alumno)
 
         flash ("Se ha registrado el presente exitosamente", "success")

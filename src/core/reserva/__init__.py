@@ -117,13 +117,15 @@ def registrar_presente_alumno (dni_alumno):
         .join (Cliente, Cliente.id == Reserva.id_cliente)
         .join (Clase, Clase.id == Reserva.id_clase)
 
-        .filter(dni_alumno == Cliente.dni)
+        .filter(Cliente.dni == dni_alumno)
         .filter(Cliente.rol == RolUsuario.CLIENTE)
         .filter(*filtro_clase_actual())
     )
 
     reserva_a_actualizar = db.session.scalars(query).one()
     if (reserva_a_actualizar.asiste != AsistenciaReserva.AUSENTE):
-        print ("No deberíamos haber llegado acá. Méteme una excepción :P")
+        print ("No deberíamos haber llegado acá.")
         return
     reserva_a_actualizar.asiste = AsistenciaReserva.PRESENTE
+
+    db.session.commit()
