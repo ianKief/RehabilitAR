@@ -16,7 +16,7 @@ def alumno_pertenece_a_clase_actual_profesor (id_profesor, dni_alumno):
     Cliente = aliased(Usuario)
 
     query = (
-        db.session.query(Cliente.exists())
+        db.session.query(Cliente)
         .join(Reserva, Cliente.id == Reserva.id_cliente)
         .join(Clase, Clase.id == Reserva.id_clase)
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
@@ -29,7 +29,9 @@ def alumno_pertenece_a_clase_actual_profesor (id_profesor, dni_alumno):
         .filter(*filtro_clase_actual())
     )
 
-    return db.session.scalars(query).one()
+    return db.session.query(
+        query.exists()
+    ).scalar()
 
 def conseguir_lista_alumnos_clase_actual (id_profesor, filtro_nombre = None):
     """Dado un ID de profesor, consigue la lista de alumnos de la clase actual si lo hay.
@@ -59,7 +61,6 @@ def conseguir_lista_alumnos_clase_actual (id_profesor, filtro_nombre = None):
         .filter(*filters)
         .filter(*filtro_clase_actual())
 
-        .group_by(Cliente.id)
         .order_by(Cliente.apellido, Cliente.nombre)
     )
 
@@ -75,12 +76,14 @@ def conseguir_perfil_alumno (dni_alumno):
             case (
                 (Reserva.asiste == AsistenciaReserva.PRESENTE, 1),
                 else_=0
-            ).label("promedio_asistencia")))
+            )).label("promedio_asistencia"))
+        .join(Reserva, Reserva.id_cliente == Cliente.id)
         .filter(Cliente.dni == dni_alumno)
         .filter(Cliente.rol == RolUsuario.CLIENTE)
+        .group_by(Cliente.id)
     )
 
-    return db.session.execute(query).one_or_none()
+    return query.one_or_none()
 
 def tiene_alumnos (id_profesor, en_clase_actual=False):
     """Devuelve True si tiene alumnos, False si no. Esto es en general, pero el parámetro en_clase_actual=False filtra (si está en True) si tiene alumnos en la clase actual (si la hay). False en caso contrario (no tira excepción)."""

@@ -6,8 +6,7 @@ from src.core.usuarios import tiene_alumnos, conseguir_lista_alumnos_clase_actua
 def consultar_listado_alumnos ():
 
     # id_profesor = session.get("id")
-
-    id_profesor = 15
+    id_profesor = 4
 
     # Comprobación 1: el profesor está logeado [EN INSTANCIA]
     # COMPROBAR LOGIN

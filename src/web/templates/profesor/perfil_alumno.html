@@ -45,15 +45,15 @@
                 </h2>
 
                 <!-- Lógica Jinja2 para determinar el color de la barra -->
-                {% set asistencia = alumno.porcentaje_asistencias*100 | default(0) %}
-                {% set barra_color = 'is-success' if alumno.porcentaje_asistencias*100 >= 80 else ('is-warning' if alumno.porcentaje_asistencias*100 >= 60 else 'is-danger') %}
+                {% set asistencia = promedio*100 | default(0) %}
+                {% set barra_color = 'is-success' if asistencia*100 >= 80 else ('is-warning' if asistencia*100 >= 60 else 'is-danger') %}
                 
                 <!-- Sección de Asistencia -->
                 <div class="attendance-section mt-4">
                     <div class="is-flex is-justify-content-space-between is-align-items-flex-end mb-2">
                         <span class="has-text-weight-semibold has-text-grey-dark">Asistencia Total</span>
                         <span class="title is-4 mb-0 {{ 'has-text-success' if asistencia >= 80 else ('has-text-warning-dark' if asistencia >= 60 else 'has-text-danger') }}">
-                            {{ alumno.porcentaje_asistencias*100 }}%
+                            {{ promedio*100 }}%
                         </span>
                     </div>
                     <!-- Barra de progreso nativa de Bulma -->
