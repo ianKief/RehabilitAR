@@ -157,7 +157,7 @@
                             {% endif %}
                         </td>
                         <td class="is-vcentered">
-                            <button class="button is-small is-primary is-outlined">Ver Detalle</button>
+                            <a href="{{ url_for('usuarios.detalle_usuario', id=u.id) }}" class="button is-small is-primary is-outlined">Ver Detalle</a>
                         </td>
                     </tr>
                     {% else %}
