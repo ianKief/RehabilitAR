@@ -153,6 +153,33 @@
                                 </a>
                             </li>
                             <!-- Navegación para personal (ocultar según rol) -->
+                             {% if session.get('rol') == 'ADMINISTRADOR' %}
+                            <li>
+                                <a id="btn-toggle-usuarios" class="py-2.5 px-3 has-text-weight-semibold" style="cursor: pointer;">
+                                    <span class="icon mr-2"><i class="fas fa-users-cog"></i></span>
+                                    Usuarios
+                                    <span class="icon is-small is-pulled-right mt-1">
+                                        <i id="icono-flecha-usuarios" class="fas fa-angle-down"></i>
+                                    </span>
+                                </a>
+                                
+                                <ul id="submenu-usuarios" class="is-hidden ml-4 mt-2" style="border-left: 2px solid var(--bulma-border-weak);">
+                                    <li>
+                                        <a href="{{ url_for('usuarios.listar_usuarios') }}" 
+                                        class="py-2 px-3 {% if current_path and current_path.startswith('/usuarios/lista') %}has-text-primary has-background-primary-light has-text-weight-bold{% endif %}">
+                                            <span class="icon mr-2"><i class="fas fa-list"></i></span>Listado de Usuarios
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ url_for('usuarios.crear_usuario') }}" 
+                                        class="py-2 px-3 {% if current_path and current_path == '/usuarios/crear' %}has-text-primary has-background-primary-light has-text-weight-bold{% endif %}">
+                                            <span class="icon mr-2"><i class="fas fa-user-plus"></i></span>Crear Usuario
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            {% endif %}
+
                             <li>
                                 <a href="/salas"
                                     class="py-2.5 px-3 {% if current_path == '/salas/' %}has-text-primary{% endif %}">
@@ -290,6 +317,39 @@
                 }, 5000);
             });
         });
+    </script>
+
+    <script>
+        // ==========================================
+        // LÓGICA DEL MENÚ DESPLEGABLE DE USUARIOS
+        // ==========================================
+        const btnToggleUsuarios = document.getElementById('btn-toggle-usuarios');
+        const submenuUsuarios = document.getElementById('submenu-usuarios');
+        const iconoFlecha = document.getElementById('icono-flecha-usuarios');
+
+        if (btnToggleUsuarios && submenuUsuarios) {
+            
+            // Función para abrir/cerrar
+            btnToggleUsuarios.addEventListener('click', (e) => {
+                e.preventDefault();
+                submenuUsuarios.classList.toggle('is-hidden');
+                
+                // Girar la flechita
+                if (submenuUsuarios.classList.contains('is-hidden')) {
+                    iconoFlecha.classList.replace('fa-angle-up', 'fa-angle-down');
+                } else {
+                    iconoFlecha.classList.replace('fa-angle-down', 'fa-angle-up');
+                }
+            });
+
+            // UX Inteligente: Si la URL actual ya es una pantalla de usuarios, 
+            // dejamos el menú abierto automáticamente para que el Admin no se pierda.
+            const pathActual = window.location.pathname;
+            if (pathActual.includes('/usuarios/lista') || pathActual.includes('/usuarios/crear') || pathActual.includes('/usuarios/detalle')) {
+                submenuUsuarios.classList.remove('is-hidden');
+                iconoFlecha.classList.replace('fa-angle-down', 'fa-angle-up');
+            }
+        }
     </script>
     {% block scripts %}{% endblock %}
 </body>
