@@ -1,11 +1,13 @@
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, request
-from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_usuario_por_id_core, actualizar_rol_usuario, bloquear_usuario, habilitar_usuario
+from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_usuario_por_id_core, actualizar_rol_usuario, bloquear_usuario, habilitar_usuario, eliminar_usuario
 from src.core.usuarios.usuarios import EstadoAptoFisico
 from src.web.helpers.decorator import requiere_rol
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 from src.core.database import db
+from flask_mail import Message
+from src.web import mail
 
 users_bp = Blueprint('usuarios', __name__, url_prefix='/usuarios')
 
@@ -198,3 +200,46 @@ def ruta_habilitar_usuario(id):
         flash("Ocurrió un error inesperado.", "danger")
         
     return redirect(url_for('usuarios.detalle_usuario', id=id))
+
+@users_bp.route('/<int:id>/eliminar', methods=['POST'])
+@requiere_rol(['ADMINISTRADOR'])
+def ruta_eliminar_usuario(id):
+    # 1. Buscamos al usuario ANTES de borrarlo para rescatar su email
+    usuario = obtener_usuario_por_id_core(id)
+    
+    if not usuario:
+        flash("El usuario no existe o ya fue eliminado.", "danger")
+        return redirect(url_for('usuarios.listar_usuarios'))
+        
+    email_destino = usuario.email
+    nombre_usuario = usuario.nombre
+    
+    try:
+        # 2. Lo eliminamos permanentemente
+        eliminar_usuario(id)
+        
+        # 3. Armamos y enviamos el correo de notificación
+        msg = Message(
+            subject="RehabilitAR - Cuenta Eliminada",
+            recipients=[email_destino]
+        )
+        msg.body = f"""Hola {nombre_usuario},
+
+Te informamos que tu cuenta en el sistema RehabilitAR ha sido eliminada permanentemente por un Administrador.
+
+Si crees que esto es un error o tenés alguna duda, por favor contactate con la administración.
+
+Saludos,
+El equipo de RehabilitAR."""
+
+        mail.send(msg)
+        
+        # 4. Mostramos el mensaje exacto que pide tu HU
+        flash("Cuenta eliminada con éxito.", "success")
+        
+    except Exception as e:
+        db.session.rollback()
+        flash("Ocurrió un error inesperado al intentar eliminar la cuenta.", "danger")
+        
+    # 5. Redirigimos al listado porque el detalle del usuario ya no existe
+    return redirect(url_for('usuarios.listar_usuarios'))

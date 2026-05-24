@@ -160,7 +160,7 @@ def actualizar_rol_usuario(usuario_id, nuevo_rol):
     return usuario
 
 def bloquear_usuario(usuario_id):
-    usuario = db.session.query(Usuario).get(usuario_id)
+    usuario = db.session.get(Usuario, usuario_id)
     if not usuario:
         raise ValueError("El usuario no existe.")
         
@@ -169,7 +169,7 @@ def bloquear_usuario(usuario_id):
     return usuario
 
 def habilitar_usuario(usuario_id):
-    usuario = db.session.query(Usuario).get(usuario_id)
+    usuario = db.session.get(Usuario, usuario_id)
     if not usuario:
         raise ValueError("El usuario no existe.")
         
@@ -184,3 +184,13 @@ def habilitar_usuario(usuario_id):
     usuario.estado = EstadoUsuario.ACTIVO
     db.session.commit()
     return usuario
+
+
+def eliminar_usuario(usuario_id):
+    usuario = db.session.get(Usuario, usuario_id)
+    if not usuario:
+        raise ValueError("El usuario no existe.")
+        
+    db.session.delete(usuario)
+    db.session.commit()
+    return True

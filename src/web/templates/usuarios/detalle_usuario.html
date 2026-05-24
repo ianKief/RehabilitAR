@@ -159,7 +159,12 @@
                         </button>
                     </form>
                 {% endif %}
-
+                <form action="{{ url_for('usuarios.ruta_eliminar_usuario', id=usuario.id) }}" method="POST" style="display: inline;">
+                    <button type="submit" class="button is-dark is-danger" onclick="return confirm('ATENCIÓN: ¿Estás seguro de que deseas ELIMINAR permanentemente a este usuario? Esta acción borrará todos sus datos y NO se puede deshacer.');">
+                        <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                        <span>Eliminar Usuario</span>
+                    </button>
+                </form>
             </div>
         </div>
 
