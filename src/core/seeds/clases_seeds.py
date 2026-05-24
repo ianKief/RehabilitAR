@@ -1,6 +1,9 @@
+import calendar
 import random
 from datetime import date, time, timedelta
-from src.core.clases import Clase  # El import de tu modelo de clases
+from sqlalchemy import select
+from src.core.salas.salas import Sala, EstadoSala  # Asegurá estas rutas
+from src.core.clases.clases import Clase              # Asegurá esta ruta
 
 class ClaseSeeder:
     def __init__(self, db):
@@ -16,43 +19,89 @@ class ClaseSeeder:
             "Tren Medio": ["Estabilización de Core", "Reeducación Postural Lumbar", "Gimnasia Correctiva de Columna"]
         }
 
-        # Horarios de inicio de clase
+        # Horarios de inicio de clase (los espaciamos un poco más para evitar choques bruscos en pruebas)
         self.horarios_prueba = [
-            time(8, 0), time(9, 30), time(11, 0), 
-            time(14, 30), time(16, 0), time(17, 30)
+            time(8, 0), time(10, 0), time(12, 0), 
+            time(14, 0), time(16, 0), time(18, 0)
         ]
 
     def run(self):
-        print("Insertando clases de prueba")
+        print("Insertando clases de prueba...")
+
+        # 1. Traemos los OBJETOS completos de las salas habilitadas
+        query_salas = select(Sala).filter(Sala.estado == EstadoSala.HABILITADA)
+        salas_disponibles = self.db.session.scalars(query_salas).all()
+
+        if not salas_disponibles:
+            print("⚠️ Error: No se encontraron salas habilitadas en la BD. Ejecutá primero el seeder de salas.")
+            return
 
         hoy = date.today()
 
-        # Generamos 8 clases distribuidas en los próximos días
+        # Generamos 8 intenciones de clases distribuidas en la agenda
         for i in range(8):
             especialidad = random.choice(self.especialidades)
             nombre = random.choice(self.nombres_por_especialidad[especialidad])
             tipo = random.choice(self.tipos_clases)
             horario = random.choice(self.horarios_prueba)
             
-            # Repartimos las clases entre hoy, mañana y pasado
-            dias_en_adelante = random.randint(0, 2)
-            fecha_clase = hoy + timedelta(days=dias_en_adelante)
+            # Repartimos las fechas iniciales en un rango de 10 días para diversificar la agenda de prueba
+            dias_en_adelante = random.randint(1, 10)
+            fecha_inicial = hoy + timedelta(days=dias_en_adelante)
 
-            clase = Clase(
-                nombre=nombre,
-                especialidad=especialidad,
-                duracion=random.choice([45, 60, 90]),  # Minutos
-                capacidad_maxima=random.randint(5, 12),
-                descripcion=f"Sesión enfocada en {especialidad.lower()}. Trabajo de movilidad y fuerza progresiva. Tipo: {tipo}.",
-                suspendida=False,
-                fecha_clase=fecha_clase,
-                horario=horario,
-                aprobada=True,
-                tipo=tipo
-            )
+            # Evitamos fin de semana para la fecha base
+            if fecha_inicial.weekday() in [5, 6]:
+                fecha_inicial += timedelta(days=2)
 
-            print(f"Creada: {clase.nombre} -> Especialidad: {clase.especialidad} | {clase.fecha_clase} {clase.horario}")
-            self.db.session.add(clase)
+            sala_asignada = random.choice(salas_disponibles)
 
+            # Validamos capacidad según el modelo de Sala
+            if sala_asignada.capacidad > 1:
+                capacidad_maxima = random.randint(2, sala_asignada.capacidad)
+            else:
+                capacidad_maxima = 1
+
+            if tipo == 'Individual':
+                capacidad_maxima = 1
+
+            duracion = random.choice([45, 60])
+
+            # 2. DETERMINAR LAS FECHAS DE IMPACTO
+            fechas_a_crear = []
+            if tipo == "Fija":
+                anio = fecha_inicial.year
+                mes = fecha_inicial.month
+                dia_semana_objetivo = fecha_inicial.weekday()
+
+                cal = calendar.monthcalendar(anio, mes)
+                for semana in cal:
+                    dia = semana[dia_semana_objetivo]
+                    if dia != 0:
+                        fecha_calculada = date(anio, mes, dia)
+                        # Mantenemos tu regla: no seedear clases en el pasado del mes actual
+                        if fecha_calculada >= hoy:
+                            fechas_a_crear.append(fecha_calculada)
+            else:
+                fechas_a_crear.append(fecha_inicial)
+
+            # 3. PERSISTENCIA EN EL BUCLE DE RECURRENCIA
+            for f in fechas_a_crear:
+                clase = Clase(
+                    nombre=nombre,
+                    especialidad=especialidad,
+                    duracion=duracion,
+                    capacidad_maxima=capacidad_maxima,
+                    descripcion=f"Clase de prueba ({tipo}). Enfoque: {especialidad.lower()}. Espacio controlado en Sala {sala_asignada.numero_puerta}.",
+                    suspendida=False,
+                    fecha_clase=f,  # <-- Fecha iterada del mes
+                    horario=horario,
+                    aprobada=True,
+                    tipo=tipo,
+                    sala_id=sala_asignada.id
+                )
+                self.db.session.add(clase)
+                print(f" -> Seeder: Preparada [{tipo}] {clase.nombre} para el {clase.fecha_clase} a las {clase.horario} hs (Sala ID: {clase.sala_id})")
+
+        # Confirmamos todos los bloques juntos en Postgres
         self.db.session.commit()
-        print("¡Se han guardado las clases correctamente!")
+        print("¡Se han guardado las clases y sus recurrencias correctamente en PostgreSQL!")

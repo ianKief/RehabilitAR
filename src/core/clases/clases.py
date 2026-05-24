@@ -1,6 +1,7 @@
+from src.core.salas.salas import Sala
 from src.core.database import Base
-from sqlalchemy import Boolean, Date, DateTime, String, Integer, Time
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, Integer, Time
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
@@ -20,6 +21,9 @@ class Clase(Base):
     horario: Mapped[time] = mapped_column(Time, nullable=False)
     aprobada:Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     tipo: Mapped[str] = mapped_column(String(20), nullable=False)
+    sala_id: Mapped[int] = mapped_column(ForeignKey("salas.id"), nullable=False)
+    # RELACIÓN: Esto te permite hacer "clase.sala.capacidad_maxima" o "clase.sala.numero_puerta" directo en Python
+    sala: Mapped["Sala"] = relationship("Sala")
 
     # Campos de auditoría
     fecha_creacion: Mapped[datetime] = mapped_column(
