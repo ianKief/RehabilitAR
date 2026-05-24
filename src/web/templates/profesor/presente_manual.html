@@ -18,16 +18,4 @@
             <i class="fas fa-search"></i>
         </button>
     </form>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <!-- Usamos la categoría como clase CSS (ej. success, error) -->
-                <div class="alert has-text-{{ category }}">
-                    <p>{{ message }}</p>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
 {% endblock %}

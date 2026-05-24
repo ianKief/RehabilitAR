@@ -5,8 +5,7 @@ from src.core.usuarios import alumno_pertenece_a_clase_actual_profesor, consegui
 
 def cargar_perfil_alumno (dni):
 
-    # id_profesor = session.get("dni")
-    id_profesor = 4
+    id_profesor = session.get("dni")
 
     # Comprobación 1: el profesor está logeado [EN INSTANCIA]
     # COMPROBAR LOGIN

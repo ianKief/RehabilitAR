@@ -42,7 +42,7 @@ def conseguir_lista_alumnos_clase_actual (id_profesor, filtro_nombre = None):
 
     # Inicializo el filtro de búsqueda
     filters = []
-    print ("EL FILTRO NOMBRE ES PARAAA", filtro_nombre)
+
     if (filtro_nombre != None):
         filters.append(or_(Cliente.nombre.ilike(f"%{filtro_nombre}%"), Cliente.apellido.ilike(f"%{filtro_nombre}%"), Cliente.dni.ilike(f"%{filtro_nombre}%")))
 

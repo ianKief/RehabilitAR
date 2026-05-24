@@ -6,9 +6,8 @@ from src.web.functions import devolver_hora_fin
 
 def renderizar_index_profesor ():
 
-    # id_profesor = session.get("id")
-    id_profesor = 1
-    
+    id_profesor = session.get("id")
+
     # Comprobación 1: el profesor está logeado [EN INSTANCIA]
     # COMPROBAR LOGIN
     #   flash('El profesor no está logueado', 'warning')
@@ -16,7 +15,7 @@ def renderizar_index_profesor ():
     
     try:
         datos = conseguir_clase_actual (id_profesor)
-        print (datos)
+
         if (datos == None):
             return render_template('/profesor/index.html') 
         clase_actual = datos[0]

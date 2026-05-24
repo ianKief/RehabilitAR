@@ -114,55 +114,47 @@
 
     {% if (lista_de_asistencias != []) %}
         {% for asistencia in lista_de_asistencias %}
-            <div class="box">
+            {% if asistencia.reserva.asiste != 'CANCELADA' %} <!--Nota: esto puede provocar bugs raros si una clase solo tiene reservas canceladas. Dado que no entra en las posibilidades del sistema no lo corregiré, pero queda registrado acá-->
+                <div class="box">
 
-                <!-- Cabecera asistencia -->
-                <div class="level">
-                    <div class="level-left">
-                        <div>
-                            <p class="title is-5">{{asistencia.alumno.nombre}} {{asistencia.alumno.apellido}}</p>
-                            <p class="title is-6">DNI: {{asistencia.alumno.dni}}</p>
-                            <p class="subtitle is-6">{{asistencia.clase.nombre}} - {{asistencia.clase.fecha}}</p>
+                    <!-- Cabecera asistencia -->
+                    <div class="level">
+                        <div class="level-left">
+                            <div>
+                                <p class="title is-5">{{asistencia.cliente.nombre}} {{asistencia.cliente.apellido}}</p>
+                                <p class="title is-6">DNI: {{asistencia.cliente.dni}}</p>
+                                <p class="subtitle is-6">{{asistencia.clase.nombre}} - {{asistencia.clase.fecha_clase}}</p>
+                            </div>
+                        </div>
+
+                        <div class="level-right">
+                            {% if asistencia.reserva.asiste.value == "presente" %}
+                                <span class="tag is-success">Presente</span>
+                            {% endif %}
+                            {% if asistencia.reserva.asiste.value == "ausente" %}
+                                <span class="tag is-warning">Ausente</span> <!--verificar-->
+                            {% endif %}
                         </div>
                     </div>
 
-                    <div class="level-right">
-                        {% if asistencia.presencia == "presente" %}
-                            <span class="tag is-success">Asistió</span>
-                        {% elif asistencia.presencia == "ausente" %}
-                            <span class="tag is-warning">Ausente</span> <!--verificar-->
-                        {% endif %}
-                    </div>
+                    <!-- Comentarios -->
+                {% if asistencia.comentarios != [] %}
+                        {% for comentario in asistencia.comentarios %}
+                            <div class="content mt-4">
+                                <article class="message is-small">
+                                    <div class="message-body">
+                                        {{comentario.comentario}}
+                                    </div>
+                                </article>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
                 </div>
-
-                <!-- Comentarios -->
-               {% if asistencia.comentarios != [] %}
-                    {% for comentario in asistencia.comentarios %}
-                        <div class="content mt-4">
-                            <article class="message is-small">
-                                <div class="message-body">
-                                    {{comentario}}
-                                </div>
-                            </article>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            </div>
+            {% endif %}
         {% endfor %}
     {% else %}
         <div class="box is-multiline">
             <p class="has-text-warning is-4">No se han encontrado resultados</p>
         </div>
     {% endif %}
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <!-- Usamos la categoría como clase CSS (ej. success, error) -->
-                <div class="alert has-text-{{ category }}">
-                    <p>{{ message }}</p>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
 {% endblock %}

@@ -35,51 +35,62 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
 
     # Inicializaciones necesarias
     filters = []
-    cliente_filtrado = False
-
+    # LEER ABAJO: cliente_filtrado = False
+ 
     # Aplicando filtros al query
+ 
     if (busqueda != ""):
         cliente_filtrado = True
-        filters.append(or_(Cliente.nombre.like(f"%{busqueda}%"), Cliente.apellido.like(f"%{busqueda}%"), Cliente.dni.like(f"%{busqueda}%"), Comentario.comentario.like(f"%{busqueda}%")))
+        filters.append(or_(Cliente.nombre.ilike(f"%{busqueda}%"), Cliente.apellido.ilike(f"%{busqueda}%"), Cliente.dni.ilike(f"%{busqueda}%"), Comentario.comentario.ilike(f"%{busqueda}%"), Clase.nombre.ilike(f"%{busqueda}%")))
         filters.append(Cliente.rol == RolUsuario.CLIENTE)
-    # Nota: estado puede ser "seleccionar_todos", "presente" o "ausente". Reserva.asiste guarda "presente", "ausente" o "cancelada"
+    # Nota: estado puede ser "seleccionar_todos", "presente" o "ausente"
     if (estado != "seleccionar_todos"):
+
         if (estado == "presente"):
             filters.append(Reserva.asiste == AsistenciaReserva.PRESENTE)
         else:
             filters.append(Reserva.asiste == AsistenciaReserva.AUSENTE)
     if (fecha != ""):
-        filters.append(fecha == Clase.fecha)
-    if solo_comentarios == True:
-        filters.append(Comentario.any())
+        filters.append(fecha == Clase.fecha_clase)
 
     # query en sí
     query = (
-        db.session.query(Reserva)
+        db.session.query(Reserva, Cliente, Comentario, Clase)
+
         .join(Clase, Clase.id == Reserva.id_clase)
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
         .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
         .join(Cliente, Reserva.id_cliente == Cliente.id)
-        .outerjoin(Comentario, Comentario.id_reserva == Reserva.id)
 
         .filter(Profesor.id == id_profesor)
         .filter(Profesor.rol == RolUsuario.PROFESOR)
-        .filter(Reserva.asiste != AsistenciaReserva.AUSENTE)
+        .filter(Reserva.asiste != AsistenciaReserva.CANCELADA)
         .filter(*filters)
+
         .order_by(Reserva.fecha_modificacion.desc())
     )
+
+    if solo_comentarios:
+        query = query.join(Comentario, Comentario.id_reserva == Reserva.id)
+    else:
+        query = query.outerjoin(Comentario, Comentario.id_reserva == Reserva.id)
+
+    """Si en algún momento agregamos FKs y relationships, esta alternativa es la correcta y nos permitirá sacar la otra función en ver_asistencias.py
+
     if cliente_filtrado:
-        query.options(
-            contains_eager(Reserva.id_cliente),
-            selectinload(Comentario.id_reserva)
+        query = query.options(
+            contains_eager(Reserva.cliente),
+            selectinload(Reserva.comentarios)
         )
     else: 
-        query.options(
-            joinedload(Reserva.id_cliente),
-            selectinload(Comentario.id_reserva)
+        query = query.options(
+            joinedload(Reserva.cliente),
+            selectinload(Reserva.comentarios)
         )
+    """
 
-    return db.session.scalars(query).all()
+    return query.all()
+        
 
 def subir_comentario (dni_alumno, comentario):
     """Sube un comentario del alumno en la clase actual según su DNI.
@@ -125,7 +136,8 @@ def registrar_presente_alumno (dni_alumno):
     reserva_a_actualizar = db.session.scalars(query).one()
     if (reserva_a_actualizar.asiste != AsistenciaReserva.AUSENTE):
         print ("No deberíamos haber llegado acá.")
-        return
+        return False
     reserva_a_actualizar.asiste = AsistenciaReserva.PRESENTE
 
     db.session.commit()
+    return True

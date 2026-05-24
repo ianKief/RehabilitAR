@@ -3,6 +3,8 @@ from flask import render_template, session, request, flash, url_for, redirect
 from src.core.usuarios import tiene_alumnos
 from src.core.reserva import conseguir_asistencias
 
+from src.web.functions import agrupacion_manual_de_datos_de_comentarios_por_asistencia_y_alumno
+
 def ver_comentarios_y_asistencias ():
     
     id_profesor = session.get("dni")
@@ -22,6 +24,7 @@ def ver_comentarios_y_asistencias ():
 # Fecha: devuelve None si no se carga el formulario, "" en el otro caso, salvo si se inserta un dato, para el cual el formato será "YYYY-MM-DD"
 # solo_comentarios: devuelve None o "", pero es suficiente para traducirlo a True o False
 # estado: devuelve el valor del campo value seleccionado. Por default devuelve "seleccionar_todos", pero con el filtro puede devolver "presente" o "ausente"
+    
     busqueda = request.args.get("busqueda")
     if busqueda == None:
         busqueda = ""
@@ -35,24 +38,18 @@ def ver_comentarios_y_asistencias ():
     if (estado == None):
         estado="seleccionar_todos"
 
-    # print ("busqueda (tiene que ser distinta a ''):", busqueda)
-    # print ("Fecha (Tiene que ser distinta a ''):", fecha)
-    # print ("solo_comentarios (tiene que ser distinto a False):", solo_comentarios)
-    # print ("estado (tiene que ser distinto a 'seleccionar_todos'):", estado)
-
     hay_filtro = busqueda!="" or fecha!="" or solo_comentarios==True or estado != "seleccionar_todos"
 
-    # print ("HAY FILTRO", hay_filtro)
-
-    # NOTA: SE USARÁ UNA NUEVA FUNCIÓN: CONSEGUIR_ASISTENCIAS, LA CUAL TENDRÁ TAGS INICIALIZADAS EN NONE
-    return render_template ('profesor/ver_asistencias.html', lista_de_asistencias=conseguir_asistencias(
-                                                                                           busqueda=busqueda,
-                                                                                           estado=estado,
-                                                                                           fecha=fecha,
-                                                                                           solo_comentarios=solo_comentarios),
+    # NOTA: Si en algún momento se aplican las FK y relationships adecuadas, puede quitarse la función de nombre largo
+    lista_de_asistencias = agrupacion_manual_de_datos_de_comentarios_por_asistencia_y_alumno(conseguir_asistencias(id_profesor,
+        busqueda=busqueda,
+        estado=estado,
+        fecha=fecha,
+        solo_comentarios=solo_comentarios))
+    
+    return render_template ('profesor/ver_asistencias.html', lista_de_asistencias=lista_de_asistencias,
                                                                                     busqueda=busqueda,
                                                                                     fecha=fecha,
                                                                                     solo_comentarios=solo_comentarios,
                                                                                     hay_filtro=hay_filtro,
                                                                                     estado=estado)
-# El método filtrarAsistencias es un archivo de pruebas. Una consulta directa a BD será brutalmente más eficaz y conciso.

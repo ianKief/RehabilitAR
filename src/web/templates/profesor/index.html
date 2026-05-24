@@ -31,17 +31,5 @@
             <h2 class="title is-4 mb-2">Actualmente no hay ninguna clase disponible</h2>
             <p class="subtitle is-6 has-text-grey">Cuando esté transcurriendo una clase, aparecerán los detalles aquí</p>
         {% endif %}
-
-        <!--Error/notificación-->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <!-- Usamos la categoría como clase CSS (ej. success, error) -->
-                    <div class="alert has-text-{{ category }}">
-                        <p>{{ message }}</p>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
     </section>
 {% endblock %}

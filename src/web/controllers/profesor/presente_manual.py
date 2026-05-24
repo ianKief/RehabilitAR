@@ -10,13 +10,10 @@ from src.core.reserva import AsistenciaReserva
 def registrar_asistencia_manual ():
 
     dni_alumno = request.form.get('dni')
-    # id_profesor = session.get("id")
-    id_profesor=4
+    id_profesor = session.get("id")
 
     if request.method == 'GET':
     
-        print (session.get("rol"))
-
         # Comprobación 1: el profesor está logeado [EN INSTANCIA]
         # COMPROBAR LOGIN
         #   flash('El profesor no está logueado', 'warning')
@@ -73,7 +70,11 @@ def registrar_asistencia_manual ():
             flash ("El DNI del alumno no corresponde a la clase del profesor o no existe", "warning")
             return render_template('profesor/presente_manual.html')
         
-        registrar_presente_alumno (dni_alumno)
+        exito = registrar_presente_alumno (dni_alumno)
 
+        if not exito:
+            flash ('Ha ocurrido un error inesperado', 'danger')
+            return redirect(url_for("profesor.index_profesor"))
+        
         flash ("Se ha registrado el presente exitosamente", "success")
         return redirect(url_for("profesor.index_profesor"))
