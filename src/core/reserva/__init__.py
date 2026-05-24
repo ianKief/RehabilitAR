@@ -6,7 +6,6 @@ from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reserva.reservas import Comentario, Reserva, AsistenciaReserva
 from src.core.usuarios.usuarios import Usuario, RolUsuario
-from src.core.usuarios import bloquear_usuario
 
 from src.core.functions import filtro_clase_actual
 
@@ -148,6 +147,8 @@ def finalizar_clase_y_penalizar(id_clase):
     Cierra la clase: Marca como ausentes a todos los alumnos que no tengan presente,
     calcula su inasistencia histórica y bloquea a los que superen el 50%.
     """
+    from src.core.usuarios import bloquear_usuario
+
     
     # 1. Buscamos todas las reservas de esta clase que NO sean PRESENTE ni CANCELADA
     # (Es decir, los que quedaron "colgados" o ya estaban por defecto en otro estado)
