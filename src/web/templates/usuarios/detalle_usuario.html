@@ -1,0 +1,164 @@
+{% extends "layout.html" %}
+
+{% block title %}Detalle de Usuario - RehabilitAR{% endblock %}
+
+{% block content %}
+<div class="container is-max-desktop mt-5">
+    
+    <div class="mb-4">
+        <a href="{{ url_for('usuarios.listar_usuarios') }}" class="button is-small is-light">
+            <span class="icon"><i class="fas fa-arrow-left"></i></span>
+            <span>Volver al listado</span>
+        </a>
+    </div>
+
+    <div class="box p-6" style="border-radius: 1rem;">
+        
+        <div class="has-text-centered mb-5">
+            <span class="icon is-large has-text-primary mb-3">
+                <i class="fas fa-user-circle fa-4x"></i>
+            </span>
+            <h1 class="title is-3">Detalle de Usuario</h1>
+            <p class="subtitle is-6 has-text-grey">Información completa de la cuenta</p>
+        </div>
+
+        <hr>
+
+        <div class="columns is-multiline">
+            
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-grey is-small">Nombre Completo</label>
+                    <p class="is-size-5"><strong>{{ usuario.nombre }} {{ usuario.apellido }}</strong></p>
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-grey is-small">Documento (DNI)</label>
+                    <p class="is-size-5">{{ usuario.dni }}</p>
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-grey is-small">Correo Electrónico</label>
+                    <p class="is-size-5">{{ usuario.email }}</p>
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-grey is-small">Teléfono</label>
+                    <p class="is-size-5">{{ usuario.telefono if usuario.telefono else 'No especificado' }}</p>
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-grey is-small">Fecha de Nacimiento</label>
+                    <p class="is-size-5">{{ usuario.fecha_nacimiento.strftime('%d/%m/%Y') if usuario.fecha_nacimiento else 'No especificada' }}</p>
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-grey is-small">Dirección</label>
+                    <p class="is-size-5">{{ usuario.direccion if usuario.direccion else 'No especificada' }}</p>
+                </div>
+            </div>
+            
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-grey is-small">Rol en el Sistema</label>
+                    <span class="tag is-info is-light is-medium">{{ usuario.rol.name | capitalize }}</span>
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-grey is-small">Estado de la Cuenta</label>
+                    {% if usuario.estado.name == 'ACTIVO' %}
+                        <span class="tag is-success is-medium">{{ usuario.estado.name }}</span>
+                    {% elif usuario.estado.name == 'PENDIENTE' %}
+                        <span class="tag is-warning is-medium">{{ usuario.estado.name }}</span>
+                    {% elif usuario.estado.name == 'BLOQUEADO' %}
+                        <span class="tag is-danger is-medium">{{ usuario.estado.name }}</span>
+                    {% else %}
+                        <span class="tag is-medium">{{ usuario.estado.name if usuario.estado else 'N/A' }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+        
+        <hr>
+
+        <div class="mb-5">
+            <h2 class="title is-4 mb-4">
+                <span class="icon mr-2 has-text-info"><i class="fas fa-notes-medical"></i></span>
+                Apto Físico
+            </h2>
+            
+            <div class="box">
+                <div class="columns is-vcentered">
+                    <div class="column">
+                        <p class="mb-2"><strong>Estado actual:</strong> 
+                            {% if not usuario.estado_apto_fisico or usuario.estado_apto_fisico.name == 'SIN_CARGAR' %}
+                                <span class="tag is-light is-medium">Sin Subir</span>
+                            {% elif usuario.estado_apto_fisico.name == 'PENDIENTE' %}
+                                <span class="tag is-warning is-medium">Pendiente de Revisión</span>
+                            {% elif usuario.estado_apto_fisico.name == 'ACEPTADO' %}
+                                <span class="tag is-success is-medium">Aceptado</span>
+                            {% elif usuario.estado_apto_fisico.name == 'RECHAZADO' %}
+                                <span class="tag is-danger is-medium">Rechazado</span>
+                            {% endif %}
+                        </p>
+                        <p class="is-size-7 has-text-grey">
+                            Última actualización: {{ usuario.fecha_apto_fisico.strftime('%d/%m/%Y') if usuario.fecha_apto_fisico else 'Nunca' }}
+                        </p>
+                    </div>
+
+                    <div class="column is-narrow">
+                        {% if usuario.ruta_apto_fisico %}
+                            <a href="{{ url_for('static', filename=usuario.ruta_apto_fisico) }}" target="_blank" class="button is-info is-outlined">
+                                <span class="icon"><i class="fas fa-file-medical"></i></span>
+                                <span>Ver Archivo</span>
+                            </a>
+                        {% else %}
+                            <button class="button is-light" disabled>Sin archivo</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="mt-5">
+            <h3 class="title is-5 mb-4 has-text-grey">Acciones de Administración</h3>
+            <div class="buttons">
+                
+                <a href="#" class="button is-warning is-light">
+                    <span class="icon"><i class="fas fa-user-edit"></i></span>
+                    <span>Modificar Rol</span>
+                </a>
+
+                {% if usuario.estado.name == 'BLOQUEADO' %}
+                    <a href="#" class="button is-success is-light">
+                        <span class="icon"><i class="fas fa-unlock"></i></span>
+                        <span>Habilitar Usuario</span>
+                    </a>
+                {% else %}
+                    <a href="#" class="button is-danger is-light">
+                        <span class="icon"><i class="fas fa-lock"></i></span>
+                        <span>Bloquear Usuario</span>
+                    </a>
+                {% endif %}
+
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
