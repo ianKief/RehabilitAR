@@ -2,6 +2,7 @@ from sqlalchemy import func, text, or_, select, cast, Integer, and_, case
 from sqlalchemy.orm import aliased
 
 from src.core.database import db
+from src.core.usuarios.usuarios import Usuario, RolUsuario, EstadoUsuario
 
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reserva.reservas import Reserva, AsistenciaReserva
@@ -116,9 +117,23 @@ def obtener_usuario_por_id_core(user_id):
     """Devuelve un usuario dado su ID."""
     return db.session.get(Usuario, user_id)
 
-def listar_usuarios():
-    """Devuelve una lista con todos los usuarios registrados."""
+def listar_usuarios(nombre=None, apellido=None, dni=None, email=None, rol=None, estado=None):
+    """Devuelve una lista con todos los usuarios registrados.
+    Si hay parametros, los filtra."""
     stmt = select(Usuario).order_by(Usuario.id)
+    if nombre:
+        stmt = stmt.where(Usuario.nombre == nombre)
+    if apellido:
+        stmt = stmt.where(Usuario.apellido == apellido)
+    if dni:
+        stmt = stmt.where(Usuario.dni == dni)
+    if email:
+        stmt = stmt.where(Usuario.email == email)
+    if rol:
+        stmt = stmt.where(Usuario.rol == RolUsuario(rol))
+    if estado:
+        stmt = stmt.where(Usuario.estado == EstadoUsuario(estado))
+        
     return db.session.execute(stmt).scalars().all()
 
 def crear_usuario(**kwargs):
@@ -134,3 +149,48 @@ def crear_usuario(**kwargs):
     db.session.add(nuevo_usuario)
     db.session.commit()
     return nuevo_usuario
+
+def actualizar_rol_usuario(usuario_id, nuevo_rol):
+    usuario = db.session.get(Usuario, usuario_id)
+    if not usuario:
+        raise ValueError("El usuario no existe.")
+
+    usuario.rol = RolUsuario(nuevo_rol)
+    db.session.commit()
+    return usuario
+
+def bloquear_usuario(usuario_id):
+    usuario = db.session.get(Usuario, usuario_id)
+    if not usuario:
+        raise ValueError("El usuario no existe.")
+        
+    usuario.estado = EstadoUsuario.BLOQUEADO
+    db.session.commit()
+    return usuario
+
+def habilitar_usuario(usuario_id):
+    usuario = db.session.get(Usuario, usuario_id)
+    if not usuario:
+        raise ValueError("El usuario no existe.")
+        
+    # REGLA DE NEGOCIO: Verificar que no tenga deudas pendientes.
+    # Cuando se implemente el módulo de pagos se reemplaza "False" por la función real.
+    # Ejemplo: tiene_deuda = verificar_deuda_core(usuario_id)
+    tiene_deuda = False 
+    
+    if tiene_deuda:
+        raise ValueError("Actualización fallida: El usuario posee deudas pendientes")
+        
+    usuario.estado = EstadoUsuario.ACTIVO
+    db.session.commit()
+    return usuario
+
+
+def eliminar_usuario(usuario_id):
+    usuario = db.session.get(Usuario, usuario_id)
+    if not usuario:
+        raise ValueError("El usuario no existe.")
+        
+    db.session.delete(usuario)
+    db.session.commit()
+    return True
