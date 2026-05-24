@@ -42,4 +42,3 @@ class DevelopmentConfig:
 
 # Instancia única de configuración de desarrollo
 config = DevelopmentConfig
-

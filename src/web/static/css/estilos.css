@@ -1,0 +1,138 @@
+/* Esto es de ver_asistencias */
+
+.tag.is-warning {
+    background-color: #ffdd57;
+    --bulma-burger-border-radius: 1;
+    color: rgba(0, 0, 0, 0.7);
+}
+
+@media screen and (max-width: 768px) {
+  /* Convierte el dropdown en una ventana flotante central en celulares */
+  #dropdown-filters.is-active .dropdown-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5); /* Fondo oscuro translúcido */
+    padding: 20px;
+  }
+  #dropdown-filters .dropdown-content {
+    width: 100%;
+    max-width: 400px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+}
+
+@media screen and (min-width: 769px) {
+  /* Ancho fijo solo en computadoras */
+  #dropdown-menu {
+    min-width: 280px;
+  }
+}
+
+/* Esto es de listado_alumnos */
+
+/* --- BUSCADOR --- */
+/* Rehabilitar los clicks en los íconos del buscador de Bulma */
+.control.has-icons-left .icon.custom-icon-btn,
+.control.has-icons-right .icon.custom-icon-btn {
+    pointer-events: auto; /* Permite hacer click */
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: #dbdbdb; /* Color gris por defecto de Bulma */
+    transition: color 0.2s ease;
+}
+
+/* Hover para la lupa */
+.control.has-icons-left .icon.custom-icon-btn:hover {
+    color: #3e8ed0; /* Azul claro para indicar acción */
+}
+
+/* Hover para la cruz */
+.control.has-icons-right .icon.custom-icon-btn.clear-btn:hover {
+    color: #f14668; /* Rojo para indicar borrado/cancelación */
+}
+
+/* --- LISTA DE ALUMNOS --- */
+/* Transición suave para las tarjetas */
+.alumno-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-left: 4px solid transparent; /* Preparación para el hover */
+}
+
+/* Efecto al pasar el mouse sobre un alumno */
+.alumno-card:hover {
+    transform: translateY(-2px); /* Se levanta un poco */
+    box-shadow: 0 0.5em 1em -0.125em rgba(10, 10, 10, 0.1), 0 0px 0 1px rgba(10, 10, 10, 0.02);
+    border-left-color: #3e8ed0; /* Línea azul a la izquierda para destacar */
+}
+
+/* Esto es de perfil_alumno */
+
+/* --- TARJETA DE PERFIL --- */
+.profile-card {
+    border-top: 5px solid #3e8ed0; /* Línea decorativa superior */
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* Avatar circular simulado */
+.avatar-circle {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(62, 142, 208, 0.2);
+}
+
+/* Ajustes finos para la barra de progreso */
+.attendance-section progress {
+    border-radius: 50px; /* Bordes bien redondeados */
+}
+/* Bulma usa un gris claro por defecto para el fondo del progress, lo oscurecemos apenitas para más contraste */
+.attendance-section progress::-webkit-progress-bar {
+    background-color: #ededed;
+}
+
+/* --- SECCIÓN DE COMENTARIOS --- */
+.comments-section {
+    border-radius: 8px;
+    box-shadow: none; 
+    /* Le damos un color de fondo súper sutil usando opacidad, 
+       así se adapta tanto a fondos claros como oscuros automáticamente */
+    background-color: rgba(128, 128, 128, 0.05); 
+    border: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+/* Estilo para el Textarea */
+.custom-textarea {
+    border-radius: 8px;
+    resize: vertical; 
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    /* Eliminamos el background-color: #ffffff; para que el modo oscuro nativo funcione */
+}
+
+.custom-textarea:focus {
+    border-color: #3e8ed0;
+    box-shadow: 0 0 0 0.125em rgba(62, 142, 208, 0.25);
+}
+
+/* Botón con sombra */
+.shadow-button {
+    box-shadow: 0 4px 6px rgba(62, 142, 208, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.shadow-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 10px rgba(62, 142, 208, 0.3);
+}

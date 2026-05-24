@@ -1,4 +1,4 @@
-import random
+import random, datetime
 from src.core.usuarios.usuarios import Usuario
 from src.core.usuarios.usuarios import RolUsuario
 from src.core.usuarios.usuarios import EstadoUsuario as Estado
@@ -9,10 +9,10 @@ class UsuarioSeeder:
         self.db = db
     
     def run(self):
-        print("Insertando 10 usuarios de prueba...")
+        print("Insertando 20 usuarios de prueba...")
 
         roles = [RolUsuario.CLIENTE, RolUsuario.RECEPCIONISTA, RolUsuario.PROFESOR, RolUsuario.ADMINISTRADOR]
-        for i in range(1, 11):
+        for i in range(20):
             nombre = f"Usuario {i}"
             apellido = f"Apellido {i}"
             dni = f"{random.randint(10000000, 99999999)}"
@@ -22,7 +22,7 @@ class UsuarioSeeder:
             estado = Estado.PENDIENTE
             direccion = f"Direccion {i}"
             telefono = f"123456789{i}"
-            fecha_nacimiento = f"1990-01-{i:02d}"
+            fecha_nacimiento = datetime.datetime(1990, 1, (i % 28) + 1)
             estado_apto_fisico = EstadoApto.SIN_CARGAR
 
             usuario = Usuario(
@@ -43,4 +43,4 @@ class UsuarioSeeder:
             self.db.session.add(usuario)
 
         self.db.session.commit()
-        print("¡Se han guardado los 10 usuarios con éxito!")
+        print("¡Se han guardado los 20 usuarios con éxito!")

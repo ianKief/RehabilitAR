@@ -26,6 +26,7 @@ Repositorio para el proyecto "RehabilitAR" de la materia Ingeniería de Software
 - python-dotenv
 - psycopg2-binary
 - flask-sqlalchemy-lite
+- tzdata
 
 ## Dependencias de desarrollo
 

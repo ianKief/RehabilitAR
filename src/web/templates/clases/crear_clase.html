@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Crear Clase de Rehabilitación</title>
+</head>
+<body>
+    <h1>Crear Nueva Clase de Rehabilitación</h1>
+    
+    <form action="/guardar-clase" method="POST">
+        
+        <label for="nombre">Nombre de la Clase (Ej: Kinesiología):</label><br>
+        <input type="text" id="nombre" name="nombre" required><br><br>
+
+        <label for="tipo">Tipo de Clase:</label><br>
+        <select id="tipo" name="tipo_clase">
+            <option value="fija">Fija (Semanal)</option>
+            <option value="individual">Individual (Única vez)</option>
+        </select><br><br>
+
+        <label for="capacidad">Capacidad Máxima de Pacientes:</label><br>
+        <input type="number" id="capacidad" name="capacidad_maxima" min="1" required><br><br>
+
+        <button type="submit">Crear Clase</button>
+    </form>
+</body>
+</html>
