@@ -139,10 +139,10 @@
             <h3 class="title is-5 mb-4 has-text-grey">Acciones de Administración</h3>
             <div class="buttons">
                 
-                <a href="#" class="button is-warning is-light">
+                <button class="button is-warning is-light js-modal-trigger" data-target="modal-cambiar-rol">
                     <span class="icon"><i class="fas fa-user-edit"></i></span>
                     <span>Modificar Rol</span>
-                </a>
+                </button>
 
                 {% if usuario.estado.name == 'BLOQUEADO' %}
                     <a href="#" class="button is-success is-light">
@@ -161,4 +161,69 @@
 
     </div>
 </div>
+<div id="modal-cambiar-rol" class="modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        
+        <header class="modal-card-head">
+            <p class="modal-card-title has-text-weight-bold">
+                <span class="icon mr-2 has-text-warning"><i class="fas fa-user-edit"></i></span>
+                Modificar Rol
+            </p>
+            <button class="delete btn-cerrar-modal" aria-label="close"></button>
+        </header>
+        
+        <section class="modal-card-body">
+            <form id="form-cambiar-rol" action="{{ url_for('usuarios.cambiar_rol', id=usuario.id) }}" method="POST">
+                <div class="field">
+                    <label class="label">Seleccione el nuevo rol para {{ usuario.nombre }} {{ usuario.apellido }}:</label>
+                    <div class="control has-icons-left">
+                        <div class="select is-fullwidth">
+                            <select name="rol" required>
+                                <option value="administrador" {% if usuario.rol.value == 'administrador' %}selected{% endif %}>Administrador</option>
+                                <option value="cliente" {% if usuario.rol.value == 'cliente' %}selected{% endif %}>Cliente</option>
+                                <option value="recepcionista" {% if usuario.rol.value == 'recepcionista' %}selected{% endif %}>Recepcionista</option>
+                                <option value="profesor" {% if usuario.rol.value == 'profesor' %}selected{% endif %}>Profesor</option>
+                            </select>
+                        </div>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-user-tie"></i>
+                        </span>
+                    </div>
+                    <p class="help is-info mt-2">Al cambiar el rol, el usuario tendrá acceso inmediatamente a las nuevas funcionalidades habilitadas.</p>
+                </div>
+            </form>
+        </section>
+        
+        <footer class="modal-card-foot is-justify-content-flex-end">
+            <button type="button" class="button btn-cerrar-modal">Cancelar</button>
+            <button type="submit" form="form-cambiar-rol" class="button is-warning">
+                <span class="icon"><i class="fas fa-save"></i></span>
+                <span>Actualizar Rol</span>
+            </button>
+        </footer>
+        
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const modal = document.getElementById('modal-cambiar-rol');
+        const btnAbrir = document.querySelector('.js-modal-trigger');
+        const btnsCerrar = modal.querySelectorAll('.delete, .btn-cerrar-modal');
+        const fondoModal = modal.querySelector('.modal-background');
+
+        // Función para abrir
+        btnAbrir.addEventListener('click', () => {
+            modal.classList.add('is-active');
+        });
+
+        // Función para cerrar
+        const cerrarModal = () => {
+            modal.classList.remove('is-active');
+        };
+
+        fondoModal.addEventListener('click', cerrarModal);
+        btnsCerrar.forEach(btn => btn.addEventListener('click', cerrarModal));
+    });
+</script>
 {% endblock %}
