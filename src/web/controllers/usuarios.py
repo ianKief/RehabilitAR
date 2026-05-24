@@ -1,6 +1,6 @@
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, request
-from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_usuario_por_id_core
+from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_usuario_por_id_core, actualizar_rol_usuario
 from src.core.usuarios.usuarios import EstadoAptoFisico
 from src.web.helpers.decorator import requiere_rol
 from datetime import datetime, timedelta
@@ -87,6 +87,22 @@ def detalle_usuario(id):
     
     return render_template('usuarios/detalle_usuario.html', usuario=usuario)
 
+@users_bp.route('/<int:id>/cambiar_rol', methods=['POST'])
+@requiere_rol(['ADMINISTRADOR'])
+def cambiar_rol(id):
+    nuevo_rol = request.form.get('rol')
+    
+    try:
+        actualizar_rol_usuario(id, nuevo_rol)
+        flash("El rol del usuario fue actualizado con éxito.", "success")
+        
+    except ValueError as e:
+        flash(str(e), "danger")
+    except Exception as e:
+        db.session.rollback() 
+        flash("Ocurrió un error inesperado al actualizar el rol.", "danger")
+        
+    return redirect(url_for('usuarios.detalle_usuario', id=id))
 @users_bp.route('/perfil')
 def perfil():
     user_id = session.get('usuario_id')

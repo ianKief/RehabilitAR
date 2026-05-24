@@ -149,3 +149,12 @@ def crear_usuario(**kwargs):
     db.session.add(nuevo_usuario)
     db.session.commit()
     return nuevo_usuario
+
+def actualizar_rol_usuario(usuario_id, nuevo_rol):
+    usuario = db.session.get(Usuario, usuario_id)
+    if not usuario:
+        raise ValueError("El usuario no existe.")
+
+    usuario.rol = RolUsuario(nuevo_rol)
+    db.session.commit()
+    return usuario
