@@ -57,7 +57,7 @@ def listar_usuarios():
     is_search = request.args.get('is_search')
 
     if is_search:
-        if not all([nombre_search, apellido_search, dni_search, email_search, rol_search, estado_search]):
+        if not any([nombre_search, apellido_search, dni_search, email_search, rol_search, estado_search]):
             flash("Debe ingresar al menos un filtro", "warning")
             return redirect(url_for('usuarios.listar_usuarios'))
         
