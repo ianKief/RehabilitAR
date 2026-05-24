@@ -145,15 +145,19 @@
                 </button>
 
                 {% if usuario.estado.name == 'BLOQUEADO' %}
-                    <a href="#" class="button is-success is-light">
-                        <span class="icon"><i class="fas fa-unlock"></i></span>
-                        <span>Habilitar Usuario</span>
-                    </a>
+                    <form action="{{ url_for('usuarios.ruta_habilitar_usuario', id=usuario.id) }}" method="POST" style="display: inline;">
+                        <button type="submit" class="button is-success is-light" onclick="return confirm('¿Estás seguro de que deseas HABILITAR a este usuario? Volverá a tener acceso al sistema.');">
+                            <span class="icon"><i class="fas fa-unlock"></i></span>
+                            <span>Habilitar Usuario</span>
+                        </button>
+                    </form>
                 {% else %}
-                    <a href="#" class="button is-danger is-light">
-                        <span class="icon"><i class="fas fa-lock"></i></span>
-                        <span>Bloquear Usuario</span>
-                    </a>
+                    <form action="{{ url_for('usuarios.ruta_bloquear_usuario', id=usuario.id) }}" method="POST" style="display: inline;">
+                        <button type="submit" class="button is-danger is-light" onclick="return confirm('¿Estás seguro de que deseas BLOQUEAR a este usuario? Perderá su acceso de forma inmediata.');">
+                            <span class="icon"><i class="fas fa-lock"></i></span>
+                            <span>Bloquear Usuario</span>
+                        </button>
+                    </form>
                 {% endif %}
 
             </div>

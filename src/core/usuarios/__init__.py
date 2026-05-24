@@ -158,3 +158,29 @@ def actualizar_rol_usuario(usuario_id, nuevo_rol):
     usuario.rol = RolUsuario(nuevo_rol)
     db.session.commit()
     return usuario
+
+def bloquear_usuario(usuario_id):
+    usuario = db.session.query(Usuario).get(usuario_id)
+    if not usuario:
+        raise ValueError("El usuario no existe.")
+        
+    usuario.estado = EstadoUsuario.BLOQUEADO
+    db.session.commit()
+    return usuario
+
+def habilitar_usuario(usuario_id):
+    usuario = db.session.query(Usuario).get(usuario_id)
+    if not usuario:
+        raise ValueError("El usuario no existe.")
+        
+    # REGLA DE NEGOCIO: Verificar que no tenga deudas pendientes.
+    # Cuando se implemente el módulo de pagos se reemplaza "False" por la función real.
+    # Ejemplo: tiene_deuda = verificar_deuda_core(usuario_id)
+    tiene_deuda = False 
+    
+    if tiene_deuda:
+        raise ValueError("Actualización fallida: El usuario posee deudas pendientes")
+        
+    usuario.estado = EstadoUsuario.ACTIVO
+    db.session.commit()
+    return usuario

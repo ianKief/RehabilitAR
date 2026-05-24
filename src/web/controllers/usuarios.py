@@ -1,6 +1,6 @@
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, request
-from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_usuario_por_id_core, actualizar_rol_usuario
+from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_usuario_por_id_core, actualizar_rol_usuario, bloquear_usuario, habilitar_usuario
 from src.core.usuarios.usuarios import EstadoAptoFisico
 from src.web.helpers.decorator import requiere_rol
 from datetime import datetime, timedelta
@@ -171,3 +171,30 @@ def subir_apto():
         return redirect(url_for('usuarios.perfil'))
 
     return redirect(url_for('usuarios.perfil'))
+
+@users_bp.route('/<int:id>/bloquear', methods=['POST'])
+@requiere_rol(['ADMINISTRADOR'])
+def ruta_bloquear_usuario(id):
+    try:
+        bloquear_usuario(id)
+        flash("El usuario ha sido bloqueado y ya no tiene acceso al sistema.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(str(e), "danger")
+        
+    return redirect(url_for('usuarios.detalle_usuario', id=id))
+
+@users_bp.route('/<int:id>/habilitar', methods=['POST'])
+@requiere_rol(['ADMINISTRADOR'])
+def ruta_habilitar_usuario(id):
+    try:
+        habilitar_usuario(id)
+        flash("El usuario ha sido habilitado exitosamente.", "success")
+    except ValueError as e:
+        # Acá atrapamos si tiene deudas y mostramos el mensaje de error
+        flash(str(e), "warning") 
+    except Exception as e:
+        db.session.rollback()
+        flash("Ocurrió un error inesperado.", "danger")
+        
+    return redirect(url_for('usuarios.detalle_usuario', id=id))
