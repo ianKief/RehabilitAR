@@ -192,7 +192,7 @@ def verificar():
                 usuario = obtener_usuario_por_id_core(user_id)
                 session.permanent = True
                 session['usuario_id'] = usuario.id
-                session['rol'] = usuario.rol.value
+                session['rol'] = usuario.rol.name
                 flash("Verificación exitosa. Bienvenido!", "success")
                 return redirect(url_for('home'))
             
