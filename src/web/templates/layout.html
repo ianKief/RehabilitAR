@@ -52,17 +52,11 @@
                         <span class="icon mr-2"><i class="far fa-hospital"></i></span>Salas
                     </a>
                     <!-- Navegación para profesores -->
-                    <!-- No sé por qué se rompe tanto :P
+
                     <a class="navbar-item py-3 px-4" href="/profesor">
-                        <span class="icon mr-2"><i class="far fa-user"></i></span>Alumnos
+                        <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Menú de profesores
                     </a>
-                    <a class="navbar-item py-3 px-4" href="/profesor">
-                        <span class="icon mr-2"><i class="far fa-calendar-check"></span>Presente
-                    </a>
-                    <a class="navbar-item py-3 px-4" href="/profesor">
-                        <span class="icon mr-2"><i class="far fa-house"></i></span>Asistencias
-                    </a>
-                    -->
+                    
 
                     {% if True %}
                         <a class="navbar-item py-3 px-4" href="/salas">
@@ -139,25 +133,15 @@
                                 </a>
                             </li>
 
-                            <!-- Navegación para profesores -->
+                            <!-- Navegación para profesores-->
+
                             <li>
                                 <a href="/profesor/listado_alumnos"
                                     class="py-2.5 px-3 {% if current_path == '/profesor/listado_alumnos/' %}has-text-primary{% endif %}">
-                                    <span class="icon mr-2"><i class="far fa-calendar-check"></i></span>Alumnos
+                                    <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Menú de profesores
                                 </a>
                             </li>
-                            <li>
-                                <a href="/profesor/ver_asistencias"
-                                    class="py-2.5 px-3 {% if current_path == '/profesor/ver_asistencias/' %}has-text-primary{% endif %}">
-                                    <span class="icon mr-2"><i class="far fa-sun"></i></span>Asistencias
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/profesor/presente_manual"
-                                    class="py-2.5 px-3 {% if current_path == '/profesor/presente_manual/' %}has-text-primary{% endif %}">
-                                    <span class="icon mr-2"><i class="far fa-user"></i></span>Presente
-                                </a>
-                            </li>
+                            
                             {% if True %} <!-- para hacer pruebas visuales if true en el rol a inspeccionar -->
                                 <li>
                                     <a href="/salas"
