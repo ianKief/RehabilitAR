@@ -9,7 +9,7 @@
         Gestión de Usuarios
     </h1>
 
-    <div class="box mb-5 has-background-light">
+    <div class="box mb-5">
         <form action="{{ url_for('usuarios.listar_usuarios') }}" method="GET">
             <input type="hidden" name="is_search" value="1">
             
@@ -70,11 +70,11 @@
                             <div class="select is-fullwidth">
                                 <select name="rol">
                                     <option value="">Todos los roles</option>
-                                    <option value="ADMINISTRADOR" {% if rol_search == 'ADMINISTRADOR' %}selected{% endif %}>Administrador</option>
-                                    <option value="CLIENTE" {% if rol_search == 'CLIENTE' %}selected{% endif %}>Cliente</option>
-                                    <option value="RECEPCIONISTA" {% if rol_search == 'RECEPCIONISTA' %}selected{% endif %}>Cliente</option>
-                                    <option value="PROFESOR" {% if rol_search == 'PROFESOR' %}selected{% endif %}>Cliente</option>
-                                    </select>
+                                    <option value="administrador" {% if rol_search == 'administrador' %}selected{% endif %}>Administrador</option>
+                                    <option value="cliente" {% if rol_search == 'cliente' %}selected{% endif %}>Cliente</option>
+                                    <option value="recepcionista" {% if rol_search == 'recepcionista' %}selected{% endif %}>Recepcionista</option>
+                                    <option value="profesor" {% if rol_search == 'profesor' %}selected{% endif %}>Profesor</option>
+                                </select>
                             </div>
                             <span class="icon is-small is-left">
                                 <i class="fas fa-user-tie"></i>
@@ -90,9 +90,9 @@
                             <div class="select is-fullwidth">
                                 <select name="estado">
                                     <option value="">Todos los estados</option>
-                                    <option value="PENDIENTE" {% if estado_search == 'PENDIENTE' %}selected{% endif %}>Pendiente</option>
-                                    <option value="ACTIVO" {% if estado_search == 'ACTIVO' %}selected{% endif %}>Activo</option>
-                                    <option value="BLOQUEADO" {% if estado_search == 'BLOQUEADO' %}selected{% endif %}>Bloqueado</option>
+                                    <option value="pendiente" {% if estado_search == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                                    <option value="activo" {% if estado_search == 'activo' %}selected{% endif %}>Activo</option>
+                                    <option value="bloqueado" {% if estado_search == 'bloqueado' %}selected{% endif %}>Bloqueado</option>
                                 </select>
                             </div>
                             <span class="icon is-small is-left">
@@ -126,7 +126,7 @@
     <div class="box p-0" style="overflow: hidden;">
         <div class="table-container m-0">
             <table class="table is-fullwidth is-hoverable is-striped">
-                <thead class="has-background-primary-light">
+                <thead>
                     <tr>
                         <th>Nombre y Apellido</th>
                         <th>DNI</th>
