@@ -10,7 +10,7 @@ from src.core.database import db
 users_bp = Blueprint('usuarios', __name__, url_prefix='/usuarios')
 
 @users_bp.route('/crear', methods=['GET', 'POST'])
-@requiere_rol(['ADMIN'])
+@requiere_rol(['ADMINISTRADOR'])
 def crear_usuario():
     if request.method == 'POST':
         # Aca podemos manejar la creación del usuario
@@ -41,12 +41,40 @@ def crear_usuario():
         
         flash("Usuario creado con éxito.", "success")
         return render_template('usuarios/crear.html')
+    
+    return render_template('usuarios/crear.html')
 
-@users_bp.route('/lista')
-@requiere_rol(['ADMIN'])
+@users_bp.route('/lista', methods=['GET'])
+@requiere_rol(['ADMINISTRADOR'])
 def listar_usuarios():
-    usuarios = listar()
-    return render_template('usuarios/lista_usuarios.html', usuarios=usuarios)
+    nombre_search = request.args.get('nombre', '').strip()
+    apellido_search = request.args.get('apellido', '').strip()
+    dni_search = request.args.get('dni', '').strip()
+    email_search = request.args.get('email', '').strip()
+    rol_search = request.args.get('rol', '').strip()
+    estado_search = request.args.get('estado', '').strip()
+
+    is_search = request.args.get('is_search')
+
+    if is_search:
+        if not all([nombre_search, apellido_search, dni_search, email_search, rol_search, estado_search]):
+            flash("Debe ingresar al menos un filtro", "warning")
+            return redirect(url_for('usuarios.listar_usuarios'))
+        
+        usuarios = listar(nombre=nombre_search, apellido=apellido_search, dni=dni_search, email=email_search, rol=rol_search, estado=estado_search)
+    else:
+        usuarios = listar()
+    
+    return render_template(
+        'usuarios/lista_usuarios.html', 
+        usuarios=usuarios,
+        nombre_search=nombre_search,
+        apellido_search=apellido_search,
+        dni_search=dni_search,
+        email_search=email_search,
+        rol_search=rol_search,
+        estado_search=estado_search
+    )
 
 @users_bp.route('/perfil')
 def perfil():

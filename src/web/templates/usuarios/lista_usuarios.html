@@ -1,69 +1,175 @@
 {% extends "layout.html" %}
 
-{% block title %}Listado de Usuarios | RehabilitAR{% endblock %}
+{% block title %}Listado de Usuarios - RehabilitAR{% endblock %}
 
 {% block content %}
-<div class="columns is-centered">
-    <div class="column is-10">
-        <div class="box">
+<div class="container mt-5">
+    <h1 class="title is-3 mb-5">
+        <span class="icon mr-2"><i class="fas fa-users"></i></span>
+        Gestión de Usuarios
+    </h1>
+
+    <div class="box mb-5 has-background-light">
+        <form action="{{ url_for('usuarios.listar_usuarios') }}" method="GET">
+            <input type="hidden" name="is_search" value="1">
             
-            <div class="level mb-5">
-                <div class="level-left">
-                    <div class="level-item">
-                        <h1 class="title is-3">
-                            <span class="icon has-text-info mr-2"><i class="fas fa-users"></i></span>
-                            Listado de Usuarios
-                        </h1>
+            <div class="columns is-multiline">
+                
+                <div class="column is-4-desktop is-6-tablet">
+                    <div class="field">
+                        <label class="label is-small">Nombre</label>
+                        <div class="control has-icons-left">
+                            <input class="input" type="text" name="nombre" placeholder="Ej: Juan" value="{{ nombre_search }}">
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-font"></i>
+                            </span>
+                        </div>
                     </div>
                 </div>
-                <div class="level-right">
-                    <div class="level-item">
-                        <a href="{{ url_for('usuarios.crear_usuario') }}" class="button is-primary">
-                            <span class="icon"><i class="fas fa-plus"></i></span>
-                            <span>Nuevo Usuario</span>
-                        </a>
+
+                <div class="column is-4-desktop is-6-tablet">
+                    <div class="field">
+                        <label class="label is-small">Apellido</label>
+                        <div class="control has-icons-left">
+                            <input class="input" type="text" name="apellido" placeholder="Ej: Pérez" value="{{ apellido_search }}">
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-italic"></i>
+                            </span>
+                        </div>
                     </div>
                 </div>
+
+                <div class="column is-4-desktop is-6-tablet">
+                    <div class="field">
+                        <label class="label is-small">DNI</label>
+                        <div class="control has-icons-left">
+                            <input class="input" type="text" name="dni" placeholder="Ej: 123456" value="{{ dni_search }}">
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-id-card"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="column is-4-desktop is-6-tablet">
+                    <div class="field">
+                        <label class="label is-small">Email</label>
+                        <div class="control has-icons-left">
+                            <input class="input" type="text" name="email" placeholder="Ej: correo@gmail.com" value="{{ email_search }}">
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-envelope"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="column is-4-desktop is-6-tablet">
+                    <div class="field">
+                        <label class="label is-small">Rol en el sistema</label>
+                        <div class="control has-icons-left">
+                            <div class="select is-fullwidth">
+                                <select name="rol">
+                                    <option value="">Todos los roles</option>
+                                    <option value="ADMINISTRADOR" {% if rol_search == 'ADMINISTRADOR' %}selected{% endif %}>Administrador</option>
+                                    <option value="CLIENTE" {% if rol_search == 'CLIENTE' %}selected{% endif %}>Cliente</option>
+                                    <option value="RECEPCIONISTA" {% if rol_search == 'RECEPCIONISTA' %}selected{% endif %}>Cliente</option>
+                                    <option value="PROFESOR" {% if rol_search == 'PROFESOR' %}selected{% endif %}>Cliente</option>
+                                    </select>
+                            </div>
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-user-tie"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="column is-4-desktop is-6-tablet">
+                    <div class="field">
+                        <label class="label is-small">Estado de la cuenta</label>
+                        <div class="control has-icons-left">
+                            <div class="select is-fullwidth">
+                                <select name="estado">
+                                    <option value="">Todos los estados</option>
+                                    <option value="PENDIENTE" {% if estado_search == 'PENDIENTE' %}selected{% endif %}>Pendiente</option>
+                                    <option value="ACTIVO" {% if estado_search == 'ACTIVO' %}selected{% endif %}>Activo</option>
+                                    <option value="BLOQUEADO" {% if estado_search == 'BLOQUEADO' %}selected{% endif %}>Bloqueado</option>
+                                </select>
+                            </div>
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-user-tag"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="column is-12 mt-2">
+                    <div class="field is-grouped is-grouped-right">
+                        <div class="control">
+                            <button type="submit" class="button is-primary">
+                                <span class="icon"><i class="fas fa-search"></i></span>
+                                <span>Buscar</span>
+                            </button>
+                        </div>
+                        <div class="control">
+                            <a href="{{ url_for('usuarios.listar_usuarios') }}" class="button is-light">
+                                <span class="icon"><i class="fas fa-eraser"></i></span>
+                                <span>Limpiar filtros</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
             </div>
+        </form>
+    </div>
 
-            {% if usuarios %}
-                <div class="table-container">
-                    <table class="table is-fullwidth is-striped is-hoverable is-bordered">
-                        <thead>
-                            <tr class="has-background-light">
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Correo electrónico</th>
-                                <th class="has-text-centered" style="width: 120px;">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for usuario in usuarios %}
-                                <tr>
-                                    <td class="has-text-weight-bold">{{ usuario.id }}</td>
-                                    <td>{{ usuario.nombre }}</td>
-                                    <td>{{ usuario.email }}</td>
-                                    <td class="has-text-centered">
-                                        <button class="button is-small is-info is-light" title="Ver detalle">
-                                            <span class="icon"><i class="fas fa-eye"></i></span>
-                                        </button>
-                                        <button class="button is-small is-warning is-light" title="Editar">
-                                            <span class="icon"><i class="fas fa-edit"></i></span>
-                                        </button>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <div class="notification is-info is-light has-text-centered py-6">
-                    <span class="icon is-large has-text-info mb-2"><i class="fas fa-folder-open fa-2x"></i></span>
-                    <p class="is-size-5 has-text-weight-bold">No hay usuarios para mostrar.</p>
-                    <p class="has-text-grey mt-1">Los usuarios que registres en el sistema aparecerán aquí.</p>
-                </div>
-            {% endif %}
-
+    <div class="box p-0" style="overflow: hidden;">
+        <div class="table-container m-0">
+            <table class="table is-fullwidth is-hoverable is-striped">
+                <thead class="has-background-primary-light">
+                    <tr>
+                        <th>Nombre y Apellido</th>
+                        <th>DNI</th>
+                        <th>Email</th>
+                        <th>Rol</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in usuarios %}
+                    <tr>
+                        <td class="is-vcentered">{{ u.nombre }} {{ u.apellido }}</td>
+                        <td class="is-vcentered">{{ u.dni }}</td>
+                        <td class="is-vcentered">{{ u.email }}</td>
+                        <td class="is-vcentered">
+                            <span class="tag is-info is-light">{{ u.rol.name }}</span>
+                        </td>
+                        <td class="is-vcentered">
+                            {% if u.estado.name == 'ACTIVO' %}
+                                <span class="tag is-success">{{ u.estado.name }}</span>
+                            {% elif u.estado.name == 'PENDIENTE' %}
+                                <span class="tag is-warning">{{ u.estado.name }}</span>
+                            {% elif u.estado.name == 'BLOQUEADO' %}
+                                <span class="tag is-danger">{{ u.estado.name }}</span>
+                            {% else %}
+                                <span class="tag">{{ u.estado.name if u.estado else 'N/A' }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="is-vcentered">
+                            <button class="button is-small is-primary is-outlined">Ver Detalle</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="has-text-centered py-5 has-text-grey">
+                            <span class="icon is-large mb-2"><i class="fas fa-search fa-2x"></i></span>
+                            <p>No se encontraron usuarios con esos filtros.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
