@@ -1,0 +1,93 @@
+{% extends "layout.html" %}
+
+{% block title %} 
+    {% if not error %}
+        Perfil del alumno {{alumno.nombre}} {{alumno.apellido}} 
+    {% else %}
+        Perfil no encontrado
+    {% endif %}
+{% endblock %}
+    
+    {% block head %} <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}"> {% endblock %}
+
+{% block content %}
+    
+<div class="container is-max-desktop mt-5 px-3">
+    
+    <!-- Botón para volver a la lista -->
+    <div class="mb-4">
+        <a href="/profesor/listado_alumnos" class="button is-ghost pl-0 has-text-grey">
+            <span class="icon"><i class="fas fa-arrow-left"></i></span>
+            <span>Volver a la lista</span>
+        </a>
+    </div>
+
+    <!-- 1. TARJETA DE PERFIL Y ASISTENCIA -->
+    <div class="box profile-card mb-5">
+        <div class="columns is-vcentered">
+            
+            <!-- Avatar (Opcional, pero le da un toque muy profesional) -->
+            <div class="column is-narrow has-text-centered">
+                <figure class="image is-96x96 is-inline-block">
+                    <!-- Un círculo con las iniciales o un ícono -->
+                    <div class="avatar-circle has-background-info has-text-white">
+                        <i class="fas fa-user-graduate fa-2x"></i>
+                    </div>
+                </figure>
+            </div>
+
+            <!-- Datos del Alumno -->
+            <div class="column">
+                <h1 class="title is-3 mb-1">{{ alumno.nombre }} {{ alumno.apellido }}</h1>
+                <h2 class="subtitle is-5 has-text-grey mt-0 mb-4">
+                    <span class="icon is-small mr-1"><i class="fas fa-id-card"></i></span> <!--Cuando haya fotos de perfil podemos ponerlo acá-->
+                    DNI: {{ alumno.dni }}
+                </h2>
+
+                <!-- Lógica Jinja2 para determinar el color de la barra -->
+                {% set asistencia = promedio*100 | default(0) %}
+                {% set barra_color = 'is-success' if asistencia*100 >= 80 else ('is-warning' if asistencia*100 >= 60 else 'is-danger') %}
+                
+                <!-- Sección de Asistencia -->
+                <div class="attendance-section mt-4">
+                    <div class="is-flex is-justify-content-space-between is-align-items-flex-end mb-2">
+                        <span class="has-text-weight-semibold has-text-grey-dark">Asistencia Total</span>
+                        <span class="title is-4 mb-0 {{ 'has-text-success' if asistencia >= 80 else ('has-text-warning-dark' if asistencia >= 60 else 'has-text-danger') }}">
+                            {{ promedio*100 }}%
+                        </span>
+                    </div>
+                    <!-- Barra de progreso nativa de Bulma -->
+                    <progress class="progress {{ barra_color }} is-medium" value="{{ asistencia }}" max="100">{{ asistencia }}%</progress>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 2. SECCIÓN DE COMENTARIOS -->
+    <div class="box comments-section">
+        <h3 class="title is-5 mb-4">
+            <span class="icon has-text-info mr-2"><i class="fas fa-comment-dots"></i></span>
+            Dejar un comentario u observación
+        </h3>
+        
+        <!-- Formulario que envía un POST a tu backend -->
+        <form action="{{ url_for('profesor.subir_comentario', dni=alumno.dni) }}" method="POST">
+            <div class="field">
+                <div class="control">
+                    <textarea required class="textarea custom-textarea" name="comentario" rows="3" placeholder="Escribe aquí las notas, observaciones o comentarios sobre el desempeño del alumno..." required></textarea>
+                </div>
+            </div>
+            <div class="field is-grouped is-grouped-right mt-4">
+                <div class="control">
+                    <button type="submit" class="button is-info is-rounded has-text-weight-semibold px-5 shadow-button">
+                        <span class="icon"><i class="fas fa-paper-plane"></i></span>
+                        <span>Guardar comentario</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "layout.html" %}
+
+{% block title %} Profesores - lista de alumnos de la clase actual {% endblock %}
+
+    {% block head %} <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}"> {% endblock %}
+
+{% block content %}
+
+<!-- Contenedor principal centrado -->
+
+<div class="container is-max-desktop mt-5 px-3">
+
+    <!-- Botón para volver al menú -->
+    <div class="mb-4">
+        <a href="/profesor" class="button is-ghost pl-0 has-text-grey">
+            <span class="icon"><i class="fas fa-arrow-left"></i></span>
+            <span>Volver al menú de profesores</span>
+        </a>
+    </div>
+    
+    <!-- 1. BUSCADOR -->
+    <!-- El formulario hace un GET a la ruta que maneja la búsqueda -->
+    <form action="{{ url_for('profesor.listado_alumnos') }}" method="get" id="form-busqueda" class="mb-6">
+        <div class="field">
+            <div class="control has-icons-left has-icons-right">
+                <!-- Input de búsqueda -->
+                <input class="input is-medium is-rounded" type="text" name="busqueda" placeholder="Buscar alumno por nombre o DNI..." {% if busqueda != None %} value="{{busqueda}}" {% endif %}>
+                
+                <!-- Lupa (Funciona como botón submit) -->
+                <button type="submit" class="icon is-left custom-icon-btn">
+                    <i class="fas fa-search"></i>
+                </button>
+
+                <!-- Cruz (Se renderiza solo si hay una búsqueda activa) -->
+                {% if busqueda %}
+                    <a href="/profesor/listado_alumnos" class="icon is-right custom-icon-btn clear-btn">
+                        <i class="fas fa-times"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+
+    <!-- 2. LISTA DE ALUMNOS -->
+
+    {% if lista_de_alumnos %}
+        <div class="alumnos-list">
+        
+            <!-- Ejemplo de iteración con Jinja -->
+            {% for alumno in lista_de_alumnos %}
+                <!-- Al usar una etiqueta <a> con la clase 'box', todo el bloque es clickeable -->
+                <a href="/profesor/perfil_alumno/{{ alumno.dni }}" class="box alumno-card">
+                    <div class="columns is-mobile is-vcentered">
+                        <div class="column">
+                            <p class="title is-5 mb-1">{{ alumno.apellido }}, {{ alumno.nombre }}</p>
+                            <p class="subtitle is-6 has-text-grey mt-0">DNI: {{ alumno.dni }}</p>
+                        </div>
+                        <!-- Ícono de flecha para indicar que se puede ingresar al perfil -->
+                        <div class="column is-narrow">
+                            <span class="icon has-text-info">
+                                <i class="fas fa-chevron-right"></i>
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

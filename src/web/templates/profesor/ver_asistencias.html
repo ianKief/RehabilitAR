@@ -1,0 +1,160 @@
+{% extends "profesor/index.html" %}
+
+{% block title %} Mis asistencias {% endblock %}
+
+    {% block head %} <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}"> {% endblock %}
+
+{% block content %}
+
+    <script src="{{ url_for('static', filename='js/ver_asistencias.js') }}" defer></script>
+
+<!--Formulario de búsqueda-->
+
+    <!-- Botón para volver al menú -->
+    <div class="mb-4">
+        <a href="/profesor" class="button is-ghost pl-0 has-text-grey">
+            <span class="icon"><i class="fas fa-arrow-left"></i></span>
+            <span>Volver al menú de profesores</span>
+        </a>
+    </div>
+    
+    <form class="mb-4" action="{{ url_for('profesor.ver_asistencias') }}" method="get" id="form-busqueda" id="search-form" action="/tu-ruta-post" method="POST">
+        <!-- Contenedor principal móvil-friendly -->
+        <div class="field has-addons mb-0">
+    
+            <!-- 1. Campo de búsqueda principal -->
+            <div class="control is-expanded has-icons-left" style="position: relative;">
+                <input class="input is-rounded" type="text" name="busqueda" id="busqueda" placeholder="Buscar alumno" {% if busqueda != "" %} value="{{busqueda}} {% endif %}">
+                <button type="submit" value="Enviar" class="icon is-small is-left" style="background: none; border: none; cursor: pointer; pointer-events: auto; z-index: 5;">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+
+            <!-- 2. Botón de Filtros -->
+            <div class="control is-flex">
+                <!-- Agregamos 'is-static-desktop' mediante JS para controlar el comportamiento móvil -->
+                <div class="dropdown is-right" id="dropdown-filters">
+                    <div class="dropdown-trigger">
+                        <button type="button" style="height:100%" class="button is-rounded is-expanded" aria-haspopup="true" aria-controls="dropdown-menu">
+                            <i class="fas fa-sliders-h"></i>
+                            <span class="is-hidden-mobile">Filtros</span>
+                        </button>
+                    </div>
+
+                    <!-- Menú desplegable responsivo -->
+                    <div class="dropdown-menu" id="dropdown-menu" role="menu">
+                        <div class="dropdown-content p-4">
+                        
+                            <!-- Título visible solo en celulares para dar contexto -->
+                            <div class="is-flex is-justify-content-between is-align-items-center mb-3 is-hidden-tablet">
+                                <h1 class="title is-5 mb-0">Filtros de búsqueda</h1>
+                                <button type="button" class="delete" id="close-filters-mobile"></button>
+                            </div>
+
+                            <!-- Filtro 1: Radios -->
+                            <div class="field">
+                                <label class="label is-small">Categoría</label>
+                                <div class="control">
+                                    <div>
+                                        <label class="radio block mb-2">
+                                            <input type="radio" name="estado" value="seleccionar_todos" {% if (estado == 'seleccionar_todos') %} checked {% endif %}> Seleccionar todos
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <label class="radio block mb-2">
+                                            <input type="radio" name="estado" value="presente" {% if estado == 'presente' %} checked {% endif %}> Presente
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <label class="radio block mb-2">
+                                            <input type="radio" name="estado" value="ausente" {% if estado == 'ausente' %} checked {% endif %}> Ausente
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="dropdown-divider">
+
+                            <!-- Filtro 2: Fecha -->
+                            <div class="field">
+                                <label class="label is-small">Fecha</label>
+                                <div class="control">
+                                    <input class="input is-small" type="date" name="fecha" {% if fecha != "" %} value="{{fecha}}" {% endif %}>
+                                </div>
+                            </div>
+
+                            <hr class="dropdown-divider">
+
+                            <!-- Filtro 3: Checkbox -->
+                            <div class="field mb-4">
+                                <div class="control">
+                                    <label class="checkbox">
+                                        <input type="checkbox" name="solo_comentarios" {% if solo_comentarios %} checked {% endif %}> Solo comentarios
+                                    </label>
+                                </div>
+                            </div>
+
+                            <hr class="dropdown-divider">
+
+                            <!-- Botones de Acción (Limpiar y Aplicar) -->
+                            <div class="buttons is-justify-content-space-between mt-2">
+                                {% if hay_filtro %}
+                                    <button type="button" id="btn-clear-filters" class="button is-small is-text p-0 has-text-danger">Limpiar filtros</button>
+                                {% endif %}
+                                <button type="submit" class="button is-small is-primary is-hidden-tablet">Aplicar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+<!--Lista-->
+
+    {% if (lista_de_asistencias != []) %}
+        {% for asistencia in lista_de_asistencias %}
+            {% if asistencia.reserva.asiste != 'CANCELADA' %} <!--Nota: esto puede provocar bugs raros si una clase solo tiene reservas canceladas. Dado que no entra en las posibilidades del sistema no lo corregiré, pero queda registrado acá-->
+                <div class="box">
+
+                    <!-- Cabecera asistencia -->
+                    <div class="level">
+                        <div class="level-left">
+                            <div>
+                                <p class="title is-5">{{asistencia.cliente.nombre}} {{asistencia.cliente.apellido}}</p>
+                                <p class="title is-6">DNI: {{asistencia.cliente.dni}}</p>
+                                <p class="subtitle is-6">{{asistencia.clase.nombre}} - {{asistencia.clase.fecha_clase}}</p>
+                            </div>
+                        </div>
+
+                        <div class="level-right">
+                            {% if asistencia.reserva.asiste.value == "presente" %}
+                                <span class="tag is-success">Presente</span>
+                            {% endif %}
+                            {% if asistencia.reserva.asiste.value == "ausente" %}
+                                <span class="tag is-warning">Ausente</span> <!--verificar-->
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Comentarios -->
+                {% if asistencia.comentarios != [] %}
+                        {% for comentario in asistencia.comentarios %}
+                            <div class="content mt-4">
+                                <article class="message is-small">
+                                    <div class="message-body">
+                                        {{comentario.comentario}}
+                                    </div>
+                                </article>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <div class="box is-multiline">
+            <p class="has-text-warning is-4">No se han encontrado resultados</p>
+        </div>
+    {% endif %}
+{% endblock %}

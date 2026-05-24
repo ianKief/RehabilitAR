@@ -2,8 +2,9 @@ import os
 from flask import Flask, request,render_template
 from flask_mail import Mail
 from src.web.config import config
-from src.web.handlers import error
 from src.core.database import init_db, reset_db, seed_db
+
+from src.web.handlers import error
 
 """
 Las importaciones de src.web.controllers deben hacerse dentro de create_app() para evitar problemas de importación circular. 
@@ -24,7 +25,7 @@ def create_app():
     
     # Inicializar base de datos
     init_db(app)
-
+    
     # Inicializar extensión de correo
     mail.init_app(app)
 
@@ -32,8 +33,12 @@ def create_app():
     from src.web.controllers.salas import bp as salas_bp
     from src.web.controllers.auth import auth_bp
     from src.web.controllers.usuarios import users_bp as usuarios_bp
+    from src.web.controllers.clases import bp as clases_bp # hago el import acá porque creo que puede generarse un bucle de imports si se coloca al inicio
+    from src.web.controllers.profesor.routes_profesor import profesor_bp
 
     app.register_blueprint(salas_bp)
+    app.register_blueprint (profesor_bp)
+    app.register_blueprint(clases_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(usuarios_bp)
 
