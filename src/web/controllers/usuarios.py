@@ -76,6 +76,17 @@ def listar_usuarios():
         estado_search=estado_search
     )
 
+@users_bp.route('/detalle/<int:id>', methods=['GET'])
+@requiere_rol(['ADMINISTRADOR'])
+def detalle_usuario(id):
+    usuario = obtener_usuario_por_id_core(id)
+    
+    if not usuario:
+        flash("El usuario solicitado no existe o fue eliminado.", "danger")
+        return redirect(url_for('usuarios.listar_usuarios'))
+    
+    return render_template('usuarios/detalle_usuario.html', usuario=usuario)
+
 @users_bp.route('/perfil')
 def perfil():
     user_id = session.get('usuario_id')
