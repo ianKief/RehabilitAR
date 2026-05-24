@@ -6,6 +6,7 @@ from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reserva.reservas import Comentario, Reserva, AsistenciaReserva
 from src.core.usuarios.usuarios import Usuario, RolUsuario
+from src.core.usuarios import bloquear_usuario
 
 from src.core.functions import filtro_clase_actual
 
@@ -141,3 +142,44 @@ def registrar_presente_alumno (dni_alumno):
 
     db.session.commit()
     return True
+
+def finalizar_clase_y_penalizar(id_clase):
+    """
+    Cierra la clase: Marca como ausentes a todos los alumnos que no tengan presente,
+    calcula su inasistencia histórica y bloquea a los que superen el 50%.
+    """
+    
+    # 1. Buscamos todas las reservas de esta clase que NO sean PRESENTE ni CANCELADA
+    # (Es decir, los que quedaron "colgados" o ya estaban por defecto en otro estado)
+    query = (
+        db.session.query(Reserva)
+        .filter(Reserva.id_clase == id_clase)
+        .filter(Reserva.asiste != AsistenciaReserva.PRESENTE)
+        .filter(Reserva.asiste != AsistenciaReserva.CANCELADA)
+    )
+    
+    reservas_sin_presente = query.all()
+    
+    ausentes_marcados = 0
+    bloqueados = 0
+    
+    for reserva in reservas_sin_presente:
+        # 2. Los marcamos como ausentes definitivamente
+        reserva.asiste = AsistenciaReserva.AUSENTE
+        ausentes_marcados += 1
+        
+        # 3. Calculamos el porcentaje histórico de inasistencias
+        # TODO: Implementar la lógica real de cálculo de porcentaje
+        # porcentaje_inasistencia = calcular_porcentaje_inasistencia(reserva.id_cliente)
+        porcentaje_inasistencia = 0 # Temporal
+        
+        if porcentaje_inasistencia >= 50:
+            try:
+                bloquear_usuario(reserva.id_cliente)
+                bloqueados += 1
+            except Exception as e:
+                print(f"Error al bloquear al usuario {reserva.id_cliente}: {e}")
+                
+    db.session.commit()
+    
+    return ausentes_marcados, bloqueados
