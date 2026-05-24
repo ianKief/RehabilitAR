@@ -1,7 +1,7 @@
 import random
 from datetime import date, time, timedelta
 
-from sqlalchemy import or_, and_, text, func
+from sqlalchemy import or_, and_, func, literal_column
 from sqlalchemy.orm import aliased
 
 from src.core.clases import Clase, listar_clases  # El import de tu modelo de clases
@@ -74,7 +74,7 @@ class ProfesorDictaClaseSeeder ():
         query = (self.db.session.query(Profesor)
             .outerjoin (ProfesorDictaClase, Profesor.id == ProfesorDictaClase.id_profesor)
             .outerjoin (Clase, Clase.id == ProfesorDictaClase.id_clase)
-            .filter(or_((clase.fecha_clase != Clase.fecha_clase), (and_((clase.horario < Clase.horario), (clase.horario + func.make_interval (clase.duracion) < Clase.horario))), (and_((clase.horario > Clase.horario), (clase.horario > Clase.horario + func.make_interval (clase.duracion))))))
+            .filter(or_((clase.fecha_clase != Clase.fecha_clase), (and_((clase.horario < Clase.horario), (clase.horario +  (clase.duracion * literal_column("INTERVAL '1 minute'")) < Clase.horario))), (and_((clase.horario > Clase.horario), (clase.horario > Clase.horario + (clase.duracion * literal_column("INTERVAL '1 minute'")))))))
             # Acá debería filtrar por tren, si el profesor tuviese alguno
         )
 
@@ -82,7 +82,8 @@ class ProfesorDictaClaseSeeder ():
 
     """Limitaciones a tener en cuenta:
     1. La especialidad del profesor debe coincidir con la especialidad de la clase
-    2. El profesor debe tener el horario disponible"""
+    2. El profesor debe tener el horario disponible
+    Es ideal que haya más profesores que clases"""
     def run (self):
         print ("Creando tantas relaciones entre clases con profesores como clases haya...")
         clases = listar_clases ()
