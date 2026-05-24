@@ -16,8 +16,8 @@ def ver_comentarios_y_asistencias ():
 
     # Comprobación 2: lista vacía
     if not (tiene_alumnos(id_profesor)):
-        flash ("No se han encontrado resultados", "warning")
-        return render_template ('profesor/ver_asistencias.html')
+        flash ("Aún no se poseen alumnos para poder ver las asistencias", "warning")
+        return redirect(url_for("profesor.index_profesor"))
 
 # Explicación de cómo HTML devuelve las variables:
 # Búsqueda: si se deja vacío devuelve "", pero si no se especifica búsqueda (cosa que va a pasar cuando se cargue la página), devuelve None. A fin de uniformalizar, se establece un if debajo que cambie esto.
