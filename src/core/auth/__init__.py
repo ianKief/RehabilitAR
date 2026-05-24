@@ -36,17 +36,68 @@ def registrar_cliente(nombre, apellido, dni, telefono, fecha_nacimiento, direcci
     )
 
     db.session.add(nuevo_cliente)
-    db.session.commit()
+    db.session.flush()
     db.session.refresh(nuevo_cliente)
-
-    # Aca se enviaría el email con el código de verificación
-    print(f"--- EMAIL SIMULADO ---")
-    print(f"Para: {email}")
-    print(f"Tu código de verificación para RehabilitAR es: {codigo_verificacion}")
-    print(f"Válido hasta: {tiempo_expiracion}")
-    print(f"----------------------")
     
     return nuevo_cliente
+
+def login(email, password):
+    stmt = select(Usuario).filter(Usuario.email == email)
+    usuario = db.session.execute(stmt).scalar()
+
+    # Validaciones
+    # 1. Cuenta inexistente
+    if not usuario:
+        raise ValueError("Inicio de sesión fallido: El correo ingresado no corresponde a ninguna cuenta")
+    
+    # 2. Cuenta bloqueada se desbloquea si ya pasó el tiempo de bloqueo
+    if usuario.estado == EstadoUsuario.BLOQUEADO and usuario.bloqueado_hasta and datetime.now() > usuario.bloqueado_hasta:
+        usuario.estado = EstadoUsuario.ACTIVO
+        usuario.intentos_login = 0
+        usuario.bloqueado_hasta = None
+        db.session.commit()
+
+    # 3. Cuenta bloqueada y todavia no paso el tiempo de bloqueo
+    if usuario.estado == EstadoUsuario.BLOQUEADO:
+        raise ValueError("Inicio de sesión fallido: Cuenta bloqueada por motivos de seguridad. Vuelva a intentar en {} minutos."
+                         .format(int((usuario.bloqueado_hasta - datetime.now()).total_seconds() // 60) + 1))
+
+    # 4. Cuenta pendiente de verificación
+    if usuario.estado == EstadoUsuario.PENDIENTE:
+        raise ValueError("Inicio de sesión fallido: La cuenta aún no ha sido verificada. Por favor, revise su correo para obtener el código de verificación.")
+    
+    # 5. Contraseña incorrecta
+    if usuario.password != password:
+        usuario.intentos_login += 1
+
+        # 5.1. Alcanzó los 5 intentos fallidos
+        if usuario.intentos_login >= 5:
+            usuario.estado = EstadoUsuario.BLOQUEADO
+            usuario.bloqueado_hasta = datetime.now() + timedelta(hours=1)
+            db.session.commit()
+            raise ValueError("Inicio de sesión fallido: Contraseña incorrecta. Por motivos de seguridad se ha bloqueado su cuenta por una hora")
+        
+        # 5.2. Aún no alcanza los 5 intentos fallidos
+        db.session.commit()
+        raise ValueError("Inicio de sesión fallido: Contraseña incorrecta. Te quedan {} intentos antes de que la cuenta sea bloqueada."
+        .format(5 - usuario.intentos_login))
+
+    # Si pasó todas las validaciones, se loguea exitosamente y se resetean los intentos de login
+    usuario.intentos_login = 0
+    usuario.bloqueado_hasta = None
+    db.session.commit()        
+
+    codigo_verificacion = str(random.randint(100000, 999999))
+    tiempo_expiracion = datetime.now() + timedelta(minutes=15)
+
+    usuario.codigo_verificacion = codigo_verificacion
+    usuario.codigo_verificacion_expira = tiempo_expiracion
+    usuario.intentos_codigo = 0
+
+    db.session.flush()
+
+    return usuario
+
 
 def confirmar_codigo(user_id, codigo_ingresado):
     usuario = db.session.get(Usuario, user_id)

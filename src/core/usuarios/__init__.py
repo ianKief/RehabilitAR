@@ -112,6 +112,10 @@ def tiene_alumnos (id_profesor, en_clase_actual=False):
         query.exists()
     ).scalar()
 
+def obtener_usuario_por_id_core(user_id):
+    """Devuelve un usuario dado su ID."""
+    return db.session.get(Usuario, user_id)
+
 def listar_usuarios():
     """Devuelve una lista con todos los usuarios registrados."""
     stmt = select(Usuario).order_by(Usuario.id)

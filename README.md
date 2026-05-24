@@ -111,6 +111,19 @@ Repositorio para el proyecto "RehabilitAR" de la materia Ingeniería de Software
 	poetry run flask seed-db
 	```
 
+## Pasos para el uso de un gmail real
+
+1. Crear una contraseña de aplicación en Gmail:
+	Debes tener activada la verificación en 2 pasos.
+	En el buscador de ajustes de tu cuenta busca "Contraseñas de aplicación"
+	Crea una nueva, te va a dar una contraseña de 16 letras (copiala)
+2. Credenciales:
+	En tu archivo .env debes copiar esto:
+	MAIL_SERVER=smtp.gmail.com
+	MAIL_PORT=587
+	MAIL_USE_TLS=True
+	MAIL_USERNAME=tu_correo@gmail.com
+	MAIL_PASSWORD=las_16_letras_que_te_dio_google
 
 ## Arquitectura del Frontend: Bulma y Puntos de Extensión
 

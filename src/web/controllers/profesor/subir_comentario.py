@@ -5,7 +5,7 @@ from src.core.usuarios import alumno_pertenece_a_clase_actual_profesor
 from src.core.reserva import subir_comentario
 
 def subir_comentario_a_alumnoXclase (dni):
-    id_profesor = session.get("id")
+    id_profesor = session.get("usuario_id")
 
     comentario = request.form.get("comentario")
 

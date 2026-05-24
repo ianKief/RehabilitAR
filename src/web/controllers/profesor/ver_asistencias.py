@@ -7,7 +7,7 @@ from src.web.functions import agrupacion_manual_de_datos_de_comentarios_por_asis
 
 def ver_comentarios_y_asistencias ():
     
-    id_profesor = session.get("dni")
+    id_profesor = session.get("usuario_id")
 
     # Comprobación 1: el profesor está logeado [EN INSTANCIA]
     # COMPROBAR LOGIN

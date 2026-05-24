@@ -10,7 +10,7 @@ from src.core.reserva import AsistenciaReserva
 def registrar_asistencia_manual ():
 
     dni_alumno = request.form.get('dni')
-    id_profesor = session.get("id")
+    id_profesor = session.get("usuario_id")
 
     if request.method == 'GET':
     
