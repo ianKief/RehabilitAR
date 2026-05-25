@@ -2,7 +2,7 @@ import random
 from datetime import datetime, timedelta
 from sqlalchemy import select, or_
 from src.core.database import db
-from src.core.usuarios.usuarios import Usuario, RolUsuario, EstadoUsuario
+from src.core.usuarios.usuarios import Usuario, RolUsuario, EstadoUsuario, Cliente, AptoFisico, EstadoAptoFisico
 
 def registrar_cliente(nombre, apellido, dni, telefono, fecha_nacimiento, direccion, email, password, nombre_archivo_apto=None):
     
@@ -18,8 +18,15 @@ def registrar_cliente(nombre, apellido, dni, telefono, fecha_nacimiento, direcci
 
     codigo_verificacion = str(random.randint(100000, 999999))
     tiempo_expiracion = datetime.now() + timedelta(minutes=15)
+
+    nuevo_apto = None
+    if nombre_archivo_apto:
+        nuevo_apto = AptoFisico(archivo_ruta=nombre_archivo_apto, fecha=datetime.now(), estado=EstadoAptoFisico.SIN_CARGAR)
+        db.session.add(nuevo_apto)
+        db.session.flush()
+        db.session.refresh(nuevo_apto)
     # Si todo está libre, creamos el usuario
-    nuevo_cliente = Usuario(
+    nuevo_cliente = Cliente(
         nombre=nombre,
         apellido=apellido,
         dni=dni,
@@ -28,9 +35,8 @@ def registrar_cliente(nombre, apellido, dni, telefono, fecha_nacimiento, direcci
         direccion=direccion,
         email=email,
         password=password, 
-        rol=RolUsuario.CLIENTE,
         estado=EstadoUsuario.PENDIENTE,
-        ruta_apto_fisico=nombre_archivo_apto,
+        apto_fisico=nuevo_apto,
         codigo_verificacion=codigo_verificacion,
         codigo_verificacion_expira=tiempo_expiracion
     )
