@@ -2,12 +2,12 @@ import random
 from datetime import datetime, timedelta
 from sqlalchemy import select, or_
 from src.core.database import db
-from src.core.usuarios.usuarios import Usuario, RolUsuario, EstadoUsuario
+from src.core.usuarios.usuarios import Usuario, RolUsuario, EstadoUsuario, Cliente
 
 def registrar_cliente(nombre, apellido, dni, telefono, fecha_nacimiento, direccion, email, password, nombre_archivo_apto=None):
     
     # Buscamos si hay algún usuario que tenga ESE email O ESE dni
-    stmt = select(Usuario).filter(or_(Usuario.email == email, Usuario.dni == dni))
+    stmt = select(Cliente).filter(or_(Cliente.email == email, Cliente.dni == dni))
     usuario_existente = db.session.execute(stmt).scalar()
     
     if usuario_existente:
@@ -19,7 +19,7 @@ def registrar_cliente(nombre, apellido, dni, telefono, fecha_nacimiento, direcci
     codigo_verificacion = str(random.randint(100000, 999999))
     tiempo_expiracion = datetime.now() + timedelta(minutes=15)
     # Si todo está libre, creamos el usuario
-    nuevo_cliente = Usuario(
+    nuevo_cliente = Cliente(
         nombre=nombre,
         apellido=apellido,
         dni=dni,
@@ -42,7 +42,7 @@ def registrar_cliente(nombre, apellido, dni, telefono, fecha_nacimiento, direcci
     return nuevo_cliente
 
 def login(email, password):
-    stmt = select(Usuario).filter(Usuario.email == email)
+    stmt = select(Cliente).filter(Cliente.email == email)
     usuario = db.session.execute(stmt).scalar()
 
     # Validaciones
@@ -100,7 +100,7 @@ def login(email, password):
 
 
 def confirmar_codigo(user_id, codigo_ingresado):
-    usuario = db.session.get(Usuario, user_id)
+    usuario = db.session.get(Cliente, user_id)
     if not usuario:
         raise ValueError("Usuario no encontrado.")
     
