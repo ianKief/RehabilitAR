@@ -4,6 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import enum
+from typing import List
 
 class EstadoUsuario(enum.Enum):
     PENDIENTE = "pendiente"
@@ -46,6 +47,7 @@ class Especialidad(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     nombre: Mapped[TipoEspecialidad] = mapped_column(Enum(TipoEspecialidad), unique=True, nullable=False)
+    profesores: Mapped[List["Profesor"]] = relationship(back_populates="especialidad")
 
 # ==========================================
 # 1. CLASE PADRE 
@@ -109,6 +111,7 @@ class Profesor(Usuario):
     __tablename__ = "profesores"
     id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), primary_key=True)
     especialidad: Mapped["Especialidad"] = relationship(back_populates="profesores")
+    id_especialidad: Mapped[int] = mapped_column(ForeignKey("especialidades.id"), nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": RolUsuario.PROFESOR
