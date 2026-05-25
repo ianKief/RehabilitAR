@@ -6,7 +6,7 @@ from src.core.usuarios.usuarios import Usuario, RolUsuario, EstadoUsuario
 
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reserva.reservas import Reserva, AsistenciaReserva
-from src.core.usuarios.usuarios import Usuario, RolUsuario
+from src.core.usuarios.usuarios import Usuario, Cliente, Profesor, Administrador, Recepcionista, RolUsuario
 
 from src.core.functions import filtro_clase_actual
 
@@ -145,7 +145,17 @@ def crear_usuario(**kwargs):
         raise ValueError("El correo electrónico ya está registrado.")
     
     rol_str = kwargs.pop('rol')
-    nuevo_usuario = Usuario(**kwargs, rol=RolUsuario(rol_str))
+    rol_enum = RolUsuario(rol_str)
+    clases_por_rol = {
+        RolUsuario.CLIENTE: Cliente,
+        RolUsuario.PROFESOR: Profesor,
+        RolUsuario.ADMINISTRADOR: Administrador,
+        RolUsuario.RECEPCIONISTA: Recepcionista
+    }
+    clase_elegida = clases_por_rol.get(rol_enum)
+    if not clase_elegida:
+        raise ValueError("Rol no válido.")
+    nuevo_usuario = clase_elegida(rol=rol_enum, **kwargs)
     db.session.add(nuevo_usuario)
     db.session.commit()
     return nuevo_usuario
