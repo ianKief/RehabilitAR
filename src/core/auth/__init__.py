@@ -2,12 +2,12 @@ import random
 from datetime import datetime, timedelta
 from sqlalchemy import select, or_
 from src.core.database import db
-from src.core.usuarios.usuarios import Usuario, RolUsuario, EstadoUsuario, Cliente
+from src.core.usuarios.usuarios import Usuario, RolUsuario, EstadoUsuario, Cliente, AptoFisico, EstadoAptoFisico
 
 def registrar_cliente(nombre, apellido, dni, telefono, fecha_nacimiento, direccion, email, password, nombre_archivo_apto=None):
     
     # Buscamos si hay algún usuario que tenga ESE email O ESE dni
-    stmt = select(Cliente).filter(or_(Cliente.email == email, Cliente.dni == dni))
+    stmt = select(Usuario).filter(or_(Usuario.email == email, Usuario.dni == dni))
     usuario_existente = db.session.execute(stmt).scalar()
     
     if usuario_existente:
@@ -18,6 +18,13 @@ def registrar_cliente(nombre, apellido, dni, telefono, fecha_nacimiento, direcci
 
     codigo_verificacion = str(random.randint(100000, 999999))
     tiempo_expiracion = datetime.now() + timedelta(minutes=15)
+
+    nuevo_apto = None
+    if nombre_archivo_apto:
+        nuevo_apto = AptoFisico(archivo_ruta=nombre_archivo_apto, fecha=datetime.now(), estado=EstadoAptoFisico.SIN_CARGAR)
+        db.session.add(nuevo_apto)
+        db.session.flush()
+        db.session.refresh(nuevo_apto)
     # Si todo está libre, creamos el usuario
     nuevo_cliente = Cliente(
         nombre=nombre,
@@ -28,9 +35,8 @@ def registrar_cliente(nombre, apellido, dni, telefono, fecha_nacimiento, direcci
         direccion=direccion,
         email=email,
         password=password, 
-        rol=RolUsuario.CLIENTE,
         estado=EstadoUsuario.PENDIENTE,
-        ruta_apto_fisico=nombre_archivo_apto,
+        apto_fisico=nuevo_apto,
         codigo_verificacion=codigo_verificacion,
         codigo_verificacion_expira=tiempo_expiracion
     )
@@ -42,7 +48,7 @@ def registrar_cliente(nombre, apellido, dni, telefono, fecha_nacimiento, direcci
     return nuevo_cliente
 
 def login(email, password):
-    stmt = select(Cliente).filter(Cliente.email == email)
+    stmt = select(Usuario).filter(Usuario.email == email)
     usuario = db.session.execute(stmt).scalar()
 
     # Validaciones
@@ -100,7 +106,7 @@ def login(email, password):
 
 
 def confirmar_codigo(user_id, codigo_ingresado):
-    usuario = db.session.get(Cliente, user_id)
+    usuario = db.session.get(Usuario, user_id)
     if not usuario:
         raise ValueError("Usuario no encontrado.")
     
