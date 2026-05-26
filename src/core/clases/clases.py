@@ -1,6 +1,6 @@
 from src.core.database import Base
 from sqlalchemy import Boolean, Date, DateTime, String, Integer, Time
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
@@ -20,6 +20,9 @@ class Clase(Base):
     horario: Mapped[time] = mapped_column(Time, nullable=False)
     aprobada:Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     tipo: Mapped[str] = mapped_column(String(20), nullable=False)
+
+    # Relaciones
+    reservas: Mapped[list["Reserva"]] = relationship(back_populates="clase", cascade="all, delete-orphan")
 
     # Campos de auditoría
     fecha_creacion: Mapped[datetime] = mapped_column(

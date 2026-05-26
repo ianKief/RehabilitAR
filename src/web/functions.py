@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta
 
-from src.core.reserva import AsistenciaReserva
-
 def es_dni (dni):
     return dni.isnumeric() and (len(dni) > 6) and (len(dni) < 9)
 

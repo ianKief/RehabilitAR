@@ -2,7 +2,7 @@ from flask import render_template, session, request, flash, url_for, redirect
 
 from src.core.clases import profesor_está_en_clase
 from src.core.usuarios import alumno_pertenece_a_clase_actual_profesor
-from src.core.reserva import subir_comentario
+from src.core.asistencias import subir_comentario
 
 def subir_comentario_a_alumnoXclase (dni):
     id_profesor = session.get("usuario_id")

@@ -1,5 +1,5 @@
 from src.core.database import Base
-from sqlalchemy import Integer, String, DateTime, Enum, ForeignKey
+from sqlalchemy import Integer, String, DateTime, Enum, ForeignKey, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -101,7 +101,9 @@ class Usuario(Base):
 class Cliente(Usuario):
     __tablename__ = "clientes"
     id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), primary_key=True)
+    es_abonado: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     apto_fisico: Mapped["AptoFisico"] = relationship(back_populates="cliente", uselist=False)
+    reservas: Mapped[List["Reserva"]] = relationship(back_populates="cliente", cascade="all, delete-orphan")
 
     __mapper_args__ = {
         "polymorphic_identity": RolUsuario.CLIENTE
