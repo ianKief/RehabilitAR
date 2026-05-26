@@ -1,11 +1,9 @@
 from sqlalchemy import or_, func, text
 from sqlalchemy.orm import joinedload, selectinload, contains_eager, aliased
-
 from src.core.database import db
-
 from src.core.clases.clases import Clase, ProfesorDictaClase
-from src.core.reserva.reservas import Comentario, Reserva, AsistenciaReserva
-from src.core.usuarios.usuarios import Usuario, RolUsuario
+from src.core.reservas.reservas import Comentario, Reserva, AsistenciaReserva
+from src.core.usuarios.usuarios import Usuario, RolUsuario, Cliente
 
 from src.core.functions import filtro_clase_actual
 
@@ -13,15 +11,12 @@ def alumno_tiene_asistencia (dni_alumno):
     """Devuelve True si el alumno tiene asistencia en la clase actual, False si no.
     Si no existe clase actual, devuleve None"""
 
-    Cliente = aliased(Usuario)
-    
     query = (
         db.session.query(Reserva.asiste)
         .join(Cliente, Reserva.id_cliente == Cliente.id)
         .join(Clase, Reserva.id_clase == Clase.id)
 
         .filter(Cliente.dni == dni_alumno)
-        .filter(Cliente.rol == RolUsuario.CLIENTE)
         .filter(*filtro_clase_actual())
     )
 
@@ -55,7 +50,7 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
 
     # query en sí
     query = (
-        db.session.query(Reserva, Cliente, Comentario, Clase)
+        db.session.query(Reserva)
 
         .join(Clase, Clase.id == Reserva.id_clase)
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
@@ -70,7 +65,7 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
         .order_by(Reserva.fecha_modificacion.desc())
     )
 
-    if solo_comentarios:
+    if solo_comentarios or busqueda != "":
         query = query.join(Comentario, Comentario.id_reserva == Reserva.id)
     else:
         query = query.outerjoin(Comentario, Comentario.id_reserva == Reserva.id)
@@ -80,16 +75,18 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
     if cliente_filtrado:
         query = query.options(
             contains_eager(Reserva.cliente),
+            contains_eager(Reserva.clase),
             selectinload(Reserva.comentarios)
         )
     else: 
         query = query.options(
             joinedload(Reserva.cliente),
+            joinedload(Reserva.clase),
             selectinload(Reserva.comentarios)
         )
     """
 
-    return query.all()
+    return query.unique().all()
         
 
 def subir_comentario (dni_alumno, comentario):
@@ -97,7 +94,6 @@ def subir_comentario (dni_alumno, comentario):
     No tengo idea de qué sucede si no existe clase, aunque dado el contexto de su controller, no debería llegar hasta ese punto."""
 
     Profesor = aliased(Usuario)
-    Cliente = aliased(Usuario)
 
     query = (
         db.session.query(Reserva.id)
@@ -108,7 +104,6 @@ def subir_comentario (dni_alumno, comentario):
 
         .filter(dni_alumno == Cliente.dni)
         .filter(Profesor.rol == RolUsuario.PROFESOR)
-        .filter(Cliente.rol == RolUsuario.CLIENTE)
         .filter(*filtro_clase_actual())
     )
 
@@ -121,15 +116,12 @@ def subir_comentario (dni_alumno, comentario):
 def registrar_presente_alumno (dni_alumno):
     """Registra el presente de un alumno. En caso de que ya tenga el presente devuelve una excepción."""
 
-    Cliente = aliased(Usuario)
-
     query = (
         db.session.query(Reserva)
         .join (Cliente, Cliente.id == Reserva.id_cliente)
         .join (Clase, Clase.id == Reserva.id_clase)
 
         .filter(Cliente.dni == dni_alumno)
-        .filter(Cliente.rol == RolUsuario.CLIENTE)
         .filter(*filtro_clase_actual())
     )
 

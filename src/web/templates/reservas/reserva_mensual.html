@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+
+{% block title %}Reserva Mensual | RehabilitAR{% endblock %}
+
+{% block content %}
+<div class="box p-5 mx-auto mt-6" style="border-radius: 1.25rem; max-width: 800px; border: 1px solid var(--bulma-border-weak); box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+    <div class="has-text-centered mb-5">
+        <span class="icon is-large has-text-info mb-2">
+            <i class="fas fa-calendar-alt fa-3x"></i>
+        </span>
+        <h1 class="title is-3">Reserva Mensual</h1>
+        <p class="subtitle is-6 mt-2">Estás a punto de suscribirte a <strong>{{ clase_base.nombre }}</strong> todos los {{ dia_nombre }} a las {{ clase_base.horario.strftime('%H:%M') }} para el mes de <strong>{{ mes_nombre }}</strong>.</p>
+    </div>
+    
+    <div class="content">
+        <h3 class="title is-5"><span class="icon has-text-success"><i class="fas fa-check-circle"></i></span> Clases disponibles</h3>
+        {% if clases_ok %}
+            <ul>
+                {% for c in clases_ok %}
+                <li>{{ c.fecha_clase.strftime('%d/%m/%Y') }} - {{ c.horario.strftime('%H:%M') }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="has-text-grey">No hay clases sin conflictos en este mes.</p>
+        {% endif %}
+
+        {% if conflictos_cupo %}
+        <h3 class="title is-5 mt-4"><span class="icon has-text-warning"><i class="fas fa-exclamation-triangle"></i></span> Semanas sin cupo</h3>
+        <div class="notification is-warning is-light">
+            <ul>
+                {% for c in conflictos_cupo %}
+                <li>{{ c.fecha_clase.strftime('%d/%m/%Y') }} - {{ c.horario.strftime('%H:%M') }} <a href="#" class="button is-small is-warning ml-2" disabled>Reprogramar (Próximamente)</a></li>
+                {% endfor %}
+            </ul>
+            <p class="is-size-7 mt-2">No pudimos asignar tu lugar porque el cupo ya está lleno. Debes reprogramar esta sesión para otra fecha de esa semana.</p>
+        </div>
+        {% endif %}
+
+        {% if conflictos_feriado %}
+        <h3 class="title is-5 mt-4"><span class="icon has-text-danger"><i class="fas fa-calendar-times"></i></span> Feriados</h3>
+        <div class="notification is-danger is-light">
+            <ul>
+                {% for c in conflictos_feriado %}
+                <li class="is-flex is-align-items-center mb-2">
+                    {{ c.fecha_clase.strftime('%d/%m/%Y') }} - {{ c.horario.strftime('%H:%M') }}
+                    <div class="buttons is-small ml-3 mb-0">
+                        <a href="#" class="button is-small is-info is-outlined" disabled>Reprogramar</a>
+                        <a href="#" class="button is-small is-success is-outlined" disabled>Recibir Descuento</a>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            <p class="is-size-7 mt-2">Puedes elegir reprogramar la sesión en la misma semana o cancelarla y recibir un descuento en tu abono mensual.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <form action="{{ url_for('reservas.reservar_mensual', id_clase=clase_base.id) }}" method="POST">
+        <div class="field mt-5">
+            <button type="submit" class="button is-primary is-fullwidth is-medium is-rounded has-text-weight-bold shadow-button">
+                <span class="icon"><i class="fas fa-check-double"></i></span>
+                <span>Confirmar Reserva Mensual</span>
+            </button>
+        </div>
+    </form>
+    
+    <div class="has-text-centered mt-4">
+        <a href="{{ url_for('reservas.calendario_cliente') }}" class="button is-text has-text-danger is-small">Cancelar y volver al calendario</a>
+    </div>
+</div>
+{% endblock %}

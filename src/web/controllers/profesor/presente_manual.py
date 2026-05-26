@@ -2,10 +2,10 @@ from flask import render_template, request, session, flash, url_for, redirect
 
 from src.core.clases import profesor_está_en_clase
 from src.core.usuarios import alumno_pertenece_a_clase_actual_profesor
-from src.core.reserva import alumno_tiene_asistencia, registrar_presente_alumno
+from src.core.asistencias import alumno_tiene_asistencia, registrar_presente_alumno
 from src.web.functions import es_dni
 
-from src.core.reserva import AsistenciaReserva
+from src.core.reservas import AsistenciaReserva
 
 def registrar_asistencia_manual ():
 

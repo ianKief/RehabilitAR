@@ -1,6 +1,6 @@
 from src.core.database import Base
-from sqlalchemy import Boolean, DateTime, String, Integer, Enum 
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import DateTime, String, Enum, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import enum
@@ -17,8 +17,13 @@ class Reserva(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     asiste: Mapped[AsistenciaReserva] = mapped_column(Enum(AsistenciaReserva), default=AsistenciaReserva.AUSENTE, nullable=True)
-    id_cliente: Mapped[int] = mapped_column(Integer, nullable=False)
-    id_clase: Mapped[int] = mapped_column(Integer, nullable=False)
+    id_cliente: Mapped[int] = mapped_column(ForeignKey("clientes.id"), nullable=False)
+    id_clase: Mapped[int] = mapped_column(ForeignKey("clases.id"), nullable=False)
+
+    # Relaciones
+    cliente: Mapped["Cliente"] = relationship(back_populates="reservas")
+    clase: Mapped["Clase"] = relationship(back_populates="reservas")
+    comentarios: Mapped[list["Comentario"]] = relationship(back_populates="reserva", cascade="all, delete-orphan")
 
     # Campos de auditoría
     fecha_creacion: Mapped[datetime] = mapped_column(
@@ -36,8 +41,11 @@ class Comentario(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     comentario: Mapped[str] = mapped_column(String(255), nullable=False)
-    id_reserva: Mapped[int] = mapped_column(Integer, nullable=False)
+    id_reserva: Mapped[int] = mapped_column(ForeignKey("reserva.id"), nullable=False)
     
+    # Relaciones
+    reserva: Mapped["Reserva"] = relationship(back_populates="comentarios")
+
     # Campos de auditoría
     fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),

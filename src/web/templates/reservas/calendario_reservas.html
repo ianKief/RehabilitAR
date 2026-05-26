@@ -1,0 +1,223 @@
+{% extends "layout.html" %}
+
+{% block title %}Calendario de Clases | RehabilitAR{% endblock %}
+
+{% block head %}
+<!-- Flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    /* Centramos el calendario y le damos un borde armónico */
+    .flatpickr-calendar.inline {
+        margin: 0 auto;
+        box-shadow: none;
+        border-radius: 8px;
+        border: 1px solid var(--bulma-border-weak);
+    }
+
+    /* Color primario para el día actual y seleccionado (sobrescribe el azul por defecto en ambos modos) */
+    .flatpickr-day.today {
+        border-color: var(--bulma-primary) !important;
+    }
+    .flatpickr-day.today:hover {
+        background: var(--bulma-primary) !important;
+        color: var(--bulma-primary-invert) !important;
+    }
+    .flatpickr-day.selected, .flatpickr-day.selected:hover, .flatpickr-day.selected:focus {
+        background: var(--bulma-primary) !important;
+        border-color: var(--bulma-primary) !important;
+        color: var(--bulma-primary-invert) !important;
+    }
+
+    /* Compatibilidad de Flatpickr con Modo Oscuro de Bulma */
+    html[data-theme="dark"] .flatpickr-calendar {
+        background: var(--bulma-scheme-main);
+        border-color: var(--bulma-border-weak);
+    }
+    html[data-theme="dark"] .flatpickr-day, 
+    html[data-theme="dark"] .flatpickr-weekday,
+    html[data-theme="dark"] .flatpickr-current-month .flatpickr-monthDropdown-months {
+        color: var(--bulma-text);
+    }
+    html[data-theme="dark"] .flatpickr-day:hover,
+    html[data-theme="dark"] .flatpickr-day:focus {
+        background: var(--bulma-background);
+        border-color: var(--bulma-border-weak);
+    }
+    html[data-theme="dark"] .flatpickr-month {
+        fill: var(--bulma-text);
+        color: var(--bulma-text);
+    }
+    html[data-theme="dark"] .flatpickr-day.flatpickr-disabled,
+    html[data-theme="dark"] .flatpickr-day.prevMonthDay,
+    html[data-theme="dark"] .flatpickr-day.nextMonthDay {
+        color: var(--bulma-text-weak);
+    }
+
+    /* Adaptación de etiquetas is-light para Modo Oscuro */
+    html[data-theme="dark"] .tag.is-info.is-light {
+        background-color: var(--bulma-info-dark);
+        color: var(--bulma-info-light);
+    }
+    html[data-theme="dark"] .tag.is-warning.is-light {
+        background-color: var(--bulma-warning-dark);
+        color: var(--bulma-warning-light);
+    }
+    html[data-theme="dark"] .notification.is-info.is-light {
+        background-color: var(--bulma-info-dark);
+        color: var(--bulma-info-light);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="box p-5">
+    <div class="has-text-centered mb-6 mt-3">
+        <h1 class="title is-3">Calendario de Actividades</h1>
+        <p class="subtitle is-6 has-text-grey">Seleccioná un día en el calendario para ver las clases disponibles y realizar tu reserva.</p>
+    </div>
+
+    <div class="columns is-multiline is-centered">
+        <!-- SECCIÓN SUPERIOR: CALENDARIO Y FILTROS -->
+        <div class="column is-8-desktop is-10-tablet is-12-mobile">
+            <div class="box is-shadowless" style="border: 1px solid var(--bulma-border-weak);">
+            <form id="filtro-form" method="GET" action="{{ url_for('reservas.calendario_cliente') }}">
+                <!-- Contenedor del Calendario JS -->
+                <div class="field mb-5 is-flex is-justify-content-center">
+                    <input type="hidden" id="fecha-hidden" name="fecha" value="{{ fecha_seleccionada }}">
+                    <div id="calendario-interactivo"></div>
+                </div>
+                
+                <!-- Filtros Secundarios de la HU de filtrado -->
+                <div class="columns is-mobile">
+                    <div class="column">
+                        <div class="field">
+                            <label class="label is-small">Tipo de Clase</label>
+                            <div class="control">
+                                <div class="select is-fullwidth is-small">
+                                    <select name="tipo" onchange="document.getElementById('filtro-form').submit();">
+                                        <option value="">Todas</option>
+                                        <option value="Fija" {% if tipo_seleccionado == 'Fija' %}selected{% endif %}>Fija</option>
+                                        <option value="Individual" {% if tipo_seleccionado == 'Individual' %}selected{% endif %}>Individual</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="field">
+                            <label class="label is-small">Especialidad</label>
+                            <div class="control">
+                                <div class="select is-fullwidth is-small">
+                                    <select name="especialidad" onchange="document.getElementById('filtro-form').submit();">
+                                        <option value="">Todas</option>
+                                        <option value="Tren Superior" {% if especialidad_seleccionada == 'Tren Superior' %}selected{% endif %}>Tren Superior</option>
+                                        <option value="Tren Medio" {% if especialidad_seleccionada == 'Tren Medio' %}selected{% endif %}>Tren Medio</option>
+                                        <option value="Tren Inferior" {% if especialidad_seleccionada == 'Tren Inferior' %}selected{% endif %}>Tren Inferior</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                    
+                    <!-- Botón para Limpiar Filtros (Visible solo si hay filtros activos) -->
+                    {% if tipo_seleccionado or especialidad_seleccionada %}
+                    <div class="is-flex is-justify-content-flex-end mt-2">
+                        <a href="{{ url_for('reservas.calendario_cliente', fecha=fecha_seleccionada) }}" class="button is-small is-text p-0" style="text-decoration: none;">
+                            <span class="icon"><i class="fas fa-times"></i></span>
+                            <span>Limpiar filtros</span>
+                        </a>
+                    </div>
+                    {% endif %}
+            </form>
+        </div>
+    </div>
+
+        <!-- SECCIÓN INFERIOR: LISTADO DE CLASES DEL DÍA -->
+        <div class="column is-12">
+            <h2 class="title is-4 mb-4 mt-2 has-text-centered">Clases del <span class="has-text-primary">{{ fecha_formateada }}</span></h2>
+        
+        {% if clases %}
+            {% for clase in clases %}
+            <div class="box mb-3">
+                <div class="columns is-vcentered">
+                    <div class="column">
+                        <h3 class="title is-5 mb-1">{{ clase.nombre }}</h3>
+                        <p class="subtitle is-6 mb-2 has-text-grey">
+                            <span class="icon is-small"><i class="fas fa-clock"></i></span> {{ clase.horario.strftime('%H:%M') }} 
+                            <span class="mx-2">|</span> {{ clase.duracion }} min
+                        </p>
+                        <div class="tags mb-1">
+                            <span class="tag is-info is-light">{{ clase.especialidad }}</span>
+                            <span class="tag is-warning is-light">{{ clase.tipo }}</span>
+                        </div>
+                    </div>
+                    <div class="column is-narrow">
+                        {% if clase.id in ids_clases_reservadas %}
+                            <button class="button is-success is-light is-rounded has-text-weight-bold is-fullwidth" disabled title="Ya estás inscripto en esta clase">
+                                <span class="icon"><i class="fas fa-check"></i></span>
+                                <span>Reservada</span>
+                            </button>
+                        {% else %}
+                            <div class="is-flex is-flex-wrap-wrap" style="gap: 0.5rem;">
+                                <form action="{{ url_for('reservas.reservar_clase', id_clase=clase.id) }}" method="POST" style="flex: 1; min-width: 140px;">
+                                    <button type="submit" class="button is-primary is-rounded has-text-weight-bold shadow-button is-fullwidth">Reservar Clase</button>
+                                </form>
+                                {% if clase.tipo == 'Fija' and es_abonado %}
+                                <a href="{{ url_for('reservas.reservar_mensual', id_clase=clase.id) }}" class="button is-info is-light is-rounded has-text-weight-bold shadow-button has-text-centered" style="flex: 1; min-width: 140px;">Reservar Mes</a>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="notification is-light is-info mt-4">
+                <span class="icon"><i class="fas fa-calendar-times"></i></span> No hay clases disponibles para la fecha y/o filtros seleccionados.
+            </div>
+        {% endif %}
+    </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Flatpickr JS y Localización a Español -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
+
+<script id="feriados-data" type="application/json">{{ feriados | default([]) | tojson | safe }}</script>
+<script id="fechas-clases-data" type="application/json">{{ fechas_con_clases | default([]) | tojson | safe }}</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const feriados = JSON.parse(document.getElementById('feriados-data').textContent) || [];
+        const fechasConClases = JSON.parse(document.getElementById('fechas-clases-data').textContent) || [];
+        
+        flatpickr("#calendario-interactivo", {
+            locale: "es",
+            inline: true, 
+            minDate: "today", 
+            enable: fechasConClases,
+            defaultDate: "{{ fecha_seleccionada }}",
+            onChange: function(selectedDates, dateStr, instance) {
+                document.getElementById('fecha-hidden').value = dateStr;
+                document.getElementById('filtro-form').submit();
+            },
+            onDayCreate: function(dObj, dStr, fp, dayElem) {
+                const dateObj = dayElem.dateObj;
+                const formattedDate = dateObj.getFullYear() + "-" + 
+                    String(dateObj.getMonth() + 1).padStart(2, '0') + "-" + 
+                    String(dateObj.getDate()).padStart(2, '0');
+                
+                if (feriados.includes(formattedDate)) {
+                    dayElem.style.color = "#f14668"; 
+                    dayElem.style.fontWeight = "bold";
+                    dayElem.title = "Feriado";
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

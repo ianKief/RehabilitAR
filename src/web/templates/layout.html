@@ -27,10 +27,12 @@
                             style="background: transparent; border: none;">
                             <span class="icon"><i class="far fa-moon"></i></span>
                         </button>
+                        {% if session.get('usuario_id') %}
                         <a class="button is-primary is-outlined is-small ml-2" href="{{ url_for('usuarios.perfil') }}"
                             style="padding-left: 0.75rem; padding-right: 0.75rem;">
                             <span class="icon"><i class="far fa-user"></i></span>
                         </a>
+                        {% endif %}
                     </div>
                 </div>
         
@@ -47,28 +49,23 @@
                     <a class="navbar-item py-3 px-4" href="/">
                         <span class="icon mr-2"><i class="fas fa-home"></i></span>Inicio
                     </a>
+                    {% if session.get('rol') == 'ADMINISTRADOR' %}
                     <!-- Navegación para personal (ocultar según rol) -->
                     <a class="navbar-item py-3 px-4" href="/salas">
                         <span class="icon mr-2"><i class="far fa-hospital"></i></span>Salas
                     </a>
+                    <a class="navbar-item py-3 px-4" href="/clases/admin">
+                        <span class="icon mr-2"><i class="far fa-calendar-alt"></i></span>Clases
+                    </a>
+                    {% endif %}
+                    {% if session.get('rol') == 'PROFESOR' %}
                     <!-- Navegación para profesores -->
-
                     <a class="navbar-item py-3 px-4" href="/profesor">
                         <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Menú de profesores
                     </a>
-                    
-
-                    {% if True %}
-                        <a class="navbar-item py-3 px-4" href="/salas">
-                            <span class="icon mr-2"><i class="far fa-hospital"></i></span>Salas
-                        </a>
-                        <a class="navbar-item py-3 px-4" href="/clases/admin">
-                            <span class="icon mr-2"><i class="far fa-calendar-alt"></i></span>Clases
-                        </a>
                     {% endif %}
-                    <!-- Agrega más enlaces según sea necesario -->
                     <!-- Navegación para clientes (solo si son clientes) -->
-                    {% if session.get('user_role') == 'cliente' %}
+                    {% if session.get('rol') == 'CLIENTE' %}
                         <a class="navbar-item py-3 px-4" href="/reservas">
                             <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Reservas
                         </a>
@@ -76,7 +73,21 @@
                             <span class="icon mr-2"><i class="fas fa-chalkboard-user"></i></span>Mis Clases
                         </a>
                     {% endif %}
-                    <!-- Agrega más enlaces según sea necesario -->
+                    
+                    <hr class="navbar-divider" style="background-color: var(--bulma-border-weak); opacity: 0.5;">
+                    
+                    {% if session.get('usuario_id') %}
+                        <a class="navbar-item py-3 px-4 has-text-danger" href="{{ url_for('auth.logout') }}">
+                            <span class="icon mr-2"><i class="fas fa-sign-out-alt"></i></span>Cerrar Sesión
+                        </a>
+                    {% else %}
+                        <a class="navbar-item py-3 px-4" href="{{ url_for('auth.login') }}">
+                            <span class="icon mr-2"><i class="fas fa-sign-in-alt"></i></span>Iniciar Sesión
+                        </a>
+                        <a class="navbar-item py-3 px-4" href="{{ url_for('auth.registrar_cliente') }}">
+                            <span class="icon mr-2"><i class="fas fa-user-plus"></i></span>Registrarse
+                        </a>
+                    {% endif %}
                 </div>
                 <div class="navbar-end is-hidden-touch">
                     <div class="navbar-item">
@@ -97,7 +108,7 @@
                                     <span>Mi Perfil</span>
                                 </a>
                                 
-                                <a href="{{ url_for('auth.logout') }}" class="button is-danger is-light is-rounded px-5">
+                                <a id="btn-logout" href="{{ url_for('auth.logout') }}" class="button is-danger is-light is-rounded px-5">
                                     <span class="icon mr-2"><i class="fas fa-sign-out-alt"></i></span>
                                     <span>Cerrar Sesión</span>
                                 </a>
@@ -140,6 +151,7 @@
             {% endwith %}
 
             <div class="columns is-variable is-4-desktop is-flex-grow-1 is-stretch">
+                {% if session.get('usuario_id') %}
                 <aside class="column is-3 is-hidden-touch is-flex is-flex-direction-column is-flex-grow-1">
                     <div class="box is-flex-grow-1">
                         <p class="menu-label has-text-weight-bold px-2 mb-3 has-text-grey-light">
@@ -178,47 +190,31 @@
                                     </li>
                                 </ul>
                             </li>
-                            {% endif %}
-
                             <li>
                                 <a href="/salas"
                                     class="py-2.5 px-3 {% if current_path == '/salas/' %}has-text-primary{% endif %}">
                                     <span class="icon mr-2"><i class="far fa-hospital"></i></span>Salas
                                 </a>
                             </li>
+                            <li>
+                                <a href="/clases/admin"
+                                    class="py-2.5 px-3 {% if current_path == '/clases/admin' %}has-text-primary{% endif %}">
+                                    <span class="icon mr-2"><i class="far fa-calendar-alt"></i></span>Clases
+                                </a>
+                            </li>
+                            {% endif %}
 
                             <!-- Navegación para profesores-->
-
-                                                            
-                            <li>
-                                <a href="/mis-clases"
-                                class="py-2.5 px-3 {% if current_path == '/mis-clases/' %}has-text-primary{% endif %}">
-                                <span class="icon mr-2"><i class="fas fa-chalkboard-user"></i></span>Mis Clases
-                            </li>
+                            {% if session.get('rol') == 'PROFESOR' %}
                             <li>
                                 <a href="/profesor/"
                                     class="py-2.5 px-3 {% if current_path == '/profesor/' %}has-text-primary{% endif %}">
                                     <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Menú de profesores
                                 </a>
-                            </li> <!--No se pone en verde al estar en profesor-->
-                            
-                            {% if True %} <!-- para hacer pruebas visuales if true en el rol a inspeccionar -->
-                                <li>
-                                    <a href="/salas"
-                                        class="py-2.5 px-3 {% if current_path == '/salas/' %}has-text-primary{% endif %}">
-                                        <span class="icon mr-2"><i class="far fa-hospital"></i></span>Salas
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/clases/admin"
-                                        class="py-2.5 px-3 {% if current_path == '/clases/admin' %}has-text-primary{% endif %}">
-                                        <span class="icon mr-2"><i class="far fa-calendar-alt"></i></span>Clases
-                                    </a>
-                                </li>
+                            </li>
                             {% endif %}
-                            <!-- Agrega más enlaces según sea necesario -->
                             <!-- Navegación para clientes (solo si son clientes) -->
-                            {% if session.get('user_role') == 'cliente' %}
+                            {% if session.get('rol') == 'CLIENTE' %}
                                 <li>
                                     <a href="/reservas"
                                         class="py-2.5 px-3 {% if current_path == '/reservas/' %}has-text-primary{% endif %}">
@@ -236,8 +232,9 @@
                         </ul>
                     </div>
                 </aside>
+                {% endif %}
 
-                <div class="column is-9-desktop is-12-tablet">
+                <div class="column {% if session.get('usuario_id') %}is-9-desktop is-12-tablet{% else %}is-12{% endif %}">
                     <div class="block is-flex is-flex-direction-column is-flex-grow-1">
                         {% block content %}
                         {% endblock %}
@@ -288,6 +285,15 @@
                         btn.classList.add('has-text-grey');
                     }
                 });
+                // Alternar estilo del botón Cerrar Sesión
+                const btnLogout = document.getElementById('btn-logout');
+                if (btnLogout) {
+                    if (theme === 'dark') {
+                        btnLogout.classList.replace('is-light', 'is-dark');
+                    } else {
+                        btnLogout.classList.replace('is-dark', 'is-light');
+                    }
+                }
             };
 
             const initialTheme = localStorage.getItem('theme') || 

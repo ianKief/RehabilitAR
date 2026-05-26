@@ -1,14 +1,17 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
-from src.core.salas import listar_salas, crear_sala, obtener_sala, actualizar_sala, eliminar_sala, toggle_estado_sala
+from src.core.salas import *
+from src.web.helpers.decorator import requiere_rol
  
 bp = Blueprint("salas", __name__, url_prefix="/salas")
 
 @bp.route("/")
+@requiere_rol(["ADMINISTRADOR"])
 def lista_salas():
     salas = listar_salas()
     return render_template("salas/lista_salas.html", salas=salas,current_path=request.path)
 
 @bp.route("/nueva", methods=["GET", "POST"])
+@requiere_rol(["ADMINISTRADOR"])
 def nueva_sala():
     if request.method == "POST":
         datos = {
@@ -29,6 +32,7 @@ def nueva_sala():
     return render_template("salas/nueva_sala.html", datos=None)
 
 @bp.route("/<int:id>")
+@requiere_rol(["ADMINISTRADOR"])
 def ver_sala(id):
     sala = obtener_sala(id)
     if not sala:
@@ -42,6 +46,7 @@ def ver_sala(id):
     return render_template("salas/ver_sala.html", sala=sala, clases=clases_asignadas)
 
 @bp.route("/<int:id>/editar", methods=["GET", "POST"])
+@requiere_rol(["ADMINISTRADOR"])
 def editar_sala(id):
     sala = obtener_sala(id)
     if not sala:
@@ -65,6 +70,7 @@ def editar_sala(id):
     return render_template("salas/editar_sala.html", sala=sala, datos=None)
 
 @bp.route("/<int:id>/eliminar")
+@requiere_rol(["ADMINISTRADOR"])
 def eliminar_sala_route(id):
     try:
         if eliminar_sala(id):
@@ -76,6 +82,7 @@ def eliminar_sala_route(id):
     return redirect(url_for("salas.lista_salas"))
 
 @bp.route("/<int:id>/toggle")
+@requiere_rol(["ADMINISTRADOR"])
 def toggle_estado_route(id):
     try:
         sala = toggle_estado_sala(id)

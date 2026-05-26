@@ -5,10 +5,11 @@ from src.core.database import db
 from src.core.usuarios.usuarios import Usuario, RolUsuario, EstadoUsuario
 
 from src.core.clases.clases import Clase, ProfesorDictaClase
-from src.core.reserva.reservas import Reserva, AsistenciaReserva
+from src.core.reservas.reservas import Reserva, AsistenciaReserva
 from src.core.usuarios.usuarios import Usuario, Cliente, Profesor, Administrador, Recepcionista, RolUsuario
 
 from src.core.functions import filtro_clase_actual
+from datetime import datetime
 
 def alumno_pertenece_a_clase_actual_profesor (id_profesor, dni_alumno):
     """Dado el ID del profesor y el DNI del alumno (que es el único dato que el profesor conoce de él), devuelve si el alumno pertenece a la clase actual del profesor"""
@@ -204,3 +205,10 @@ def eliminar_usuario(usuario_id):
     db.session.delete(usuario)
     db.session.commit()
     return True
+
+def tiene_apto_fisico_valido(cliente):
+    """Valida si el cliente tiene un apto físico aceptado y menor a 1 año de antigüedad."""
+    if cliente and getattr(cliente, 'apto_fisico', None) and cliente.apto_fisico.estado.name == 'ACEPTADO':
+        if cliente.apto_fisico.fecha_carga and (datetime.now() - cliente.apto_fisico.fecha_carga).days <= 365:
+            return True
+    return False

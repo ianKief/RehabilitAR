@@ -127,6 +127,17 @@ def login():
         try:
             usuario = login_core(email, password)
 
+            # Bypass de verificación de dos pasos para las cuentas de prueba
+            if usuario.email in ["pruebasrehabilitar@gmail.com", "clienteprueba@gmail.com", "profesorprueba@gmail.com"]:
+                usuario.codigo_verificacion = None
+                usuario.codigo_verificacion_expira = None
+                db.session.commit()
+                session.permanent = True
+                session['usuario_id'] = usuario.id
+                session['rol'] = usuario.rol.name
+                flash("¡Bienvenido! (Verificación omitida para pruebas)", "success")
+                return redirect(url_for('home'))
+
             msg = Message(
                 subject="RehabilitAR - Código de Verificación",
                 recipients=[usuario.email]

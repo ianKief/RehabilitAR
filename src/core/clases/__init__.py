@@ -4,7 +4,7 @@ from sqlalchemy.orm import aliased
 from src.core.database import db
 
 from src.core.clases.clases import Clase, ProfesorDictaClase
-from src.core.reserva.reservas import Reserva, AsistenciaReserva
+from src.core.reservas.reservas import Reserva, AsistenciaReserva
 from src.core.usuarios.usuarios import Usuario, RolUsuario
 
 from src.core.functions import filtro_clase_actual
@@ -75,4 +75,3 @@ def clase_tiene_lugar(clase):
     ocupados = (db.session.scalar(cantidad_lugares_ocupados) or 0)
 
     return ocupados < clase.capacidad_maxima
-
