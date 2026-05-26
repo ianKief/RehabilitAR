@@ -82,11 +82,7 @@
                                     <i class="fas fa-eye"></i>
                                 </span>
                             </a>
-                            <a class="button is-small is-warning is-darker" href="/clases/{{ clase.id }}/editar" title="Editar">
-                                <span class="icon is-small">
-                                    <i class="fas fa-edit"></i>
-                                </span>
-                            </a>
+                            
                             {% if clase.suspendida %}
                                 <a class="button is-small is-danger is-darker" href="/clases/{{ clase.id }}/eliminar" title="Eliminar" onclick="return confirm('¿Estás seguro de que deseas eliminar esta clase?');">
                                     <span class="icon is-small">

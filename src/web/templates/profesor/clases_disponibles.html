@@ -1,0 +1,113 @@
+{% extends "layout.html" %}
+
+{% block title %}Rehabilitar - Postulaciones Disponibles{% endblock %}
+
+{% block content %}
+<div class="box">
+    <div class="columns is-vcentered mb-4">
+        <div class="column">
+            <h1 class="title is-3">
+                <span class="icon-text">
+                    <span class="icon has-text-primary">
+                        <i class="fas fa-clipboard-list"></i>
+                    </span>
+                    <span>Clases Disponibles para Postulación</span>
+                </span>
+            </h1>
+            <p class="subtitle is-6 has-text-grey">Postulate a bloques mensuales de clases fijas o sesiones individuales vacantes</p>
+        </div>
+        
+        <div class="column is-narrow">
+            <a class="button is-light has-text-grey-darker" href="{{ url_for('profesor.ver_mis_postulaciones') }}">
+                <span class="icon">
+                    <i class="fas fa-arrow-left"></i>
+                </span>
+                <span>Ver Mis Postulaciones</span>
+            </a>
+        </div>
+    </div>
+
+    <hr>
+
+    <div class="table-container" style="max-height: 550px; overflow-y: auto;">
+        <table class="table is-striped is-hoverable is-fullwidth">
+            <thead>
+                <tr>
+                    <th style="width: 25%;">Nombre de la Clase</th>
+                    <th style="width: 20%;">Especialidad</th>
+                    <th class="has-text-centered" style="width: 12%;">Tipo</th>
+                    <th style="width: 28%;">Instancias / Fechas del Mes</th>
+                    <th class="has-text-centered" style="width: 15%;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {# Cambiamos la iteración: item contiene 'objeto_base', 'fechas' e 'ids_clases' #}
+                {% for item in clases %}
+                    {% set clase_base = item.objeto_base %}
+                <tr>
+                    <td class="is-vcentered">
+                        <span class="has-text-weight-bold has-text-dark">
+                            {{ clase_base.nombre }}
+                        </span>
+                        <div class="has-text-grey is-size-7">⏱️ {{ clase_base.duracion }} min</div>
+                    </td>
+                    
+                    <td class="is-vcentered">
+                        <span class="tag is-light is-info">{{ clase_base.especialidad }}</span>
+                    </td>
+                    
+                    <td class="has-text-centered is-vcentered">
+                        {% if clase_base.tipo == "Fija" %}
+                            <span class="tag is-primary is-light has-text-weight-semibold">Fija</span>
+                        {% else %}
+                            <span class="tag is-warning is-light has-text-weight-semibold">Individual</span>
+                        {% endif %}
+                    </td>
+                    
+                    <td class="is-vcentered">
+                        <div class="mb-2">
+                            <span class="icon is-small has-text-grey-dark"><i class="fas fa-clock"></i></span>
+                            <span class="has-text-weight-medium">{{ clase_base.horario.strftime('%H:%M') }} hs</span>
+                            <span class="has-text-grey-light"> | </span>
+                            <span class="is-size-7 has-text-grey">Sala: {{ clase_base.sala.numero_puerta if clase_base.sala else 'Sin Sala' }}</span>
+                        </div>
+                        <div class="tags">
+                            {% for fecha in item.fechas %}
+                                <span class="tag is-small is-rounded is-white has-background-grey-lighter has-text-grey-darker">
+                                    {{ fecha.strftime('%d/%m') }}
+                                </span>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    
+                    <td class="has-text-centered is-vcentered">
+                        <form action="{{ url_for('profesor.postularse') }}" method="POST">
+                            {# El filtro |join(',') convierte la lista de Python [1, 2, 3] en la cadena "1,2,3" #}
+                            <input type="hidden" name="clases_ids" value="{{ item.ids_clases|join(',') }}">
+                            
+                            <button type="submit" class="button is-small is-primary is-fullwidth" 
+                                    onclick="return confirm('¿Confirmás tu postulación para todas las instancias de este bloque?');">
+                                <span class="icon is-small">
+                                    <i class="fas fa-paper-plane"></i>
+                                </span>
+                                <span>Postularme</span>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="has-text-centered has-text-grey py-6">
+                        <span class="icon is-large has-text-grey-light">
+                            <i class="fas fa-calendar-check fa-3x"></i>
+                        </span>
+                        <p class="mt-3 is-size-5 has-text-weight-medium">¡Estás al día!</p>
+                        <p class="has-text-grey-light is-size-6">No hay bloques de clases disponibles para postularse en este momento.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

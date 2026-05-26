@@ -1,7 +1,7 @@
 from datetime import datetime
-
+from src.core.database import db
 from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, url_for
-from src.core.clases import listar_clases, listar_especialidades_activas, listar_salas_habilitadas, obtener_clase_por_id, obtener_horarios_disponibles, obtener_postulantes_clase, obtener_sala_por_id
+from src.core.clases import crear_clases_agenda, listar_clases, listar_especialidades_activas, listar_salas_habilitadas, obtener_clase_por_id, obtener_horarios_disponibles, obtener_postulantes_clase, obtener_sala_por_id
 
 bp = Blueprint("clases", __name__, url_prefix="/clases")
 
@@ -22,14 +22,15 @@ def ver_detalle_admin(clase_id):
     if not clase:
         return abort(404, description="La clase de rehabilitación no existe.")
     
-    # 3. Le pedimos al core los profesores postulados para esa clase
-    postulantes = obtener_postulantes_clase(clase_id)
+    # 3. Le pedimos al core los datos de postulaciones (recibe el dict con postulantes y asignado)
+    datos_postu = obtener_postulantes_clase(clase_id)
     
-    # 4. Renderizamos la vista enviando los datos limpios
+    # 4. Renderizamos la vista enviando los datos limpios por separado para Jinja
     return render_template(
         "clases/clase_detalle.html", 
         clase=clase, 
-        postulantes=postulantes,
+        postulantes=datos_postu["postulantes"],  # La lista de los que se anotaron
+        asignado=datos_postu["asignado"],        # El diccionario del profe que la dicta (o None)
         current_path=request.path
     )
 
@@ -68,9 +69,7 @@ def api_horarios_disponibles():
     
 
 # EL PROCESADOR (Recibe los datos cuando el usuario aprieta "Guardar")
-from datetime import datetime
-from flask import Blueprint, flash, redirect, render_template, request, url_for
-from src.core.clases import crear_clases_agenda, listar_especialidades_activas # Asegurate de tener estas importaciones
+ # Asegurate de tener estas importaciones
 
 @bp.route('/crear', methods=['POST'])
 def crear_clase_post():
@@ -146,3 +145,38 @@ def crear_clase_post():
         flash('No se pudieron programar clases (las fechas calculadas ya pasaron).', 'warning')
 
     return redirect(url_for('clases.listar_clases_admin'))
+
+from flask import redirect, url_for, flash, abort
+from src.core.clases import resolver_postulacion_clase, obtener_clase_por_id
+
+@bp.post("/admin/postulacion/<int:postu_id>/<string:accion>")
+def responder_postulacion(postu_id, accion):
+    """
+    Procesa la decisión del administrador (aceptar/rechazar) sobre una postulación.
+    """
+    # 1. Seguridad: Validar que la acción sea válida de entrada
+    if accion not in ["aceptar", "rechazar"]:
+        return abort(400, description="Acción inválida. Solo se permite aceptar o rechazar.")
+
+    # 2. Conseguir la postulación para saber a qué clase redirigir después del cambio
+    from src.core.clases.clases import PostulacionClase
+    postulacion = db.session.get(PostulacionClase, postu_id)
+    if not postulacion:
+        return abort(404, description="La postulación especificada no existe.")
+    
+    clase_id = postulacion.clase_id  # Guardamos el ID antes de operar para la redirección
+
+    # 3. Delegar la transacción al Core
+    exito = resolver_postulacion_clase(postu_id, accion)
+
+    # 4. Mensajes Flash basados en el resultado de la operación
+    if exito:
+        if accion == "aceptar":
+            flash("¡Postulación aceptada con éxito! El profesor fue asignado y se liberó la cartelera.", "success")
+        else:
+            flash("La postulación ha sido rechazada correctamente.", "info")
+    else:
+        flash("Hubo un error al procesar la solicitud o la postulación ya fue resuelta.", "danger")
+
+    # 5. Volvemos exactamente a la misma pantalla del detalle de la clase para ver el cambio reflejado
+    return redirect(url_for("clases.ver_detalle_admin", clase_id=clase_id))

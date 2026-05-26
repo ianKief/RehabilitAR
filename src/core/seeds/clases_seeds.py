@@ -3,7 +3,7 @@ import random
 from datetime import date, time, timedelta
 from sqlalchemy import select
 from src.core.salas.salas import Sala, EstadoSala  # Asegurá estas rutas
-from src.core.clases.clases import Clase              # Asegurá esta ruta
+from src.core.clases.clases import Clase, ClaseBloque              # Asegurá esta ruta
 
 class ClaseSeeder:
     def __init__(self, db):
@@ -19,7 +19,7 @@ class ClaseSeeder:
             "Tren Medio": ["Estabilización de Core", "Reeducación Postural Lumbar", "Gimnasia Correctiva de Columna"]
         }
 
-        # Horarios de inicio de clase (los espaciamos un poco más para evitar choques bruscos en pruebas)
+        # Horarios de inicio de clase
         self.horarios_prueba = [
             time(8, 0), time(10, 0), time(12, 0), 
             time(14, 0), time(16, 0), time(18, 0)
@@ -37,6 +37,9 @@ class ClaseSeeder:
             return
 
         hoy = date.today()
+        
+        # 🔥 Contador para autogestionar identificadores únicos de bloques en el Seeder
+        proximo_id_bloque = 1
 
         # Generamos 8 intenciones de clases distribuidas en la agenda
         for i in range(8):
@@ -45,7 +48,7 @@ class ClaseSeeder:
             tipo = random.choice(self.tipos_clases)
             horario = random.choice(self.horarios_prueba)
             
-            # Repartimos las fechas iniciales en un rango de 10 días para diversificar la agenda de prueba
+            # Repartimos las fechas iniciales en un rango de 10 días
             dias_en_adelante = random.randint(1, 10)
             fecha_inicial = hoy + timedelta(days=dias_en_adelante)
 
@@ -68,7 +71,15 @@ class ClaseSeeder:
 
             # 2. DETERMINAR LAS FECHAS DE IMPACTO
             fechas_a_crear = []
+            
+            # 🔥 Guardamos el ID que usará este bloque si la intención resulta ser Fija
+            id_bloque_actual = None
+            
             if tipo == "Fija":
+                id_bloque_actual = proximo_id_bloque
+                # Incrementamos para la próxima intención fija que pueda salir en el loop principal
+                proximo_id_bloque += 1 
+                
                 anio = fecha_inicial.year
                 mes = fecha_inicial.month
                 dia_semana_objetivo = fecha_inicial.weekday()
@@ -78,7 +89,6 @@ class ClaseSeeder:
                     dia = semana[dia_semana_objetivo]
                     if dia != 0:
                         fecha_calculada = date(anio, mes, dia)
-                        # Mantenemos tu regla: no seedear clases en el pasado del mes actual
                         if fecha_calculada >= hoy:
                             fechas_a_crear.append(fecha_calculada)
             else:
@@ -93,15 +103,32 @@ class ClaseSeeder:
                     capacidad_maxima=capacidad_maxima,
                     descripcion=f"Clase de prueba ({tipo}). Enfoque: {especialidad.lower()}. Espacio controlado en Sala {sala_asignada.numero_puerta}.",
                     suspendida=False,
-                    fecha_clase=f,  # <-- Fecha iterada del mes
+                    fecha_clase=f,
                     horario=horario,
                     aprobada=True,
                     tipo=tipo,
                     sala_id=sala_asignada.id
                 )
                 self.db.session.add(clase)
-                print(f" -> Seeder: Preparada [{tipo}] {clase.nombre} para el {clase.fecha_clase} a las {clase.horario} hs (Sala ID: {clase.sala_id})")
+                
+                # 🔥 SI ES FIJA: Hacemos el acoplamiento con la tabla intermedia
+                if tipo == "Fija":
+                    # Forzamos la asignación del ID de la clase en PostgreSQL sin cerrar la transacción
+                    self.db.session.flush()
+                    
+                    asociacion_bloque = ClaseBloque(
+                        id_bloque=id_bloque_actual,
+                        id_clase=clase.id
+                    )
+                    self.db.session.add(asociacion_bloque)
+                    print(f" -> Seeder: Preparada [Fija] {clase.nombre} (Bloque: {id_bloque_actual}) para el {clase.fecha_clase}")
+                else:
+                    print(f" -> Seeder: Preparada [Individual] {clase.nombre} para el {clase.fecha_clase}")
 
-        # Confirmamos todos los bloques juntos en Postgres
-        self.db.session.commit()
-        print("¡Se han guardado las clases y sus recurrencias correctamente en PostgreSQL!")
+        # Confirmamos todos los bloques e intermedias juntos en Postgres
+        try:
+            self.db.session.commit()
+            print("¡Se han guardado las clases y sus relaciones de bloque correctamente en PostgreSQL!")
+        except Exception as e:
+            self.db.session.rollback()
+            print(f"❌ Error al ejecutar el commit del seeder: {e}")
