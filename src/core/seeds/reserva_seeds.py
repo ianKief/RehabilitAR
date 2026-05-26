@@ -4,9 +4,9 @@ from sqlalchemy import select
 
 from src.core.database import db
 
-from src.core.usuarios.usuarios import Usuario, RolUsuario
+from src.core.usuarios.usuarios import Cliente
 from src.core.clases.clases import Clase
-from src.core.reserva.reservas import Reserva, Comentario, AsistenciaReserva
+from src.core.reservas.reservas import Reserva, Comentario, AsistenciaReserva
 
 from src.core.clases import clase_tiene_lugar
 
@@ -19,7 +19,7 @@ class ReservaSeeder:
 
     def devolver_clientes(self):
         """Devuelve todos los clientes definidos en la anterior seed."""
-        stmt = select(Usuario).filter(Usuario.rol == RolUsuario.CLIENTE)
+        stmt = select(Cliente)
         return self.db.session.execute(stmt).scalars().all()
 
     def devolver_clases(self):
@@ -72,11 +72,13 @@ class ComentarioSeeder:
         reservas = self.devolver_reservas()
         contador = 1
         for reserva in reservas:
-            contenido = "Comentario", contador
-            id_reserva = reserva.id
-            comentario = Comentario(
-               comentario=contenido,
-               id_reserva=id_reserva
-           )
-            self.db.session.add(comentario)
+            cantidad_comentarios = random.randint(0, 2)
+            for _ in range(cantidad_comentarios):
+                contenido = f"Comentario {contador}"
+                comentario = Comentario(
+                   comentario=contenido,
+                   id_reserva=reserva.id
+               )
+                self.db.session.add(comentario)
+                contador += 1
         self.db.session.commit()
