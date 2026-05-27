@@ -50,7 +50,7 @@
             <tbody>
                 {% for sala in salas %}
                 <tr>
-                    <td class="has-text-centered font-weight-bold">
+                    <td class="has-text-centered has-text-weight-bold">
                         <span class="tag is-primary is-medium">{{ sala.numero_puerta }}</span>
                     </td>
                     <td class="is-vcentered">
@@ -76,17 +76,17 @@
                     </td>
                     <td class="has-text-centered">
                         <div class="buttons is-centered" style="gap: 0.5rem;">
-                            <a class="button is-small is-info is-darker" href="/salas/{{ sala.id }}" title="Ver">
+                            <a class="button is-small is-info" href="/salas/{{ sala.id }}" title="Ver">
                                 <span class="icon is-small">
                                     <i class="fas fa-eye"></i>
                                 </span>
                             </a>
-                            <a class="button is-small is-warning is-darker" href="/salas/{{ sala.id }}/editar" title="Editar">
+                            <a class="button is-small is-warning" href="/salas/{{ sala.id }}/editar" title="Editar">
                                 <span class="icon is-small">
                                     <i class="fas fa-edit"></i>
                                 </span>
                             </a>
-                            <a class="button is-small is-danger is-darker" href="/salas/{{ sala.id }}/eliminar" title="Eliminar" onclick="return confirm('¿Estás seguro de que deseas eliminar esta sala?');">
+                            <a class="button is-small is-danger" href="/salas/{{ sala.id }}/eliminar" title="Eliminar" onclick="return confirm('¿Estás seguro de que deseas eliminar esta sala?');">
                                 <span class="icon is-small">
                                     <i class="fas fa-trash"></i>
                                 </span>
