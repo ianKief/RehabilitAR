@@ -1,0 +1,88 @@
+{% extends "layout.html" %}
+
+{% block title %}Detalle de Clase | RehabilitAR{% endblock %}
+
+{% block content %}
+<div class="box p-4 mx-auto mt-5" style="border-radius: 1.25rem; max-width: 800px; border: 1px solid var(--bulma-border-weak); box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+    <div class="is-flex is-align-items-center mb-4">
+        <a href="{{ next_url }}" class="button is-text is-small has-text-grey">
+            <span class="icon"><i class="fas fa-arrow-left"></i></span>
+            <span>Volver</span>
+        </a>
+    </div>
+
+    <div class="has-text-centered mb-5">
+        <span class="icon is-large has-text-info mb-2">
+            <i class="fas fa-info-circle fa-3x"></i>
+        </span>
+        <h1 class="title is-3 is-size-4-mobile">{{ clase.nombre }}</h1>
+        <div class="tags is-centered mt-2">
+            <span class="tag is-info is-light">{{ clase.especialidad }}</span>
+            <span class="tag is-warning is-light">{{ clase.tipo }}</span>
+        </div>
+    </div>
+    
+    <div class="content">
+        <div class="columns is-multiline">
+            <div class="column is-12-mobile is-6-tablet">
+                <p class="mb-2"><strong><i class="fas fa-calendar-alt has-text-primary mr-2"></i> Fecha:</strong> {{ clase.fecha_clase.strftime('%d/%m/%Y') }}</p>
+                <p class="mb-2"><strong><i class="fas fa-clock has-text-primary mr-2"></i> Horario:</strong> {{ clase.horario.strftime('%H:%M') }} ({{ clase.duracion }} min)</p>
+            </div>
+            <div class="column is-12-mobile is-6-tablet">
+                <p class="mb-2">
+                    <strong><i class="fas fa-user-md has-text-primary mr-2"></i> Profesional:</strong> 
+                    {% if profesor %}
+                        {{ profesor.nombre }} {{ profesor.apellido }}
+                    {% else %}
+                        <span class="has-text-grey is-italic">Sin asignar</span>
+                    {% endif %}
+                </p>
+                <p class="mb-2">
+                    <strong><i class="fas fa-users has-text-primary mr-2"></i> Cupos disponibles:</strong> 
+                    {% if cupos_restantes > 0 %}
+                        <span class="has-text-success has-text-weight-bold">{{ cupos_restantes }}</span> de {{ clase.capacidad_maxima }}
+                    {% else %}
+                        <span class="has-text-danger has-text-weight-bold">Agotados</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <hr class="my-4" style="background-color: var(--bulma-border-weak); opacity: 0.5;">
+
+        <h4 class="title is-5 mb-2"><i class="fas fa-file-alt has-text-primary mr-2"></i> Descripción del tratamiento</h4>
+        <p class="has-text-grey" style="word-break: break-word;">{{ clase.descripcion }}</p>
+
+        {% if reserva and reserva.asiste.name != 'CANCELADA' %}
+        <hr class="my-4" style="background-color: var(--bulma-border-weak); opacity: 0.5;">
+        
+        <div class="is-flex is-justify-content-space-between is-align-items-center mb-3">
+            <h4 class="title is-5 is-size-6-mobile mb-0"><i class="fas fa-bookmark has-text-primary mr-2"></i> Estado de tu Reserva</h4>
+            {% if clase.fecha_clase >= hoy %}
+                <form action="{{ url_for('reservas.cancelar_reserva', id_clase=clase.id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas cancelar tu asistencia a esta clase?\n\nLas políticas de retención de seña o beneficios aplican según la antelación de tu cancelación.');">
+                    <button type="submit" class="button is-small is-danger is-light is-rounded has-text-weight-semibold shadow-button">
+                        <span class="icon is-small"><i class="fas fa-times"></i></span>
+                        <span>Cancelar Reserva</span>
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+        <div class="notification is-success is-light p-4 is-flex is-align-items-center">
+            <span class="icon is-medium mr-3" style="flex-shrink: 0;"><i class="fas fa-check-circle fa-lg"></i></span>
+            <div>
+                {% if clase.fecha_clase < hoy %}
+                    {% if reserva.asiste.name == 'PRESENTE' %}
+                        <strong>Asistió:</strong> Estuviste presente en esta sesión.
+                    {% else %}
+                        <strong>Ausente / Finalizada:</strong> La clase ya concluyó.
+                    {% endif %}
+                {% else %}
+                    <strong>Confirmada:</strong> Tienes tu lugar asegurado para esta clase.
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+</div>
+{% endblock %}

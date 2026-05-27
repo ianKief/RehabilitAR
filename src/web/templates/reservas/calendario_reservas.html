@@ -3,70 +3,8 @@
 {% block title %}Calendario de Clases | RehabilitAR{% endblock %}
 
 {% block head %}
-<!-- Flatpickr CSS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<style>
-    /* Centramos el calendario y le damos un borde armónico */
-    .flatpickr-calendar.inline {
-        margin: 0 auto;
-        box-shadow: none;
-        border-radius: 8px;
-        border: 1px solid var(--bulma-border-weak);
-    }
-
-    /* Color primario para el día actual y seleccionado (sobrescribe el azul por defecto en ambos modos) */
-    .flatpickr-day.today {
-        border-color: var(--bulma-primary) !important;
-    }
-    .flatpickr-day.today:hover {
-        background: var(--bulma-primary) !important;
-        color: var(--bulma-primary-invert) !important;
-    }
-    .flatpickr-day.selected, .flatpickr-day.selected:hover, .flatpickr-day.selected:focus {
-        background: var(--bulma-primary) !important;
-        border-color: var(--bulma-primary) !important;
-        color: var(--bulma-primary-invert) !important;
-    }
-
-    /* Compatibilidad de Flatpickr con Modo Oscuro de Bulma */
-    html[data-theme="dark"] .flatpickr-calendar {
-        background: var(--bulma-scheme-main);
-        border-color: var(--bulma-border-weak);
-    }
-    html[data-theme="dark"] .flatpickr-day, 
-    html[data-theme="dark"] .flatpickr-weekday,
-    html[data-theme="dark"] .flatpickr-current-month .flatpickr-monthDropdown-months {
-        color: var(--bulma-text);
-    }
-    html[data-theme="dark"] .flatpickr-day:hover,
-    html[data-theme="dark"] .flatpickr-day:focus {
-        background: var(--bulma-background);
-        border-color: var(--bulma-border-weak);
-    }
-    html[data-theme="dark"] .flatpickr-month {
-        fill: var(--bulma-text);
-        color: var(--bulma-text);
-    }
-    html[data-theme="dark"] .flatpickr-day.flatpickr-disabled,
-    html[data-theme="dark"] .flatpickr-day.prevMonthDay,
-    html[data-theme="dark"] .flatpickr-day.nextMonthDay {
-        color: var(--bulma-text-weak);
-    }
-
-    /* Adaptación de etiquetas is-light para Modo Oscuro */
-    html[data-theme="dark"] .tag.is-info.is-light {
-        background-color: var(--bulma-info-dark);
-        color: var(--bulma-info-light);
-    }
-    html[data-theme="dark"] .tag.is-warning.is-light {
-        background-color: var(--bulma-warning-dark);
-        color: var(--bulma-warning-light);
-    }
-    html[data-theme="dark"] .notification.is-info.is-light {
-        background-color: var(--bulma-info-dark);
-        color: var(--bulma-info-light);
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/calendario.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -152,22 +90,26 @@
                             <span class="tag is-warning is-light">{{ clase.tipo }}</span>
                         </div>
                     </div>
-                    <div class="column is-narrow">
-                        {% if clase.id in ids_clases_reservadas %}
-                            <button class="button is-success is-light is-rounded has-text-weight-bold is-fullwidth" disabled title="Ya estás inscripto en esta clase">
-                                <span class="icon"><i class="fas fa-check"></i></span>
-                                <span>Reservada</span>
-                            </button>
-                        {% else %}
-                            <div class="is-flex is-flex-wrap-wrap" style="gap: 0.5rem;">
-                                <form action="{{ url_for('reservas.reservar_clase', id_clase=clase.id) }}" method="POST" style="flex: 1; min-width: 140px;">
-                                    <button type="submit" class="button is-primary is-rounded has-text-weight-bold shadow-button is-fullwidth">Reservar Clase</button>
+                    <div class="column is-12-mobile is-narrow-tablet">
+                        <div class="is-flex is-flex-wrap-wrap is-justify-content-flex-end" style="gap: 0.5rem;">
+                            {% if clase.id in ids_clases_reservadas %}
+                                <button class="button is-small is-success is-light is-rounded has-text-weight-bold" disabled title="Ya estás inscripto en esta clase">
+                                    <span class="icon"><i class="fas fa-check"></i></span>
+                                    <span>Reservada</span>
+                                </button>
+                            {% else %}
+                                <form action="{{ url_for('reservas.reservar_clase', id_clase=clase.id) }}" method="POST" style="margin: 0;">
+                                    <button type="submit" class="button is-small is-primary is-rounded has-text-weight-bold shadow-button">Reservar</button>
                                 </form>
                                 {% if clase.tipo == 'Fija' and es_abonado %}
-                                <a href="{{ url_for('reservas.reservar_mensual', id_clase=clase.id) }}" class="button is-info is-light is-rounded has-text-weight-bold shadow-button has-text-centered" style="flex: 1; min-width: 140px;">Reservar Mes</a>
+                                <a href="{{ url_for('reservas.reservar_mensual', id_clase=clase.id) }}" class="button is-small is-info is-light is-rounded has-text-weight-bold shadow-button">Reservar Mes</a>
                                 {% endif %}
-                            </div>
-                        {% endif %}
+                            {% endif %}
+                            <a href="{{ url_for('reservas.detalle_clase', id_clase=clase.id, next=request.url) }}" class="button is-small is-primary is-light is-rounded has-text-weight-semibold">
+                                <span class="icon is-small"><i class="fas fa-info-circle"></i></span>
+                                <span>Detalles</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
