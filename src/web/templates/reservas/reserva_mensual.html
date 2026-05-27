@@ -12,50 +12,81 @@
         <p class="subtitle is-6 mt-2">Estás a punto de suscribirte a <strong>{{ clase_base.nombre }}</strong> todos los {{ dia_nombre }} a las {{ clase_base.horario.strftime('%H:%M') }} para el mes de <strong>{{ mes_nombre }}</strong>.</p>
     </div>
     
-    <div class="content">
-        <h3 class="title is-5"><span class="icon has-text-success"><i class="fas fa-check-circle"></i></span> Clases disponibles</h3>
-        {% if clases_ok %}
-            <ul>
-                {% for c in clases_ok %}
-                <li>{{ c.fecha_clase.strftime('%d/%m/%Y') }} - {{ c.horario.strftime('%H:%M') }}</li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p class="has-text-grey">No hay clases sin conflictos en este mes.</p>
-        {% endif %}
+    <form id="form-reserva" action="{{ url_for('reservas.reservar_mensual', id_clase=clase_base.id) }}" method="POST">
+        <div class="content">
+            <h3 class="title is-5"><span class="icon has-text-success"><i class="fas fa-check-circle"></i></span> Clases disponibles</h3>
+            {% if clases_ok %}
+                <ul>
+                    {% for c in clases_ok %}
+                    <li>{{ c.fecha_clase.strftime('%d/%m/%Y') }} a las {{ c.horario.strftime('%H:%M') }}
+                        <input type="hidden" name="clases_seleccionadas" value="{{ c.id }}">
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="has-text-grey">No hay clases sin conflictos en este mes.</p>
+            {% endif %}
 
-        {% if conflictos_cupo %}
-        <h3 class="title is-5 mt-4"><span class="icon has-text-warning"><i class="fas fa-exclamation-triangle"></i></span> Semanas sin cupo</h3>
-        <div class="notification is-warning is-light">
-            <ul>
+            {% if conflictos_cupo %}
+            <h3 class="title is-5 mt-4"><span class="icon has-text-warning"><i class="fas fa-exclamation-triangle"></i></span> Semanas sin cupo</h3>
+            <div class="notification is-warning is-light">
+                <p class="is-size-7 mb-3">No pudimos asignar tu lugar porque el cupo ya está lleno. Elige una opción para esta semana:</p>
                 {% for c in conflictos_cupo %}
-                <li>{{ c.fecha_clase.strftime('%d/%m/%Y') }} - {{ c.horario.strftime('%H:%M') }} <a href="#" class="button is-small is-warning ml-2" disabled>Reprogramar (Próximamente)</a></li>
-                {% endfor %}
-            </ul>
-            <p class="is-size-7 mt-2">No pudimos asignar tu lugar porque el cupo ya está lleno. Debes reprogramar esta sesión para otra fecha de esa semana.</p>
-        </div>
-        {% endif %}
-
-        {% if conflictos_feriado %}
-        <h3 class="title is-5 mt-4"><span class="icon has-text-danger"><i class="fas fa-calendar-times"></i></span> Feriados</h3>
-        <div class="notification is-danger is-light">
-            <ul>
-                {% for c in conflictos_feriado %}
-                <li class="is-flex is-align-items-center mb-2">
-                    {{ c.fecha_clase.strftime('%d/%m/%Y') }} - {{ c.horario.strftime('%H:%M') }}
-                    <div class="buttons is-small ml-3 mb-0">
-                        <a href="#" class="button is-small is-info is-outlined" disabled>Reprogramar</a>
-                        <a href="#" class="button is-small is-success is-outlined" disabled>Recibir Descuento</a>
+                <div class="box mb-2 p-3">
+                    <p class="has-text-weight-bold mb-2">Clase del {{ c.fecha_clase.strftime('%d/%m/%Y') }} a las {{ c.horario.strftime('%H:%M') }}</p>
+                    <div class="control">
+                        <label class="radio is-block mb-1">
+                            <input type="radio" name="conflicto_{{ c.id }}" value="descuento" required> 
+                            Cancelar esta sesión (aplica descuento)
+                        </label>
+                        {% if alternativas_conflictos[c.id] %}
+                            {% for alt in alternativas_conflictos[c.id] %}
+                            <label class="radio is-block mb-1">
+                                <input type="radio" name="conflicto_{{ c.id }}" value="{{ alt.id }}" required> 
+                                Reprogramar: {{ alt.fecha_clase.strftime('%d/%m/%Y') }} a las {{ alt.horario.strftime('%H:%M') }}
+                            </label>
+                            {% endfor %}
+                        {% else %}
+                            <p class="is-size-7 has-text-grey mt-1 mb-0"><i class="fas fa-info-circle"></i> No hay alternativas disponibles para reprogramar en esta semana.</p>
+                        {% endif %}
                     </div>
-                </li>
+                </div>
                 {% endfor %}
-            </ul>
-            <p class="is-size-7 mt-2">Puedes elegir reprogramar la sesión en la misma semana o cancelarla y recibir un descuento en tu abono mensual.</p>
-        </div>
-        {% endif %}
-    </div>
+            </div>
+            {% endif %}
 
-    <form action="{{ url_for('reservas.reservar_mensual', id_clase=clase_base.id) }}" method="POST">
+            {% if conflictos_feriado %}
+            <h3 class="title is-5 mt-4"><span class="icon has-text-danger"><i class="fas fa-calendar-times"></i></span> Feriados</h3>
+            <div class="notification is-danger is-light">
+                <p class="is-size-7 mb-3">Las siguientes fechas son feriados. Elige una opción para estas semanas:</p>
+                {% for c in conflictos_feriado %}
+                <div class="box mb-2 p-3">
+                    <p class="has-text-weight-bold mb-2">Clase del {{ c.fecha_clase.strftime('%d/%m/%Y') }} a las {{ c.horario.strftime('%H:%M') }}</p>
+                    <div class="control">
+                        <label class="radio is-block mb-1">
+                            <input type="radio" name="conflicto_{{ c.id }}" value="descuento" required> 
+                            Cancelar esta sesión (aplica descuento)
+                        </label>
+                        {% if alternativas_conflictos[c.id] %}
+                            {% for alt in alternativas_conflictos[c.id] %}
+                            <label class="radio is-block mb-1">
+                                <input type="radio" name="conflicto_{{ c.id }}" value="{{ alt.id }}" required> 
+                                Reprogramar: {{ alt.fecha_clase.strftime('%d/%m/%Y') }} a las {{ alt.horario.strftime('%H:%M') }}
+                            </label>
+                            {% endfor %}
+                        {% else %}
+                            <p class="is-size-7 has-text-grey mt-1 mb-0"><i class="fas fa-info-circle"></i> No hay alternativas disponibles para reprogramar en esta semana.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Se enviará la cantidad de descuentos elegidos por el usuario -->
+        <input type="hidden" name="canceladas_con_descuento" id="canceladas_con_descuento" value="0">
+
         <div class="field mt-5">
             <button type="submit" class="button is-primary is-fullwidth is-medium is-rounded has-text-weight-bold shadow-button">
                 <span class="icon"><i class="fas fa-check-double"></i></span>
@@ -68,4 +99,34 @@
         <a href="{{ url_for('reservas.calendario_cliente') }}" class="button is-text has-text-danger is-small">Cancelar y volver al calendario</a>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Interceptamos el formulario antes de enviarse para recolectar la información interactiva de los Radios
+document.getElementById('form-reserva').addEventListener('submit', function(e) {
+    let descuentos = 0;
+    
+    // Limpiamos los inputs generados dinámicamente previamente para evitar duplicados
+    document.querySelectorAll('input.clase-reprogramada-hidden').forEach(el => el.remove());
+
+    // Iterar sobre las alternativas de conflicto seleccionadas por el usuario
+    document.querySelectorAll('input[type="radio"]:checked').forEach(function(radio) {
+        if (radio.value === 'descuento') {
+            descuentos++;
+        } else {
+            // Si se eligió reprogramar, agregamos el ID de la nueva clase a la lista final a reservar
+            let input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'clases_seleccionadas';
+            input.value = radio.value;
+            input.className = 'clase-reprogramada-hidden';
+            document.getElementById('form-reserva').appendChild(input);
+        }
+    });
+    
+    // Asignamos la cantidad de cancelaciones con descuento que contabilizamos al input
+    document.getElementById('canceladas_con_descuento').value = descuentos;
+});
+</script>
 {% endblock %}

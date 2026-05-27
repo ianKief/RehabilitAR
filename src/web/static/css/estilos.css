@@ -136,3 +136,63 @@
     transform: translateY(-2px);
     box-shadow: 0 6px 10px rgba(62, 142, 208, 0.3);
 }
+
+/* --- COMPATIBILIDAD MODO OSCURO PARA COMPONENTES IS-LIGHT --- */
+html[data-theme="dark"] .tag.is-light:not(.is-info):not(.is-warning):not(.is-danger):not(.is-success),
+html[data-theme="dark"] .notification.is-light:not(.is-info):not(.is-warning):not(.is-danger):not(.is-success),
+html[data-theme="dark"] .button.is-light:not(.is-primary):not(.is-info):not(.is-warning):not(.is-danger):not(.is-success) {
+    background-color: color-mix(in srgb, var(--bulma-text) 15%, transparent);
+    color: var(--bulma-text-strong);
+    border-color: transparent;
+}
+html[data-theme="dark"] .button.is-light:not(.is-primary):not(.is-info):not(.is-warning):not(.is-danger):not(.is-success):hover {
+    background-color: color-mix(in srgb, var(--bulma-text) 25%, transparent);
+}
+
+html[data-theme="dark"] .button.is-primary.is-light {
+    background-color: color-mix(in srgb, var(--bulma-primary) 15%, transparent);
+    color: var(--bulma-primary);
+    border-color: transparent;
+}
+html[data-theme="dark"] .button.is-primary.is-light:hover {
+    background-color: color-mix(in srgb, var(--bulma-primary) 25%, transparent);
+}
+html[data-theme="dark"] .tag.is-info.is-light,
+html[data-theme="dark"] .notification.is-info.is-light,
+html[data-theme="dark"] .button.is-info.is-light {
+    background-color: var(--bulma-info-dark);
+    color: var(--bulma-info-light);
+    border-color: transparent;
+}
+html[data-theme="dark"] .tag.is-warning.is-light,
+html[data-theme="dark"] .notification.is-warning.is-light {
+    background-color: var(--bulma-warning-dark);
+    color: var(--bulma-warning-light);
+}
+html[data-theme="dark"] .tag.is-danger.is-light,
+html[data-theme="dark"] .notification.is-danger.is-light,
+html[data-theme="dark"] .button.is-danger.is-light {
+    background-color: var(--bulma-danger-dark);
+    color: var(--bulma-danger-light);
+    border-color: transparent;
+}
+html[data-theme="dark"] .button.is-danger.is-light:hover {
+    background-color: color-mix(in srgb, var(--bulma-danger) 25%, transparent);
+}
+html[data-theme="dark"] .tag.is-success.is-light,
+html[data-theme="dark"] .notification.is-success.is-light {
+    background-color: var(--bulma-success-dark);
+    color: var(--bulma-success-light);
+}
+
+/* --- MENU LATERAL (ASIDE) --- */
+.menu-list a.menu-item-active {
+    background-color: var(--bulma-primary-light);
+    color: var(--bulma-primary);
+    font-weight: 700;
+}
+/* Adaptación inteligente del resaltado del menú lateral para modo oscuro */
+html[data-theme="dark"] .menu-list a.menu-item-active {
+    background-color: color-mix(in srgb, var(--bulma-primary) 15%, transparent);
+    color: var(--bulma-primary);
+}

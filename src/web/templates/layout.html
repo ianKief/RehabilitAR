@@ -7,7 +7,13 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
     {% block head %}{% endblock %}
+    <script>
+        // Aplicar tema inmediatamente en el head
+        const initialTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', initialTheme);
+    </script>
 </head>
 <body class="is-flex is-flex-direction-column is-flex-grow-1" style="min-height: 100vh;">
     <nav class="navbar has-shadow" role="navigation" aria-label="main navigation">
@@ -66,10 +72,10 @@
                     {% endif %}
                     <!-- Navegación para clientes (solo si son clientes) -->
                     {% if session.get('rol') == 'CLIENTE' %}
-                        <a class="navbar-item py-3 px-4" href="/reservas">
-                            <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Reservas
+                        <a class="navbar-item py-3 px-4" href="{{ url_for('reservas.calendario_cliente') }}">
+                            <span class="icon mr-2"><i class="far fa-calendar-check"></i></span>Reservas
                         </a>
-                        <a class="navbar-item py-3 px-4" href="/mis-clases">
+                        <a class="navbar-item py-3 px-4" href="{{ url_for('reservas.mis_clases') }}">
                             <span class="icon mr-2"><i class="fas fa-chalkboard-user"></i></span>Mis Clases
                         </a>
                     {% endif %}
@@ -160,7 +166,7 @@
                         <ul class="menu-list">
                             <li>
                                 <a href="/"
-                                    class="py-2.5 px-3 {% if current_path == '/' %} has-text-primary{% endif %}">
+                                    class="py-2.5 px-3 {% if request.path == '/' %}menu-item-active{% endif %}">
                                     <span class="icon mr-2"><i class="fas fa-house"></i></span>Inicio
                                 </a>
                             </li>
@@ -178,13 +184,13 @@
                                 <ul id="submenu-usuarios" class="is-hidden ml-4 mt-2" style="border-left: 2px solid var(--bulma-border-weak);">
                                     <li>
                                         <a href="{{ url_for('usuarios.listar_usuarios') }}" 
-                                        class="py-2 px-3 {% if current_path and current_path.startswith('/usuarios/lista') %}has-text-primary has-background-primary-light has-text-weight-bold{% endif %}">
+                                        class="py-2 px-3 {% if request.path.startswith('/usuarios/lista') %}menu-item-active{% endif %}">
                                             <span class="icon mr-2"><i class="fas fa-list"></i></span>Listado de Usuarios
                                         </a>
                                     </li>
                                     <li>
                                         <a href="{{ url_for('usuarios.crear_usuario') }}" 
-                                        class="py-2 px-3 {% if current_path and current_path == '/usuarios/crear' %}has-text-primary has-background-primary-light has-text-weight-bold{% endif %}">
+                                        class="py-2 px-3 {% if request.path.startswith('/usuarios/crear') %}menu-item-active{% endif %}">
                                             <span class="icon mr-2"><i class="fas fa-user-plus"></i></span>Crear Usuario
                                         </a>
                                     </li>
@@ -192,13 +198,13 @@
                             </li>
                             <li>
                                 <a href="/salas"
-                                    class="py-2.5 px-3 {% if current_path == '/salas/' %}has-text-primary{% endif %}">
+                                    class="py-2.5 px-3 {% if request.path.startswith('/salas') %}menu-item-active{% endif %}">
                                     <span class="icon mr-2"><i class="far fa-hospital"></i></span>Salas
                                 </a>
                             </li>
                             <li>
                                 <a href="/clases/admin"
-                                    class="py-2.5 px-3 {% if current_path == '/clases/admin' %}has-text-primary{% endif %}">
+                                    class="py-2.5 px-3 {% if request.path.startswith('/clases/admin') %}menu-item-active{% endif %}">
                                     <span class="icon mr-2"><i class="far fa-calendar-alt"></i></span>Clases
                                 </a>
                             </li>
@@ -208,7 +214,7 @@
                             {% if session.get('rol') == 'PROFESOR' %}
                             <li>
                                 <a href="/profesor/"
-                                    class="py-2.5 px-3 {% if current_path == '/profesor/' %}has-text-primary{% endif %}">
+                                    class="py-2.5 px-3 {% if request.path.startswith('/profesor') %}menu-item-active{% endif %}">
                                     <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Asistencia y seguimiento
                                 </a>
                             </li>
@@ -216,14 +222,14 @@
                             <!-- Navegación para clientes (solo si son clientes) -->
                             {% if session.get('rol') == 'CLIENTE' %}
                                 <li>
-                                    <a href="/reservas"
-                                        class="py-2.5 px-3 {% if current_path == '/reservas/' %}has-text-primary{% endif %}">
+                                    <a href="{{ url_for('reservas.calendario_cliente') }}"
+                                        class="py-2.5 px-3 {% if request.path.startswith('/reservas') and not request.path.startswith('/reservas/mis-clases') %}menu-item-active{% endif %}">
                                         <span class="icon mr-2"><i class="far fa-calendar-check"></i></span>Reservas
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="/mis-clases"
-                                        class="py-2.5 px-3 {% if current_path == '/mis-clases/' %}has-text-primary{% endif %}">
+                                    <a href="{{ url_for('reservas.mis_clases') }}"
+                                        class="py-2.5 px-3 {% if request.path.startswith('/mis-clases') %}menu-item-active{% endif %}">
                                         <span class="icon mr-2"><i class="fas fa-chalkboard-user"></i></span>Mis Clases
                                     </a>
                                 </li>
@@ -296,11 +302,9 @@
                 }
             };
 
-            const initialTheme = localStorage.getItem('theme') || 
-                (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-            
-            htmlTag.setAttribute('data-theme', initialTheme);
-            updateToggleIcons(initialTheme);
+            // Leemos el tema que se aplicó instantáneamente en el <head>
+            const currentTheme = htmlTag.getAttribute('data-theme');
+            updateToggleIcons(currentTheme);
 
             themeToggles.forEach(toggle => {
                 toggle.addEventListener('click', () => {
