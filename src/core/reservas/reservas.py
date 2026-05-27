@@ -1,5 +1,5 @@
 from src.core.database import Base
-from sqlalchemy import DateTime, String, Enum, ForeignKey
+from sqlalchemy import DateTime, String, Enum, ForeignKey, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -49,5 +49,25 @@ class Comentario(Base):
     # Campos de auditoría
     fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
+        nullable=False
+    )
+
+class Cola(Base):
+    __tablename__ = "colas"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id_clase: Mapped[int] = mapped_column(ForeignKey("clases.id"), nullable=False)
+    id_cliente: Mapped[int] = mapped_column(ForeignKey("clientes.id"), nullable=False)
+
+    cancelada: Mapped[bool] = mapped_column(Boolean, nullable=True, default=False)
+
+    fecha_creacion: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
+        nullable=False
+    )
+
+    fecha_modificacion: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
+        onupdate=lambda: datetime.now(tz_arg).replace(tzinfo=None),
         nullable=False
     )

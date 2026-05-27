@@ -1,0 +1,13 @@
+<!--AÑADIR ESTO TANTO EN MIS CLASES COMO EN EL CALENDARIO-->
+        {% if clases %}
+            {% for clase in clases %}
+                <!--DATOS DE CLASE-->
+                        {% if clase.id in ids_clases_encoladas %}
+                            <div class="is-flex is-flex-wrap-wrap" style="gap: 0.5rem;">
+                                {% if clase.tipo == 'Fija' and es_abonado %}
+                                    <form action="{{ url_for('reservas.salir_de_cola', id_clase=clase.id) }}" method="POST" style="flex: 1; min-width: 140px;">
+                                        <button type="submit" class="button is-primary is-rounded has-text-weight-bold shadow-button is-fullwidth">Esperando</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        {% endif %}

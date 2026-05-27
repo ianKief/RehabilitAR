@@ -122,3 +122,22 @@ def procesar_reservas_mensuales_automatica(id_cliente, clases_a_reservar):
     if reservas_creadas > 0:
         db.session.commit()
     return reservas_creadas
+
+def cancelar_cola (id_cliente, id_clase):
+    from src.core.usuarios import Cliente, Cola
+    # Lo paso acá por importanción circular
+    query = (db.session.query(Cola)
+        .join (Cliente, Cliente.id == Cola.id_cliente)
+        .join (Clase, Clase.id == Cola.id_clase)
+        .filter (Cliente.id == id_cliente)
+        .filter (Clase.id == id_clase)
+        .filter (Cola.cancelada == False)
+    )
+
+    cola = db.session.scalars(query).one()
+
+    if cola == None:
+        raise ValueError("No se ha podido encontrar la cola")
+    
+    cola.cancelada = True
+    db.session.commit()

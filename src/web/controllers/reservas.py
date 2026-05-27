@@ -16,7 +16,8 @@ from src.core.reservas import (
     verificar_reserva_semanal_existente,
     obtener_clases_mensuales,
     procesar_reservas_mensuales_automatica,
-    obtener_clase_por_id
+    obtener_clase_por_id,
+    cancelar_cola
 )
 
 reservas_bp = Blueprint("reservas", __name__, url_prefix="/reservas")
@@ -242,3 +243,21 @@ def reservar_mensual(id_clase):
                            conflictos_feriado=conflictos_feriado,
                            mes_nombre=meses_espanol[clase_base.fecha_clase.month],
                            dia_nombre=dias_semana_espanol[clase_base.fecha_clase.weekday()])
+
+
+@reservas_bp.post("/<int:id_clase>/salir_de_cola")
+@requiere_rol(["CLIENTE"])
+def salir_de_cola (id_clase):
+    usuario_id = session.get("usuario_id")
+    cliente = obtener_usuario_por_id_core(usuario_id)
+    url = request.referrer
+
+    try:
+        exito = cancelar_cola (usuario_id, id_clase)
+
+        if exito:
+            flash ("Se ha cancelado la reserva exitosamente", "sucess")
+            redirect(url)
+    except ValueError as e:
+        flash (("No se ha podido cancelar la reserva:", str(e)), "warning")
+        redirect (url)
