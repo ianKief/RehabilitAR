@@ -28,36 +28,67 @@ class ClaseSeeder:
         ]
 
     def run(self):
-        print("Insertando clases de prueba")
+        print("Insertando clases de prueba de Lunes a Viernes por un mes...")
 
         hoy = date.today()
+        # Encontramos el lunes de la semana actual
+        lunes_esta_semana = hoy - timedelta(days=hoy.weekday())
 
-        # Generamos 8 clases distribuidas en los próximos días
-        for i in range(8):
-            especialidad = random.choice(self.especialidades)
-            nombre = random.choice(self.nombres_por_especialidad[especialidad])
-            tipo = random.choice(self.tipos_clases)
-            horario = random.choice(self.horarios_prueba)
+        for dia_semana in range(5):  # 0 a 4 (Lunes a Viernes)
+            fecha_base = lunes_esta_semana + timedelta(days=dia_semana)
+
+            # Seleccionamos horarios distintos para no superponer clases en el mismo día
+            horarios_del_dia = random.sample(self.horarios_prueba, 4)
             
-            # Repartimos las clases entre hoy, mañana y pasado
-            dias_en_adelante = random.randint(0, 2)
-            fecha_clase = hoy + timedelta(days=dias_en_adelante)
+            # 2 Clases Fijas (se repiten 4 semanas a la misma hora)
+            for i in range(2):
+                especialidad = random.choice(self.especialidades)
+                nombre = random.choice(self.nombres_por_especialidad[especialidad])
+                horario = horarios_del_dia[i]
+                duracion = random.choice([45, 60, 90])
+                capacidad = random.randint(5, 12)
+                
+                for semana in range(4):
+                    fecha_clase = fecha_base + timedelta(weeks=semana)
+                    clase = Clase(
+                        nombre=nombre,
+                        especialidad=especialidad,
+                        duracion=duracion,
+                        capacidad_maxima=capacidad,
+                        descripcion=f"Sesión enfocada en {especialidad.lower()}. Trabajo de movilidad y fuerza progresiva. Tipo: Fija.",
+                        suspendida=False,
+                        fecha_clase=fecha_clase,
+                        horario=horario,
+                        aprobada=True,
+                        tipo="Fija"
+                    )
+                    self.db.session.add(clase)
+                    print(f"Creada: {clase.nombre} -> Especialidad: {clase.especialidad} | {clase.fecha_clase} {clase.horario} | Fija")
 
-            clase = Clase(
-                nombre=nombre,
-                especialidad=especialidad,
-                duracion=random.choice([45, 60, 90]),  # Minutos
-                capacidad_maxima=random.randint(5, 12),
-                descripcion=f"Sesión enfocada en {especialidad.lower()}. Trabajo de movilidad y fuerza progresiva. Tipo: {tipo}.",
-                suspendida=False,
-                fecha_clase=fecha_clase,
-                horario=horario,
-                aprobada=True,
-                tipo=tipo
-            )
-
-            print(f"Creada: {clase.nombre} -> Especialidad: {clase.especialidad} | {clase.fecha_clase} {clase.horario}")
-            self.db.session.add(clase)
+            # 2 Clases Individuales por semana (horarios distintos a las fijas de ese día)
+            for semana in range(4):
+                fecha_clase = fecha_base + timedelta(weeks=semana)
+                for i in range(2, 4):
+                    especialidad = random.choice(self.especialidades)
+                    nombre = random.choice(self.nombres_por_especialidad[especialidad])
+                    horario = horarios_del_dia[i]
+                    duracion = random.choice([45, 60, 90])
+                    capacidad = random.randint(5, 12)
+                    
+                    clase = Clase(
+                        nombre=nombre,
+                        especialidad=especialidad,
+                        duracion=duracion,
+                        capacidad_maxima=capacidad,
+                        descripcion=f"Sesión enfocada en {especialidad.lower()}. Trabajo de movilidad y fuerza progresiva. Tipo: Individual.",
+                        suspendida=False,
+                        fecha_clase=fecha_clase,
+                        horario=horario,
+                        aprobada=True,
+                        tipo="Individual"
+                    )
+                    self.db.session.add(clase)
+                    print(f"Creada: {clase.nombre} -> Especialidad: {clase.especialidad} | {clase.fecha_clase} {clase.horario} | Individual")
 
         self.db.session.commit()
         print("¡Se han guardado las clases correctamente!")
