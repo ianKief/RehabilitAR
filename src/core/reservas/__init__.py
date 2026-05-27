@@ -1,9 +1,9 @@
-from sqlalchemy import select, func
+from sqlalchemy import select, func, case
 from sqlalchemy.orm import contains_eager
 from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
-from src.core.usuarios.usuarios import Usuario
-from src.core.reservas.reservas import Reserva, AsistenciaReserva
+from src.core.usuarios.usuarios import Usuario, Cliente
+from src.core.reservas.reservas import Reserva, AsistenciaReserva, Cola
 from datetime import date, timedelta
 import calendar
 
@@ -54,6 +54,15 @@ def obtener_ids_clases_reservadas(id_cliente):
     reservas = obtener_reservas_cliente(id_cliente)
     return [r.id_clase for r in reservas]
 
+def obtener_ids_clases_encoladas(id_cliente):
+    """Obtiene una lista con los IDs de las clases en las que un cliente tiene una espera en cola activada (no cancelada)."""
+    query = (db.session.query(Cola.id_clase)
+        .join (Cliente, Cliente.id == Cola.id_cliente)
+        .filter (Cliente.id == id_cliente)
+        .filter (Cola.cancelada == False)
+    )
+    return db.session.scalars(query).all()
+
 def obtener_reserva(id_cliente, id_clase):
     """Busca y retorna la reserva específica de un cliente para una clase determinada."""
     query = select(Reserva).filter_by(id_cliente=id_cliente, id_clase=id_clase)
@@ -75,6 +84,13 @@ def crear_reserva(id_cliente, id_clase):
     db.session.add(nueva_reserva)
     db.session.commit()
     return nueva_reserva
+
+def crear_espera_en_cola (id_cliente, id_clase):
+    """Crea una nueva espera en la cola de espera"""
+    nueva_cola = Cola (id_clase = id_clase, id_cliente = id_cliente, cancelada = False)
+    db.session.add(nueva_cola)
+    db.session.commit()
+    return nueva_cola
 
 def verificar_reserva_semanal_existente(id_cliente, fecha_clase):
     """Verifica si el cliente ya tiene una reserva activa para una clase de tipo 'Fija' en la misma semana."""
@@ -167,8 +183,6 @@ def procesar_reservas_mensuales_automatica(id_cliente, clases_a_reservar):
     return reservas_creadas
 
 def cancelar_cola (id_cliente, id_clase):
-    from src.core.usuarios import Cliente, Cola
-    # Lo paso acá por importanción circular
     query = (db.session.query(Cola)
         .join (Cliente, Cliente.id == Cola.id_cliente)
         .join (Clase, Clase.id == Cola.id_clase)
@@ -178,12 +192,12 @@ def cancelar_cola (id_cliente, id_clase):
     )
 
     cola = db.session.scalars(query).one()
-
     if cola == None:
         raise ValueError("No se ha podido encontrar la cola")
     
     cola.cancelada = True
     db.session.commit()
+
 def obtener_reservas_cliente(id_cliente):
     """
     Retorna las reservas de un cliente específico, ordenadas por fecha y hora.
@@ -196,3 +210,34 @@ def obtener_reservas_cliente(id_cliente):
     ).order_by(Clase.fecha_clase.asc(), Clase.horario.asc())
     
     return db.session.scalars(query).all()
+
+def obtener_ids_clases_llenas_donde_el_cliente_no_tiene_reserva (id_cliente):
+    
+    """NOTA: puede estar en cola. Esa condición se comprueba con otra variante"""
+    clases_donde_participa = (db.session.query(Reserva.id_clase)
+        .filter(Reserva.id_cliente == id_cliente)
+        .subquery()
+    )
+
+    query = (db.session.query(Clase.id)
+    .join(Reserva, Reserva.id_clase == Clase.id)
+    .group_by(Clase.id)
+    .having(
+        func.sum(
+            case(
+                (Reserva.asiste != AsistenciaReserva.CANCELADA, 1),
+                else_=0
+            )
+        ) >= Clase.capacidad_maxima
+    )
+    .filter(~Clase.id.in_(clases_donde_participa))
+    )
+    
+    return db.session.scalars(query).all()
+
+def devolver_cantidad_esperando_en_cola (clase):
+    return (db.session.query(func.count(Cola.id))
+        .filter(Cola.id_clase == clase.id)
+        .filter(Cola.cancelada == False)
+        .scalar()
+    )

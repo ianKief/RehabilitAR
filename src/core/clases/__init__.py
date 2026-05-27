@@ -6,6 +6,7 @@ from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reservas.reservas import Reserva, AsistenciaReserva
 from src.core.usuarios.usuarios import Usuario, RolUsuario
+from src.core.reservas import devolver_cantidad_esperando_en_cola
 
 from src.core.functions import filtro_clase_actual
 
@@ -75,3 +76,11 @@ def clase_tiene_lugar(clase):
     ocupados = (db.session.scalar(cantidad_lugares_ocupados) or 0)
 
     return ocupados < clase.capacidad_maxima
+
+def comprobar_alta_demanda (clase):
+    """Devuelve true si hay que informar alta demanda, False si no hay que hacerlo o si ya se comprobó previamente"""
+    if (not clase.aviso_alta_demanda) and (devolver_cantidad_esperando_en_cola (clase) == 10):
+        clase.aviso_alta_demanda = True
+        db.session.commit()
+        return True
+    return False

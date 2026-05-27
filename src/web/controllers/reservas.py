@@ -4,8 +4,8 @@ import json
 import urllib.request
 
 from src.web.helpers.decorator import requiere_rol
-from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido
-from src.core.clases import clase_tiene_lugar
+from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido, informar_alta_demanda
+from src.core.clases import clase_tiene_lugar, comprobar_alta_demanda
 from src.core.reservas.reservas import AsistenciaReserva
 from src.core.reservas import (
     listar_clases_disponibles_para_cliente, 
@@ -23,8 +23,13 @@ from src.core.reservas import (
     obtener_alternativas_semana_para_clase,
     obtener_reservas_cliente,
     obtener_profesor_de_clase,
-    obtener_cupos_ocupados
+    obtener_cupos_ocupados,
+    obtener_ids_clases_encoladas,
+    crear_espera_en_cola,
+    obtener_ids_clases_llenas_donde_el_cliente_no_tiene_reserva
 )
+
+#TODO verificar si cuando un cliente se da de baja de una clase se le da acceso a la persona correcta
 
 reservas_bp = Blueprint("reservas", __name__, url_prefix="/reservas")
 
@@ -101,14 +106,26 @@ def calendario_cliente():
     if fecha_str in feriados or fecha_seleccionada.weekday() >= 5:
         clases = []
     
+    ids_clases_llenas_donde_el_cliente_no_tiene_reserva = []
+    if usuario_id:
+        ids_clases_llenas_donde_el_cliente_no_tiene_reserva = obtener_ids_clases_llenas_donde_el_cliente_no_tiene_reserva (usuario_id)
+    
     # Obtener las clases que el cliente ya tiene reservadas para deshabilitar los botones
     ids_clases_reservadas = []
     if usuario_id:
         ids_clases_reservadas = obtener_ids_clases_reservadas(usuario_id)
 
+    # Obtener las clases que el cliente ya tiene encoladas para deshabilitar los botones
+    ids_clases_encoladas = []
+    if usuario_id:
+        ids_clases_encoladas = obtener_ids_clases_encoladas(usuario_id)
+
     fecha_formateada = fecha_seleccionada.strftime("%d/%m/%Y")
+
+    print (ids_clases_llenas_donde_el_cliente_no_tiene_reserva)
+    print (ids_clases_encoladas)
     
-    return render_template("reservas/calendario_reservas.html", clases=clases, fecha_seleccionada=fecha_str, fecha_formateada=fecha_formateada, tipo_seleccionado=tipo, especialidad_seleccionada=especialidad, feriados=feriados, fechas_con_clases=fechas_con_clases, ids_clases_reservadas=ids_clases_reservadas, es_abonado=es_abonado)
+    return render_template("reservas/calendario_reservas.html", clases=clases, fecha_seleccionada=fecha_str, fecha_formateada=fecha_formateada, tipo_seleccionado=tipo, especialidad_seleccionada=especialidad, feriados=feriados, fechas_con_clases=fechas_con_clases, ids_clases_reservadas=ids_clases_reservadas, es_abonado=es_abonado, ids_clases_encoladas=ids_clases_encoladas, ids_clases_llenas_donde_el_cliente_no_tiene_reserva = ids_clases_llenas_donde_el_cliente_no_tiene_reserva)
 
 @reservas_bp.post("/<int:id_clase>/reservar")
 @requiere_rol(["CLIENTE"])
@@ -118,7 +135,10 @@ def reservar_clase(id_clase):
     
     if not _verificar_apto_fisico(cliente):
         return redirect(url_for("reservas.calendario_cliente"))
-    
+    #TODO debería verificarse si el apto físico vence para el momento de la clase
+
+    #TODO verificar si hay una clase en curso para ese momento ??? Si quieren y da el tiempo :P
+
     reserva_existente = obtener_reserva(usuario_id, id_clase)
     if reserva_existente:
         if reserva_existente.asiste == AsistenciaReserva.CANCELADA:
@@ -134,7 +154,10 @@ def reservar_clase(id_clase):
         return redirect(url_for("reservas.calendario_cliente"))
         
     if not clase_tiene_lugar(clase):
-        flash("No hay lugares disponibles. Próximamente habilitaremos la opción de Inscribirse en lista de espera.", "danger")
+        crear_espera_en_cola (usuario_id, id_clase)
+        flash("No hay lugares disponibles. Se le ha anotado en la lista de espera", "warning")
+        if comprobar_alta_demanda (clase):
+            informar_alta_demanda (clase)
         return redirect(url_for("reservas.calendario_cliente"))
         
     if clase.tipo == "Fija":
@@ -286,7 +309,6 @@ def reservar_mensual(id_clase):
                            mes_nombre=meses_espanol[clase_base.fecha_clase.month],
                            dia_nombre=dias_semana_espanol[clase_base.fecha_clase.weekday()])
 
-
 @reservas_bp.post("/<int:id_clase>/salir_de_cola")
 @requiere_rol(["CLIENTE"])
 def salir_de_cola (id_clase):
@@ -303,7 +325,6 @@ def salir_de_cola (id_clase):
     except ValueError as e:
         flash (("No se ha podido cancelar la reserva:", str(e)), "warning")
         redirect (url)
-
 
 @reservas_bp.get("/mis-clases")
 @requiere_rol(["CLIENTE"])
