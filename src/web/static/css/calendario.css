@@ -1,0 +1,46 @@
+/* Centramos el calendario y le damos un borde armónico */
+.flatpickr-calendar.inline {
+    margin: 0 auto;
+    box-shadow: none;
+    border-radius: 8px;
+    border: 1px solid var(--bulma-border-weak);
+}
+
+/* Color primario para el día actual y seleccionado (sobrescribe el azul por defecto en ambos modos) */
+.flatpickr-day.today {
+    border-color: var(--bulma-primary) !important;
+}
+.flatpickr-day.today:hover {
+    background: var(--bulma-primary) !important;
+    color: var(--bulma-primary-invert) !important;
+}
+.flatpickr-day.selected, .flatpickr-day.selected:hover, .flatpickr-day.selected:focus {
+    background: var(--bulma-primary) !important;
+    border-color: var(--bulma-primary) !important;
+    color: var(--bulma-primary-invert) !important;
+}
+
+/* Compatibilidad de Flatpickr con Modo Oscuro de Bulma */
+html[data-theme="dark"] .flatpickr-calendar {
+    background: var(--bulma-scheme-main);
+    border-color: var(--bulma-border-weak);
+}
+html[data-theme="dark"] .flatpickr-day, 
+html[data-theme="dark"] .flatpickr-weekday,
+html[data-theme="dark"] .flatpickr-current-month .flatpickr-monthDropdown-months {
+    color: var(--bulma-text);
+}
+html[data-theme="dark"] .flatpickr-day:hover,
+html[data-theme="dark"] .flatpickr-day:focus {
+    background: var(--bulma-background);
+    border-color: var(--bulma-border-weak);
+}
+html[data-theme="dark"] .flatpickr-month {
+    fill: var(--bulma-text);
+    color: var(--bulma-text);
+}
+html[data-theme="dark"] .flatpickr-day.flatpickr-disabled,
+html[data-theme="dark"] .flatpickr-day.prevMonthDay,
+html[data-theme="dark"] .flatpickr-day.nextMonthDay {
+    color: var(--bulma-text-weak);
+}

@@ -29,16 +29,13 @@ def seed_db():
     from src.core.seeds.salas_seeds import SalaSeeder
     from src.core.seeds.clases_seeds import ClaseSeeder, ProfesorDictaClaseSeeder
     from src.core.seeds.usuarios_seeds import UsuarioSeeder
-    from src.core.seeds.reserva_seeds import ReservaSeeder, ComentarioSeeder
 
     # Definimos el orden lógico de ejecución de los seeders
     seeders = [
         SalaSeeder(db),
         UsuarioSeeder(db),
         ClaseSeeder(db),
-        ProfesorDictaClaseSeeder(db),
-        ReservaSeeder(db),
-        ComentarioSeeder(db)
+        ProfesorDictaClaseSeeder(db)
     ]
 
     for seeder in seeders:
