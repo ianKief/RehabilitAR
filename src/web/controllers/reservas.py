@@ -142,18 +142,20 @@ def reservar_clase(id_clase):
 
     #TODO verificar si hay una clase en curso para ese momento ??? Si quieren y da el tiempo :P
 
+    clase = obtener_clase_por_id(id_clase)
+    print (clase, "CLASE")
+    print (id_clase, "ID CLASE")
+    if not clase:
+        flash("La clase solicitada no existe.", "danger")
+        return redirect(url_for("reservas.calendario_cliente"))
+    
     reserva_existente = obtener_reserva(usuario_id, id_clase)
-    if reserva_existente:
+    if reserva_existente and clase_tiene_lugar(clase):
         if reserva_existente.asiste == AsistenciaReserva.CANCELADA:
             reactivar_reserva(reserva_existente)
             flash("¡Reserva reactivada exitosamente!", "success")
         else:
             flash("Ya tenés una reserva activa para esta clase.", "warning")
-        return redirect(url_for("reservas.calendario_cliente"))
-    
-    clase = obtener_clase_por_id(id_clase)
-    if not clase:
-        flash("La clase solicitada no existe.", "danger")
         return redirect(url_for("reservas.calendario_cliente"))
         
     if not clase_tiene_lugar(clase):

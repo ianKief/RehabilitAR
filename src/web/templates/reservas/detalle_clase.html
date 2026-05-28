@@ -81,6 +81,13 @@
                 {% endif %}
             </div>
         </div>
+        {% else %}
+            <div class="notification is-danger is-light p-4 is-flex is-align-items-center">
+                <span class="icon is-medium mr-3" style="flex-shrink: 0;"><i class="fas fa-check-circle fa-lg"></i></span>
+                <div>
+                    <strong>Cancelada:</strong> Has cancelado esta reserva
+                </div>
+            </div>
         {% endif %}
 
         {% if cola and cola.cancelada != True %}

@@ -78,31 +78,31 @@
 
                     <!-- HISTORIAL (FINALIZADAS) -->
                     {% for reserva in reservas_pasadas %}
-                        <tr style="opacity: 0.6;">
-                            <td class="has-text-weight-bold">{{ reserva.clase.nombre }}</td>
-                            <td>{{ reserva.clase.fecha_clase.strftime('%d/%m/%Y') }}</td>
-                            <td>{{ reserva.clase.horario.strftime('%H:%M') }}</td>
-                            <td>
-                                {% if reserva.clase.tipo == 'Fija' %}
-                                    <span class="tag is-warning is-light">{{ reserva.clase.tipo }}</span>
-                                {% else %}
-                                    <span class="tag is-info is-light">{{ reserva.clase.tipo }}</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if reserva.asiste.name == 'PRESENTE' %}
-                                    <span class="tag is-success is-light">Asistió</span>
-                                {% else %}
-                                    <span class="tag is-light">Ausente / Finalizada</span>
-                                {% endif %}
-                            </td>
-                            <td class="has-text-centered">
-                                <a href="{{ url_for('reservas.detalle_clase', id_clase=reserva.clase.id, next=request.url) }}" class="button is-small is-light is-rounded has-text-grey-dark">
-                                    <span class="icon is-small"><i class="fas fa-info-circle"></i></span>
-                                    <span>Ver detalles</span>
-                                </a>
-                            </td>
-                        </tr>
+                            <tr style="opacity: 0.6;">
+                                <td class="has-text-weight-bold">{{ reserva.clase.nombre }}</td>
+                                <td>{{ reserva.clase.fecha_clase.strftime('%d/%m/%Y') }}</td>
+                                <td>{{ reserva.clase.horario.strftime('%H:%M') }}</td>
+                                <td>
+                                    {% if reserva.clase.tipo == 'Fija' %}
+                                        <span class="tag is-warning is-light">{{ reserva.clase.tipo }}</span>
+                                    {% else %}
+                                        <span class="tag is-info is-light">{{ reserva.clase.tipo }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if reserva.asiste.name == 'PRESENTE' %}
+                                        <span class="tag is-success is-light">Asistió</span>
+                                    {% else %}
+                                        <span class="tag is-light">Ausente / Finalizada</span>
+                                    {% endif %}
+                                </td>
+                                <td class="has-text-centered">
+                                    <a href="{{ url_for('reservas.detalle_clase', id_clase=reserva.clase.id, next=request.url) }}" class="button is-small is-light is-rounded has-text-grey-dark">
+                                        <span class="icon is-small"><i class="fas fa-info-circle"></i></span>
+                                        <span>Ver detalles</span>
+                                    </a>
+                                </td>
+                            </tr>
                     {% endfor %}
                 </tbody>
             </table>

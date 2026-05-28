@@ -79,6 +79,7 @@ def clase_tiene_lugar(clase):
 
 def comprobar_alta_demanda (clase):
     """Devuelve true si hay que informar alta demanda, False si no hay que hacerlo o si ya se comprobó previamente"""
+    
     if (not clase.aviso_alta_demanda) and (devolver_cantidad_esperando_en_cola (clase) == 10):
         clase.aviso_alta_demanda = True
         db.session.commit()
