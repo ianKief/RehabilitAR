@@ -1,6 +1,9 @@
 from sqlalchemy import func, text, or_, select, cast, Integer, and_, case
 from sqlalchemy.orm import aliased
 
+from flask_mail import Message
+from src.web import mail
+
 from src.core.database import db
 from src.core.usuarios.usuarios import Usuario, RolUsuario, EstadoUsuario
 
@@ -196,7 +199,6 @@ def habilitar_usuario(usuario_id):
     db.session.commit()
     return usuario
 
-
 def eliminar_usuario(usuario_id):
     usuario = db.session.get(Usuario, usuario_id)
     if not usuario:
@@ -212,3 +214,24 @@ def tiene_apto_fisico_valido(cliente):
         if cliente.apto_fisico.fecha_carga and (datetime.now() - cliente.apto_fisico.fecha_carga).days <= 365:
             return True
     return False
+
+def conseguir_administrativos ():
+    return db.session.scalars(db.session.query(Administrador)).all()
+
+def informar_alta_demanda (clase):
+    try:
+        administrativos = conseguir_administrativos ()
+        for admin in administrativos:
+            body = f"""Hola {admin.nombre},
+
+                    Se le informa que la clase {clase.nombre} de la especialidad {clase.especialidad} está teniendo picos de demanda, habiendo superado recientemente las 10 esperas en cola.
+                    Se le aconseja considerar más clases de este estilo para un futuro."""
+            msg = Message(
+                        subject="RehabilitAR - Aviso de alta demanda",
+                        recipients=[admin.email]
+                    )
+            msg.body = body
+            mail.send(msg)
+    except ValueError as e:
+        clase.aviso_alta_demanda = False
+# Tampoco voy a informar al cliente del problema, mejor guardar el aviso para una próxima ocasión

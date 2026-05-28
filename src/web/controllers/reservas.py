@@ -4,8 +4,8 @@ import json
 import urllib.request
 
 from src.web.helpers.decorator import requiere_rol
-from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido
-from src.core.clases import clase_tiene_lugar
+from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido, informar_alta_demanda
+from src.core.clases import clase_tiene_lugar, comprobar_alta_demanda
 from src.core.reservas.reservas import AsistenciaReserva
 from src.core.reservas import (
     listar_clases_disponibles_para_cliente, 
@@ -22,8 +22,16 @@ from src.core.reservas import (
     obtener_alternativas_semana_para_clase,
     obtener_reservas_cliente,
     obtener_profesor_de_clase,
-    obtener_cupos_ocupados
+    obtener_cupos_ocupados,
+    obtener_ids_clases_encoladas,
+    crear_espera_en_cola,
+    obtener_ids_clases_llenas_donde_el_cliente_no_tiene_reserva,
+    obtener_colas_cliente,
+    obtener_cola,
+    cancelar_cola_core
 )
+
+#TODO verificar si cuando un cliente se da de baja de una clase se le da acceso a la persona correcta
 
 reservas_bp = Blueprint("reservas", __name__, url_prefix="/reservas")
 
@@ -100,14 +108,23 @@ def calendario_cliente():
     if fecha_str in feriados or fecha_seleccionada.weekday() >= 5:
         clases = []
     
+    ids_clases_llenas_donde_el_cliente_no_tiene_reserva = []
+    if usuario_id:
+        ids_clases_llenas_donde_el_cliente_no_tiene_reserva = obtener_ids_clases_llenas_donde_el_cliente_no_tiene_reserva (usuario_id)
+    
     # Obtener las clases que el cliente ya tiene reservadas para deshabilitar los botones
     ids_clases_reservadas = []
     if usuario_id:
         ids_clases_reservadas = obtener_ids_clases_reservadas(usuario_id)
 
+    # Obtener las clases que el cliente ya tiene encoladas para deshabilitar los botones
+    ids_clases_encoladas = []
+    if usuario_id:
+        ids_clases_encoladas = obtener_ids_clases_encoladas(usuario_id)
+
     fecha_formateada = fecha_seleccionada.strftime("%d/%m/%Y")
     
-    return render_template("reservas/calendario_reservas.html", clases=clases, fecha_seleccionada=fecha_str, fecha_formateada=fecha_formateada, tipo_seleccionado=tipo, especialidad_seleccionada=especialidad, feriados=feriados, fechas_con_clases=fechas_con_clases, ids_clases_reservadas=ids_clases_reservadas, es_abonado=es_abonado)
+    return render_template("reservas/calendario_reservas.html", clases=clases, fecha_seleccionada=fecha_str, fecha_formateada=fecha_formateada, tipo_seleccionado=tipo, especialidad_seleccionada=especialidad, feriados=feriados, fechas_con_clases=fechas_con_clases, ids_clases_reservadas=ids_clases_reservadas, es_abonado=es_abonado, ids_clases_encoladas=ids_clases_encoladas, ids_clases_llenas_donde_el_cliente_no_tiene_reserva = ids_clases_llenas_donde_el_cliente_no_tiene_reserva)
 
 @reservas_bp.post("/<int:id_clase>/reservar")
 @requiere_rol(["CLIENTE"])
@@ -118,22 +135,31 @@ def reservar_clase(id_clase):
     if not _verificar_apto_fisico(cliente):
         return redirect(url_for("reservas.calendario_cliente"))
     
+    #TODO debería verificarse si el apto físico vence para el momento de la clase
+
+    #TODO verificar si hay una clase en curso para ese momento ??? Si quieren y da el tiempo :P
+
+    clase = obtener_clase_por_id(id_clase)
+    print (clase, "CLASE")
+    print (id_clase, "ID CLASE")
+    if not clase:
+        flash("La clase solicitada no existe.", "danger")
+        return redirect(url_for("reservas.calendario_cliente"))
+    
     reserva_existente = obtener_reserva(usuario_id, id_clase)
-    if reserva_existente:
+    if reserva_existente and clase_tiene_lugar(clase):
         if reserva_existente.asiste == AsistenciaReserva.CANCELADA:
             reactivar_reserva(reserva_existente)
             flash("¡Reserva reactivada exitosamente!", "success")
         else:
             flash("Ya tenés una reserva activa para esta clase.", "warning")
         return redirect(url_for("reservas.calendario_cliente"))
-    
-    clase = obtener_clase_por_id(id_clase)
-    if not clase:
-        flash("La clase solicitada no existe.", "danger")
-        return redirect(url_for("reservas.calendario_cliente"))
         
     if not clase_tiene_lugar(clase):
-        flash("No hay lugares disponibles. Próximamente habilitaremos la opción de Inscribirse en lista de espera.", "danger")
+        crear_espera_en_cola (usuario_id, id_clase)
+        flash("No hay lugares disponibles. Se le ha anotado en la lista de espera", "warning")
+        if comprobar_alta_demanda (clase):
+            informar_alta_demanda (clase)
         return redirect(url_for("reservas.calendario_cliente"))
         
     if clase.tipo == "Fija":
@@ -159,6 +185,8 @@ def abonar_clase(id_clase):
 
     if not _verificar_apto_fisico(cliente):
         return redirect(url_for("reservas.calendario_cliente"))
+    
+    #TODO debería verificarse si el apto físico vence para el momento de la clase
 
     clase = obtener_clase_por_id(id_clase)
     if not clase:
@@ -297,13 +325,16 @@ def mis_clases():
         return redirect(url_for("home"))
         
     reservas = obtener_reservas_cliente(usuario_id)
+    colas = obtener_colas_cliente(usuario_id)
     hoy = date.today()
 
     reservas_futuras = [r for r in reservas if r.clase.fecha_clase >= hoy]
     reservas_pasadas = [r for r in reservas if r.clase.fecha_clase < hoy]
     reservas_pasadas.reverse()  # Ordenamos el historial de lo más reciente a lo más antiguo
 
-    return render_template("reservas/mis_clases.html", reservas_futuras=reservas_futuras, reservas_pasadas=reservas_pasadas, hoy=hoy)
+    colas_futuras = [c for c in colas if c.clase.fecha_clase >= hoy]
+
+    return render_template("reservas/mis_clases.html", reservas_futuras=reservas_futuras, reservas_pasadas=reservas_pasadas, colas_futuras=colas_futuras, hoy=hoy)
 
 @reservas_bp.get("/<int:id_clase>/detalle")
 @requiere_rol(["CLIENTE"])
@@ -319,6 +350,7 @@ def detalle_clase(id_clase):
     cupos_restantes = max(0, clase.capacidad_maxima - cupos_ocupados)
     
     reserva = obtener_reserva(usuario_id, id_clase)
+    cola = obtener_cola(usuario_id, id_clase)
     hoy = date.today()
     
     next_url = request.args.get("next")
@@ -330,7 +362,7 @@ def detalle_clase(id_clase):
     return render_template(
         "reservas/detalle_clase.html",
         clase=clase, profesor=profesor, cupos_restantes=cupos_restantes,
-        reserva=reserva, hoy=hoy, next_url=next_url
+        reserva=reserva, hoy=hoy, next_url=next_url, cola=cola
     )
 
 @reservas_bp.post("/<int:id_clase>/cancelar")
@@ -353,9 +385,12 @@ def cancelar_reserva(id_clase):
         flash("No es posible cancelar clases que ya han comenzado.", "danger")
         return redirect(url_for("reservas.detalle_clase", id_clase=id_clase))
 
-    # Cancelamos la reserva, liberando el cupo inmediatamente
-    cancelar_reserva_core(reserva)
-    tiempo_restante = fecha_hora_clase - ahora
+    try:
+        # Cancelamos la reserva, liberando el cupo inmediatamente
+        cancelar_reserva_core(reserva)
+        tiempo_restante = fecha_hora_clase - ahora
+    except ValueError as e:
+        flash (("Error:", str(e)), "warning")
 
     if clase.tipo == "Fija":
         # Lógicas de la HU "Dar de baja clase fija reservada"
@@ -378,4 +413,17 @@ def cancelar_reserva(id_clase):
             # TODO: insertar su función aquí -> registrar_perdida_sena(reserva.id)
             flash("Reserva cancelada. Al realizarse con menos de 24 horas de anticipación, la seña se ha perdido.", "warning")
 
+    return redirect(url_for("reservas.mis_clases"))
+
+@reservas_bp.post("/<int:id_clase>/salir_de_cola")
+@requiere_rol(["CLIENTE"])
+def salir_de_cola (id_clase):
+    usuario_id = session.get("usuario_id")
+    cola = obtener_cola(usuario_id, id_clase)
+    
+    try:
+        cancelar_cola_core(cola)
+    except ValueError as e:
+        flash (("Error:", str(e)), "warning")
+    
     return redirect(url_for("reservas.mis_clases"))

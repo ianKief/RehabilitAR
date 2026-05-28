@@ -16,7 +16,7 @@ def reset_db():
     from src.core.salas import Sala
     from src.core.clases.clases import Clase, ProfesorDictaClase
     from src.core.usuarios import Usuario
-    from src.core.reservas import Reserva, Comentario
+    from src.core.reservas.reservas import Reserva, Comentario
     """Reinicia la base de datos eliminando todas las tablas y volviéndolas a crear."""
     print("Reiniciando la base de datos...")
     Base.metadata.drop_all(bind=db.engine)

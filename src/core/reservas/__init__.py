@@ -1,11 +1,14 @@
-from sqlalchemy import select, func
+from sqlalchemy import select, func, case
 from sqlalchemy.orm import contains_eager
 from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
-from src.core.usuarios.usuarios import Usuario
-from src.core.reservas.reservas import Reserva, AsistenciaReserva
+from src.core.usuarios.usuarios import Usuario, Cliente
+from src.core.reservas.reservas import Reserva, AsistenciaReserva, Cola, Cancelacion
 from datetime import date, timedelta
 import calendar
+
+from flask_mail import Message
+from src.web import mail
 
 def listar_clases_disponibles_para_cliente(fecha=None, tipo=None, especialidad=None):
     """
@@ -47,16 +50,35 @@ def obtener_fechas_con_clases(tipo=None, especialidad=None):
 
 def obtener_clase_por_id(id_clase):
     """Obtiene un objeto Clase a partir de su identificador."""
-    return db.session.get(Clase, id_clase)
+    return db.session.scalars(db.session.query(Clase).filter(Clase.id==id_clase)).one_or_none()
 
 def obtener_ids_clases_reservadas(id_cliente):
     """Obtiene una lista con los IDs de las clases en las que un cliente tiene una reserva activa (no cancelada)."""
     reservas = obtener_reservas_cliente(id_cliente)
     return [r.id_clase for r in reservas]
 
+def obtener_ids_clases_encoladas(id_cliente):
+    """Obtiene una lista con los IDs de las clases en las que un cliente tiene una espera en cola activada (no cancelada)."""
+    query = (db.session.query(Cola.id_clase)
+        .join (Cliente, Cliente.id == Cola.id_cliente)
+        .filter (Cliente.id == id_cliente)
+        .filter (Cola.cancelada == False)
+    )
+    return db.session.scalars(query).all()
+
 def obtener_reserva(id_cliente, id_clase):
     """Busca y retorna la reserva específica de un cliente para una clase determinada."""
-    query = select(Reserva).filter_by(id_cliente=id_cliente, id_clase=id_clase)
+    query = select(Reserva).filter_by(id_cliente=id_cliente, id_clase=id_clase).order_by(Reserva.fecha_modificacion.desc())
+    return db.session.scalars(query).first()
+
+def obtener_cola(id_cliente, id_clase):
+    """Busca y retorna la cola específica de un cliente para una clase determinada."""
+    query = (db.session.query(Cola)
+        .filter(Cola.id_cliente == id_cliente)
+        .filter(Cola.id_clase == id_clase)
+        .filter(Cola.cancelada == False)
+        .order_by(Cola.fecha_modificacion.desc())
+    )
     return db.session.scalars(query).first()
 
 def reactivar_reserva(reserva):
@@ -67,6 +89,19 @@ def reactivar_reserva(reserva):
 def cancelar_reserva_core(reserva):
     """Cambia el estado de una reserva a 'cancelada', liberando el cupo."""
     reserva.asiste = AsistenciaReserva.CANCELADA
+    nueva_cancelacion = Cancelacion (
+        descripcion = "El cliente ha cancelado la reserva",
+        reserva = reserva,
+        acredito_devolucion_previamente = False
+    )
+    db.session.add(nueva_cancelacion)
+    if hay_cola (obtener_clase_por_id(reserva.id_clase)):
+        dar_acceso_segun_orden_cola (reserva.id_clase)
+    db.session.commit()
+
+def cancelar_cola_core(cola):
+    """Cambia el estado de una reserva a 'cancelada', liberando el cupo."""
+    cola.cancelada = True
     db.session.commit()
 
 def crear_reserva(id_cliente, id_clase):
@@ -75,6 +110,13 @@ def crear_reserva(id_cliente, id_clase):
     db.session.add(nueva_reserva)
     db.session.commit()
     return nueva_reserva
+
+def crear_espera_en_cola (id_cliente, id_clase):
+    """Crea una nueva espera en la cola de espera"""
+    nueva_cola = Cola (id_clase = id_clase, id_cliente = id_cliente, cancelada = False)
+    db.session.add(nueva_cola)
+    db.session.commit()
+    return nueva_cola
 
 def verificar_reserva_semanal_existente(id_cliente, fecha_clase):
     """Verifica si el cliente ya tiene una reserva activa para una clase de tipo 'Fija' en la misma semana."""
@@ -166,6 +208,24 @@ def procesar_reservas_mensuales_automatica(id_cliente, clases_a_reservar):
         db.session.commit()
     return reservas_creadas
 
+def cancelar_cola (id_cliente, id_clase):
+    """Cancela la cola, primero obteniéndola vía id_cliente y id_clase. Fuera de operación actualmente"""
+    query = (db.session.query(Cola)
+        .join (Cliente, Cliente.id == Cola.id_cliente)
+        .join (Clase, Clase.id == Cola.id_clase)
+        .filter (Cliente.id == id_cliente)
+        .filter (Clase.id == id_clase)
+        .filter (Cola.cancelada == False)
+        .order_by(Cola.fecha_modificacion.desc())
+    )
+
+    cola = db.session.scalars(query).first()
+    if cola == None:
+        raise ValueError("No se ha podido encontrar la cola")
+    
+    cola.cancelada = True
+    db.session.commit()
+
 def obtener_reservas_cliente(id_cliente):
     """
     Retorna las reservas de un cliente específico, ordenadas por fecha y hora.
@@ -178,3 +238,118 @@ def obtener_reservas_cliente(id_cliente):
     ).order_by(Clase.fecha_clase.asc(), Clase.horario.asc())
     
     return db.session.scalars(query).all()
+
+def obtener_colas_cliente(id_cliente):
+    """
+    Retorna las esperas de un cliente específico, ordenadas por fecha y hora.
+    """
+    query = select(Cola).join(Clase).options(
+        contains_eager(Cola.clase)
+    ).filter(
+        Cola.id_cliente == id_cliente,
+        Cola.cancelada == False
+    ).order_by(Clase.fecha_clase.asc(), Clase.horario.asc())
+    
+    return db.session.scalars(query).all()
+
+def obtener_ids_clases_llenas_donde_el_cliente_no_tiene_reserva (id_cliente):
+    """NOTA: puede estar en cola. Esa condición se comprueba con otra variante"""
+
+    clases_donde_participa = (db.session.query(Reserva.id_clase)
+        .filter(Reserva.id_cliente == id_cliente)
+        .filter(Reserva.asiste != AsistenciaReserva.CANCELADA)
+        .subquery()
+    )
+
+    query = (db.session.query(Clase.id)
+    .join(Reserva, Reserva.id_clase == Clase.id)
+    .group_by(Clase.id)
+    .having(
+        func.sum(
+            case(
+                (Reserva.asiste != AsistenciaReserva.CANCELADA, 1),
+                else_=0
+            )
+        ) >= Clase.capacidad_maxima
+    )
+    .filter(~Clase.id.in_(clases_donde_participa))
+    )
+    
+    return db.session.scalars(query).all()
+
+def devolver_cantidad_esperando_en_cola (clase):
+    return (db.session.query(func.count(Cola.id))
+        .filter(Cola.id_clase == clase.id)
+        .filter(Cola.cancelada == False)
+        .scalar()
+    )
+
+def hay_cola (clase):
+    return devolver_cantidad_esperando_en_cola(clase) > 0
+
+def dar_acceso_segun_orden_cola (id_clase):
+    try:
+        conseguir_clase = (db.session.query(Clase).filter(id_clase==Clase.id))
+        clase=db.session.scalars(conseguir_clase).first()
+
+        query = (db.session.query(Cliente, Cola)
+        .join (Cola, Cola.id_cliente == Cliente.id)
+        .filter(Cliente.es_abonado == True)
+        .filter(Cola.cancelada == False)
+        .filter(Cola.id_clase == id_clase)
+        .order_by(Cola.fecha_modificacion.asc())
+        )
+
+        existe_abonado = query.first()
+        if not existe_abonado:
+            query = (db.session.query(Cliente, Cola)
+                .join (Cola, Cola.id_cliente == Cliente.id)
+                .filter(Cliente.es_abonado == False)
+                .filter(Cola.cancelada == False)
+                .filter(Cola.id_clase == id_clase)
+                .order_by(Cola.fecha_modificacion.asc())
+            )
+            existe_abonado = query.first()
+
+            if not existe_abonado:
+                raise ValueError ("Ha habido un problema en el servidor. Prueba nuevamente")
+        
+        datos = db.session.execute(query).first()
+        if datos is None:
+            raise ValueError("No hay clientes en cola")
+        
+        proximo = datos[0]
+        cola = datos[1]
+        cola.cancelada = True
+        cola.en_reserva = True
+
+        nueva_reserva = Reserva (
+            id_cliente = proximo.id,
+            id_clase = id_clase,
+            asiste = AsistenciaReserva.AUSENTE
+        )
+        db.session.add(nueva_reserva)
+        db.session.commit()
+    except ValueError:
+        raise ValueError("Ha habido un error con la base de datos")
+
+    # Sección de enviado de mail
+
+    try:
+
+        body = f"""Hola {proximo.nombre},
+
+            Se le informa que la clase {clase.nombre} de la especialidad {clase.especialidad} ha generado una reserva para usted. En caso de no asistir informe su baja, caso contrario se le harán cargos."""
+        msg = Message(
+            subject="RehabilitAR - Aviso de alta demanda",
+            recipients=[proximo.email]
+        )
+        msg.body = body
+        mail.send(msg)
+        return proximo
+    except:
+        print ("No mandé el mail che")
+        #TODO hacer algo ??? No sé, informar (secundario)
+        # Tampoco que me voy a poner a decirle a un cliente que haga algo al respecto. Capaz se puede añadir alguna sección especial cuando se agregue el historial para administradores
+    
+    return proximo

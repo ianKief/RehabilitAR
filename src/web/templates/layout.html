@@ -67,7 +67,7 @@
                     {% if session.get('rol') == 'PROFESOR' %}
                     <!-- Navegación para profesores -->
                     <a class="navbar-item py-3 px-4" href="/profesor">
-                        <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Menú de profesores
+                        <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Asistencia y seguimiento
                     </a>
                     {% endif %}
                     <!-- Navegación para clientes (solo si son clientes) -->
@@ -215,7 +215,7 @@
                             <li>
                                 <a href="/profesor/"
                                     class="py-2.5 px-3 {% if request.path.startswith('/profesor') %}menu-item-active{% endif %}">
-                                    <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Menú de profesores
+                                    <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Asistencia y seguimiento
                                 </a>
                             </li>
                             {% endif %}

@@ -20,9 +20,12 @@ class Clase(Base):
     horario: Mapped[time] = mapped_column(Time, nullable=False)
     aprobada:Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     tipo: Mapped[str] = mapped_column(String(20), nullable=False)
+    aviso_alta_demanda:Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
+
 
     # Relaciones
     reservas: Mapped[list["Reserva"]] = relationship(back_populates="clase", cascade="all, delete-orphan")
+    colas: Mapped[list["Cola"]] = relationship(back_populates="clase", cascade="all, delete-orphan")
 
     # Campos de auditoría
     fecha_creacion: Mapped[datetime] = mapped_column(
