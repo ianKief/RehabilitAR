@@ -71,6 +71,11 @@ def obtener_reserva(id_cliente, id_clase):
     query = select(Reserva).filter_by(id_cliente=id_cliente, id_clase=id_clase)
     return db.session.scalars(query).first()
 
+def obtener_cola(id_cliente, id_clase):
+    """Busca y retorna la cola específica de un cliente para una clase determinada."""
+    query = select(Cola).filter_by(id_cliente=id_cliente, id_clase=id_clase, cancelada=False)
+    return db.session.scalars(query).first()
+
 def reactivar_reserva(reserva):
     """Cambia el estado de una reserva previamente cancelada a 'ausente', volviéndola a activar."""
     reserva.asiste = AsistenciaReserva.AUSENTE
@@ -81,6 +86,11 @@ def cancelar_reserva_core(reserva):
     reserva.asiste = AsistenciaReserva.CANCELADA
     if hay_cola (reserva.id_clase):
         dar_acceso_segun_orden_cola (reserva.id_clase)
+    db.session.commit()
+
+def cancelar_cola_core(cola):
+    """Cambia el estado de una reserva a 'cancelada', liberando el cupo."""
+    cola.cancelada = True
     db.session.commit()
 
 def crear_reserva(id_cliente, id_clase):
@@ -194,9 +204,10 @@ def cancelar_cola (id_cliente, id_clase):
         .filter (Cliente.id == id_cliente)
         .filter (Clase.id == id_clase)
         .filter (Cola.cancelada == False)
+        .order_by(Cola.fecha_modificacion.desc())
     )
 
-    cola = db.session.scalars(query).one()
+    cola = db.session.scalars(query).first()
     if cola == None:
         raise ValueError("No se ha podido encontrar la cola")
     
@@ -285,12 +296,11 @@ def dar_acceso_segun_orden_cola (clase):
 
             if not existe_abonado:
                 raise ValueError ("Ha habido un problema en el servidor. Prueba nuevamente")
-        datos = db.session.execute(query).one()
+        datos = db.session.execute(query).first()
         proximo = datos[0]
         cola = datos[1]
         cola.cancelada = True
         cola.en_reserva = True
-
 
         nueva_reserva = Reserva (
             id_cliente = proximo.id,
@@ -318,3 +328,5 @@ def dar_acceso_segun_orden_cola (clase):
     except:
         pass
         # Tampoco que me voy a poner a decirle a un cliente que haga algo al respecto. Capaz se puede añadir alguna sección especial cuando se agregue el historial para administradores
+    
+    return proximo

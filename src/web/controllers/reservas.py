@@ -27,7 +27,9 @@ from src.core.reservas import (
     obtener_ids_clases_encoladas,
     crear_espera_en_cola,
     obtener_ids_clases_llenas_donde_el_cliente_no_tiene_reserva,
-    obtener_colas_cliente
+    obtener_colas_cliente,
+    obtener_cola,
+    cancelar_cola_core
 )
 
 #TODO verificar si cuando un cliente se da de baja de una clase se le da acceso a la persona correcta
@@ -310,23 +312,6 @@ def reservar_mensual(id_clase):
                            mes_nombre=meses_espanol[clase_base.fecha_clase.month],
                            dia_nombre=dias_semana_espanol[clase_base.fecha_clase.weekday()])
 
-@reservas_bp.post("/<int:id_clase>/salir_de_cola")
-@requiere_rol(["CLIENTE"])
-def salir_de_cola (id_clase):
-    usuario_id = session.get("usuario_id")
-    cliente = obtener_usuario_por_id_core(usuario_id)
-    url = request.referrer
-
-    try:
-        exito = cancelar_cola (usuario_id, id_clase)
-
-        if exito:
-            flash ("Se ha cancelado la reserva exitosamente", "sucess")
-            redirect(url)
-    except ValueError as e:
-        flash (("No se ha podido cancelar la reserva:", str(e)), "warning")
-        redirect (url)
-
 @reservas_bp.get("/mis-clases")
 @requiere_rol(["CLIENTE"])
 def mis_clases():
@@ -364,6 +349,7 @@ def detalle_clase(id_clase):
     cupos_restantes = max(0, clase.capacidad_maxima - cupos_ocupados)
     
     reserva = obtener_reserva(usuario_id, id_clase)
+    cola = obtener_cola(usuario_id, id_clase)
     hoy = date.today()
     
     next_url = request.args.get("next")
@@ -375,7 +361,7 @@ def detalle_clase(id_clase):
     return render_template(
         "reservas/detalle_clase.html",
         clase=clase, profesor=profesor, cupos_restantes=cupos_restantes,
-        reserva=reserva, hoy=hoy, next_url=next_url
+        reserva=reserva, hoy=hoy, next_url=next_url, cola=cola
     )
 
 @reservas_bp.post("/<int:id_clase>/cancelar")
@@ -426,4 +412,17 @@ def cancelar_reserva(id_clase):
             # TODO: insertar su función aquí -> registrar_perdida_sena(reserva.id)
             flash("Reserva cancelada. Al realizarse con menos de 24 horas de anticipación, la seña se ha perdido.", "warning")
 
+    return redirect(url_for("reservas.mis_clases"))
+
+@reservas_bp.post("/<int:id_clase>/salir_de_cola")
+@requiere_rol(["CLIENTE"])
+def salir_de_cola (id_clase):
+    usuario_id = session.get("usuario_id")
+    cola = obtener_cola(usuario_id, id_clase)
+    
+    try:
+        cancelar_cola_core(cola)
+    except ValueError as e:
+        flash (("Error:", str(e)), "warning")
+    
     return redirect(url_for("reservas.mis_clases"))
