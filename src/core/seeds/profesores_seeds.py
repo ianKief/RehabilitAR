@@ -1,73 +1,63 @@
-# src/core/seeds/profesores_seeds.py
-
-
-from src.core.usuarios.usuarios import Usuario
-from src.core.profesores.profesores import Especialidad, Profesor
-
+from src.core.usuarios.usuarios import Especialidad, Profesor, RolUsuario, TipoEspecialidad, Usuario
 
 class ProfesorSeeder:
     def __init__(self, db):
         self.db = db
-        # Mantenemos las mismas especialidades exactas del ClaseSeeder
-        self.especialidades_nombres = ["Tren Superior", "Tren Inferior", "Tren Medio"]
+        # 🔄 CAMBIO: Mapeamos los textos viejos a los miembros reales del Enum de tu compañero
+        self.especialidades_mapeadas = [
+            {"id": 1, "enum_val": TipoEspecialidad.SUPERIOR},  # "TREN SUPERIOR"
+            {"id": 2, "enum_val": TipoEspecialidad.INFERIOR},  # "TREN INFERIOR"
+            {"id": 3, "enum_val": TipoEspecialidad.MEDIO}      # "TREN MEDIO"
+        ]
 
     def run(self):
-        print("Insertando especialidades y cuerpo docente de prueba...")
+        print("Insertando especialidades y cuerpo docente (Jerarquía de Herencia)...")
 
-        # 1. Poblar la tabla de especialidades de forma secuencial (ID 1, 2 y 3)
-        for i, nombre_esp in enumerate(self.especialidades_nombres, start=1):
-            especialidad = self.db.session.get(Especialidad, i)
+        # 1. Poblar la tabla de especialidades mapeando el Enum de tu compañero
+        for esp_data in self.especialidades_mapeadas:
+            especialidad = self.db.session.get(Especialidad, esp_data["id"])
             if not especialidad:
-                especialidad = Especialidad(id=i, nombre=nombre_esp)
+                especialidad = Especialidad(id=esp_data["id"], nombre=esp_data["enum_val"])
                 self.db.session.add(especialidad)
-                print(f" -> Seeder: Especialidad '{nombre_esp}' configurada con ID: {i}")
+                print(f" -> Seeder: Especialidad '{esp_data['enum_val'].value}' configurada con ID: {esp_data['id']}")
 
-        # Forzamos un flush para asegurarnos de que los IDs de las especialidades existan en la sesión
+        # Sincronizamos la sesión antes de avanzar
         self.db.session.flush()
 
         # 📝 CONFIGURACIÓN DE DOCENTES A CREAR
-        # Mantenemos fijo el ID 2 para tus pruebas de controlador y agregamos el 3 y 4
+        # 🔄 CAMBIO: especialidad_id pasa a ser id_especialidad para acoplarse al nuevo modelo
         profesores_a_crear = [
-            {"id": 2, "nombre": "Gero", "apellido": "Docente", "email": "profesor@rehabilitar.com", "especialidad_id": 2}, # Tren Inferior
-            {"id": 3, "nombre": "Carlos", "apellido": "Kinesiologo", "email": "carlos@rehabilitar.com", "especialidad_id": 1}, # Tren Superior
-            {"id": 4, "nombre": "Ana", "apellido": "Fisiatra", "email": "ana@rehabilitar.com", "especialidad_id": 3},  # Tren Medio
-            {"id": 5, "nombre": "Mariano", "apellido": "Gómez", "email": "mariano@rehabilitar.com", "especialidad_id": 2}, # Tren Inferior
-            {"id": 6, "nombre": "Laura", "apellido": "Sánchez", "email": "laura@rehabilitar.com", "especialidad_id": 1},   # Tren Superior
-            {"id": 7, "nombre": "Julia", "apellido": "Pérez", "email": "julia@rehabilitar.com", "especialidad_id": 3},     # Tren Medio
+            {"id": 2, "nombre": "Gero", "apellido": "Docente", "email": "profesor@rehabilitar.com", "id_especialidad": 2}, 
+            {"id": 3, "nombre": "Carlos", "apellido": "Kinesiologo", "email": "carlos@rehabilitar.com", "id_especialidad": 1}, 
+            {"id": 4, "nombre": "Ana", "apellido": "Fisiatra", "email": "ana@rehabilitar.com", "id_especialidad": 3},  
+            {"id": 5, "nombre": "Mariano", "apellido": "Gómez", "email": "mariano@rehabilitar.com", "id_especialidad": 2}, 
+            {"id": 6, "nombre": "Laura", "apellido": "Sánchez", "email": "laura@rehabilitar.com", "id_especialidad": 1},   
+            {"id": 7, "nombre": "Julia", "apellido": "Pérez", "email": "julia@rehabilitar.com", "id_especialidad": 3},     
         ]
 
         for p_data in profesores_a_crear:
-            # 2. Crear o recuperar el Usuario puro
-            usuario_profe = self.db.session.get(Usuario, p_data["id"])
-            if not usuario_profe:
-                usuario_profe = Usuario(
-                    id=p_data["id"],
+            # 2. 🔄 CAMBIO CRÍTICO: Buscamos e instanciamos directamente al modelo SUBCLASE 'Profesor'
+            profesor_registro = self.db.session.get(Profesor, p_data["id"])
+            
+            if not profesor_registro:
+                # Al instanciar Profesor, le enviamos tanto los campos que hereda de Usuario 
+                # como los campos propios de su tabla de profesores.
+                profesor_registro = Profesor(
+                    id=p_data["id"],                      # PK unificada
                     nombre=p_data["nombre"],
                     apellido=p_data["apellido"],
                     email=p_data["email"],
                     password="scrypt:unapasswordcualquiera",
-                    rol="PROFESOR"
-                )
-                self.db.session.add(usuario_profe)
-                print(f" -> Seeder: Creado Usuario base ID: {p_data['id']} ({p_data['nombre']}) con rol PROFESOR")
-            
-            self.db.session.flush()
-
-            # 3. Vincular al usuario directo en la tabla profesores asignando su especialidad correspondiente
-            profesor_registro = self.db.session.get(Profesor, p_data["id"])
-            if not profesor_registro:
-                # Si tu tabla de profesores usa id_usuario como PK o FK, calza perfecto acá
-                profesor_registro = Profesor(
-                    id_usuario=p_data["id"],
-                    especialidad_id=p_data["especialidad_id"]
+                    rol=RolUsuario.PROFESOR,              # Identidad polimórfica del Enum
+                    id_especialidad=p_data["id_especialidad"]  # Campo propio de Profesor
                 )
                 self.db.session.add(profesor_registro)
-                print(f" -> Seeder: Registro insertado en tabla 'profesores' (User ID: {p_data['id']} -> Esp ID: {p_data['especialidad_id']})")
+                print(f" -> Seeder: Creado Profesor Polimórfico ID: {p_data['id']} ({p_data['nombre']}) -> Especialidad: {p_data['id_especialidad']}")
 
-        # Consolidamos el bloque completo en Postgres
+        # Consolidamos la transacción de forma segura
         try:
             self.db.session.commit()
-            print("¡Se han guardado todos los profesores y especialidades reales de forma limpia!")
+            print("¡Se han guardado todos los profesores polimórficos de forma limpia!")
         except Exception as e:
             self.db.session.rollback()
             print(f"❌ Error en ProfesorSeeder: {e}")

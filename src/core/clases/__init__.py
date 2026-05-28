@@ -2,12 +2,14 @@ import calendar
 from datetime import date, datetime, time, timedelta
 
 from sqlalchemy import and_, extract, func, select
-from src.core.usuarios.usuarios import Usuario
-from src.core.profesores.profesores import Especialidad, Profesor
+from src.core.usuarios.usuarios import Especialidad, Profesor, Usuario
+
 from src.core.database import db
 from src.core.clases.clases import Clase, ClaseBloque, PostulacionClase, ProfesorDictaClase
 from src.core.salas.salas import Sala, EstadoSala
+from src.core.usuarios.usuarios import tz_arg
 
+# <VER CLASES ADMIN>
 def listar_clases():
     """Retorna todas las clases de rehabilitación ordenadas por fecha y hora."""
     query = select(Clase).order_by(
@@ -15,7 +17,9 @@ def listar_clases():
         Clase.horario.asc()
     )
     return db.session.scalars(query).all()
+# <VER CLASES ADMIN/>
 
+# <DETALLE DE CLASE>
 def obtener_clase_por_id(clase_id: int):
     """
     Busca una clase por su ID.
@@ -27,17 +31,20 @@ def obtener_clase_por_id(clase_id: int):
 def obtener_postulantes_clase(clase_id: int):
     """
     Retorna los postulantes de una clase y la información del profesor asignado si existiese.
+    Adaptado a la herencia polimórfica y Enums del nuevo esquema.
     """
-    # Verificar si ALGUIEN ya dicta esta clase actualmente
+    # 1. 🔍 VERIFICAR SI ALGUIEN YA DICTA ESTA CLASE ACTUALMENTE
     query_asignado = (
         select(
             Usuario.nombre,
             Usuario.apellido,
-            Especialidad.nombre.label("especialidad")
+            Especialidad.nombre.label("especialidad_enum") # Traemos el objeto Enum
         )
         .join(ProfesorDictaClase, ProfesorDictaClase.id_profesor == Usuario.id)
-        .join(Profesor, Profesor.id_usuario == Usuario.id)
-        .join(Especialidad, Profesor.especialidad_id == Especialidad.id)
+        # SQLAlchemy une automáticamente Usuario y Profesor por su herencia (id == id)
+        .join(Profesor) 
+        # 🔄 CAMBIO: especialidad_id -> id_especialidad
+        .join(Especialidad, Profesor.id_especialidad == Especialidad.id)
         .filter(ProfesorDictaClase.id_clase == clase_id)
     )
     res_asignado = db.session.execute(query_asignado).first()
@@ -46,21 +53,23 @@ def obtener_postulantes_clase(clase_id: int):
     if res_asignado:
         profesor_asignado = {
             "nombre_completo": f"{res_asignado.nombre} {res_asignado.apellido}",
-            "especialidad": res_asignado.especialidad
+            # 🔄 CAMBIO: Extraemos el String (.value) para que la interfaz muestre "TREN SUPERIOR"
+            "especialidad": res_asignado.especialidad_enum.value if res_asignado.especialidad_enum else "N/A"
         }
 
-    # Traer la lista de postulaciones
+    # 2. 📑 TRAER LA LISTA DE POSTULACIONES
     query_postulantes = (
         select(
             PostulacionClase.id.label("postulacion_id"),
             PostulacionClase.estado.label("estado"),
             Usuario.nombre.label("nombre_profesor"),
             Usuario.apellido.label("apellido_profesor"),
-            Especialidad.nombre.label("especialidad_nombre")
+            Especialidad.nombre.label("especialidad_enum")
         )
         .join(Usuario, PostulacionClase.profesor_id == Usuario.id)
-        .join(Profesor, Profesor.id_usuario == Usuario.id)
-        .join(Especialidad, Profesor.especialidad_id == Especialidad.id)
+        .join(Profesor)
+
+        .join(Especialidad, Profesor.id_especialidad == Especialidad.id)
         .filter(PostulacionClase.clase_id == clase_id)
     )
     resultados = db.session.execute(query_postulantes).all()
@@ -71,23 +80,17 @@ def obtener_postulantes_clase(clase_id: int):
             "id_postulacion": r.postulacion_id,
             "estado": r.estado,  # 'PENDIENTE', 'ACEPTADA', 'RECHAZADA'
             "nombre_completo": f"{r.nombre_profesor} {r.apellido_profesor}",
-            "especialidad": r.especialidad_nombre
+            # 🔄 CAMBIO: Usamos .value para limpiar el Enum y enviar solo el texto
+            "especialidad": r.especialidad_enum.value if r.especialidad_enum else "N/A"
         })
         
     return {
         "postulantes": postulantes_limpios,
         "asignado": profesor_asignado
     }
+# <DETALLE DE CLASE/>
 
-def obtener_sala_por_id(sala_id):
-    """Busca una sala específica por su ID autoincremental."""
-    return db.session.get(Sala, sala_id)
-
-def listar_salas_habilitadas():
-    """Retorna los objetos completos de las salas habilitadas (para sacar ID y Puerta en el HTML)."""
-    query = select(Sala).filter(Sala.estado == EstadoSala.HABILITADA)
-    return db.session.scalars(query).all()
-
+# <CREAR CLASE>
 def obtener_horarios_disponibles(fecha_evaluar, duracion_minutos=45, sala_id_evaluar=0, tipo_clase="Individual"):
     HORA_INICIO_LABORAL = 8
     HORA_FIN_LABORAL = 20
@@ -150,10 +153,9 @@ def listar_especialidades_activas():
     Retorna la lista real de especialidades ordenadas alfabéticamente
     directo desde la base de datos.
     """
+    # Ordenamos usando el valor en texto del Enum
     query = select(Especialidad).order_by(Especialidad.nombre.asc())
-    
     especialidades = db.session.scalars(query).all()
-    
     return especialidades
 
 def crear_clases_agenda(**datos_clase):
@@ -229,28 +231,29 @@ def crear_clases_agenda(**datos_clase):
 
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Error crítico en el Core al persistir la agenda: {e}")
+        print(f"Error crítico en el Core al persistir la agenda: {e}")
         return False
+# <CREAR CLASE/>
 
+# <POSTULACION DE PROFESORES>
 def obtener_clases_disponibles_para_profesor(profesor_id):
     hoy = date.today()
 
-    # BUSCAMOS LA ESPECIALIDAD DEL PROFESOR
+    # 1. 🔍 BUSCAMOS LA ESPECIALIDAD DEL PROFESOR
     query_especialidad = (
         select(Especialidad.nombre)
-        .join(Profesor, Profesor.especialidad_id == Especialidad.id)
-        .filter(Profesor.id_usuario == profesor_id)
+        .join(Profesor, Profesor.id_especialidad == Especialidad.id)
+        .filter(Profesor.id == profesor_id)
     )
     nombre_especialidad = db.session.execute(query_especialidad).scalar_one_or_none()
 
-    # Si el profesor no existe en la tabla de profesores, no tiene especialidad y no ve clases
     if not nombre_especialidad:
         return []
 
     # Subquery: Clases que ya tienen dueño
     clases_ocupadas_subquery = select(ProfesorDictaClase.id_clase)
 
-    # Query Base 
+    # 2. 📑 QUERY BASE DE CLASES DISPONIBLES
     query = (
         select(Clase)
         .outerjoin(
@@ -263,86 +266,90 @@ def obtener_clases_disponibles_para_profesor(profesor_id):
         .filter(
             Clase.fecha_clase > hoy,
             Clase.suspendida == False,
-            Clase.especialidad == nombre_especialidad,
+            func.upper(Clase.especialidad) == nombre_especialidad.value,
             Clase.id.not_in(clases_ocupadas_subquery),
             PostulacionClase.id == None
         )
         .order_by(Clase.fecha_clase.asc(), Clase.horario.asc())
     )
-    
     clases_sueltas = db.session.scalars(query).all()
 
-    # TRUCO DE AGRUPACIÓN (Diccionario) / hay que reemplazar por logica de bloques
+    # 3.MAPEO DE BLOQUES (Para agrupar las fijas de forma real)
+    ids_clases = [c.id for c in clases_sueltas]
+    clase_a_bloque = {}
+    
+    if ids_clases:
+        query_bloques = select(ClaseBloque).filter(ClaseBloque.id_clase.in_(ids_clases))
+        registros_bloques = db.session.scalars(query_bloques).all()
+        clase_a_bloque = {rb.id_clase: rb.id_bloque for rb in registros_bloques}
+
     clases_agrupadas = {}
 
     for clase in clases_sueltas:
-        if clase.tipo == "Fija":
-            # Creamos una clave única basada en el nombre, horario y sala para identificar la "recurrrencia"
-            dia_semana = clase.fecha_clase.weekday()
-            clave_grupo = (clase.nombre, clase.horario, clase.sala_id, dia_semana)
-            
-            if clave_grupo not in clases_agrupadas:
-                # Almacenamos la estructura inicial y un array para acumular las fechas e IDs implicados
-                clases_agrupadas[clave_grupo] = {
-                    "objeto_base": clase,  # Guardamos el objeto para sacar nombre, descripción, etc.
-                    "fechas": [clase.fecha_clase],
-                    "ids_clases": [clase.id] # Guardamos todos los IDs de este mes para la HU del POST
-                }
-            else:
-                # Si el grupo ya existe, solo le sumamos la nueva fecha e ID a la lista
-                clases_agrupadas[clave_grupo]["fechas"].append(clase.fecha_clase)
-                clases_agrupadas[clave_grupo]["ids_clases"].append(clase.id)
+        if clase.tipo == "Fija" and clase.id in clase_a_bloque:
+            clave = f"BLOQUE_{clase_a_bloque[clase.id]}"
         else:
-            # Si es Individual, entra directo con su propia estructura única
-            clave_individual = f"INDIVIDUAL_{clase.id}"
-            clases_agrupadas[clave_individual] = {
+            clave = f"INDIVIDUAL_{clase.id}"
+        
+        if clave not in clases_agrupadas:
+            clases_agrupadas[clave] = {
                 "objeto_base": clase,
-                "fechas": [clase.fecha_clase],
-                "ids_clases": [clase.id]
+                "fechas": [],
+                "ids_clases": []
             }
+            
+        clases_agrupadas[clave]["fechas"].append(clase.fecha_clase)
+        clases_agrupadas[clave]["ids_clases"].append(clase.id)
 
-    # Retornamos solo los valores estructurados del diccionario
     return list(clases_agrupadas.values())
 
 def obtener_postulaciones_de_profesor(profesor_id):
-    # Traemos las postulaciones del profesor con sus respectivas clases unidas (join)
+    """
+    Trae el listado de postulaciones hechas por un profesor, agrupadas de forma 
+    real según pertenezcan a un bloque recurrente o sean individuales.
+    """
+    # QUERY BASE 
     query = (
-        db.session.query(PostulacionClase)
+        select(PostulacionClase)
         .join(Clase, PostulacionClase.clase_id == Clase.id)
         .filter(PostulacionClase.profesor_id == profesor_id)
         .order_by(Clase.fecha_clase.asc(), Clase.horario.asc())
     )
-    postulaciones_sueltas = query.all()
+    postulaciones_sueltas = db.session.scalars(query).all()
 
-    # Agrupamos por bloque mensual para no repetir filas en la interfaz
+    # MAPEO DE BLOQUES DE LA BD
+    # Extraemos todas las clases involucradas en las postulaciones encontradas
+    ids_clases = [postu.clase_id for postu in postulaciones_sueltas]
+    clase_a_bloque = {}
+    
+    if ids_clases:
+        query_bloques = select(ClaseBloque).filter(ClaseBloque.id_clase.in_(ids_clases))
+        registros_bloques = db.session.scalars(query_bloques).all()
+        # Mapeamos { id_clase: id_bloque } para resolver rápido en el bucle
+        clase_a_bloque = {rb.id_clase: rb.id_bloque for rb in registros_bloques}
+
     bloques_postulados = {}
 
+    # AGRUPACIÓN LIMPIA POR BLOQUE O CLASE INDIVIDUAL
     for postu in postulaciones_sueltas:
-        clase = postu.clase
+        clase = postu.clase  # Mantiene la relación mapeada del modelo
         
-        if clase.tipo == "Fija":
-            dia_semana = clase.fecha_clase.weekday()
-            # La clave agrupa por el patrón repetitivo de la clase fija
-            clave_grupo = (clase.nombre, clase.horario, clase.sala_id, dia_semana)
-            
-            if clave_grupo not in bloques_postulados:
-                bloques_postulados[clave_grupo] = {
-                    "clase_base": clase,
-                    "estado": postu.estado,  # El estado del bloque ('PENDIENTE', etc.)
-                    "fechas": [clase.fecha_clase],
-                    "fecha_postulacion": postu.fecha_registro
-                }
-            else:
-                bloques_postulados[clave_grupo]["fechas"].append(clase.fecha_clase)
+        # Determinamos la clave única basada en datos reales de la BD
+        if clase.tipo == "Fija" and clase.id in clase_a_bloque:
+            clave = f"BLOQUE_{clase_a_bloque[clase.id]}"
         else:
-            # Si es individual, va directo a su propio casillero
-            clave_individual = f"INDIVIDUAL_{postu.id}"
-            bloques_postulados[clave_individual] = {
+            clave = f"INDIVIDUAL_{postu.id}"
+            
+        if clave not in bloques_postulados:
+            bloques_postulados[clave] = {
                 "clase_base": clase,
-                "estado": postu.estado,
-                "fechas": [clase.fecha_clase],
+                "estado": postu.estado,  
+                "fechas": [],
                 "fecha_postulacion": postu.fecha_registro
             }
+            
+        # Acumulamos la fecha de esta instancia en particular
+        bloques_postulados[clave]["fechas"].append(clase.fecha_clase)
 
     return list(bloques_postulados.values())
 
@@ -351,7 +358,7 @@ def obtener_clases_dictadas_por_profesor(profesor_id: int):
     Trae las clases asignadas a un profesor que aún no sucedieron o que 
     terminaron hace menos de 30 minutos (margen de tolerancia).
     """
-    # Traemos todas las asignaciones del profesor primero
+    # QUERY BASE DE ASIGNACIONES 
     query = (
         select(Clase)
         .join(ProfesorDictaClase, ProfesorDictaClase.id_clase == Clase.id)
@@ -360,19 +367,17 @@ def obtener_clases_dictadas_por_profesor(profesor_id: int):
     )
     clases_objetos = db.session.scalars(query).all()
     
-    # Obtenemos el momento exacto de "ahora"
-    ahora = datetime.now()
+    # 🕒 Momento exacto de "ahora" respetando la zona horaria del sistema
+    ahora = datetime.now(tz_arg).replace(tzinfo=None)
     
     clases_limpias = []
+    
     for c in clases_objetos:
         # Combinamos la fecha de la clase y la hora de inicio en un datetime nativo
         inicio_datetime = datetime.combine(c.fecha_clase, c.horario)
         
-        # Calculamos cuándo termina sumando su duración en minutos
-        fin_datetime = inicio_datetime + timedelta(minutes=c.duracion)
-        
-        # Le sumamos el "aire" / tolerancia de 30 minutos para que no desaparezca al instante
-        limite_visibilidad = fin_datetime + timedelta(minutes=30)
+        # Calculamos el límite de visibilidad: inicio + duración + 30 minutos de aire
+        limite_visibilidad = inicio_datetime + timedelta(minutes=c.duracion + 30)
         
         # 🔥 FILTRO: Si el momento actual ya superó el límite de visibilidad, la ignoramos
         if ahora > limite_visibilidad:
@@ -403,12 +408,9 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
         return False  # No existe o ya fue resuelta
 
     # 1. 🔍 DETECTAR EL ALCANCE (¿Es clase fija/bloque o individual?)
-    # Buscamos si la clase actual está amarrada a un bloque
     registro_bloque = db.session.scalar(
         select(ClaseBloque).filter(ClaseBloque.id_clase == postulacion.clase_id)
     )
-    
-    clases_afectadas = []
     
     if registro_bloque:
         # 🔥 ES CLASE FIJA: Buscamos todas las clases asociadas al mismo bloque
@@ -432,9 +434,6 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
             )
         ).all()
         
-        if postulacion not in postulaciones_ganadoras:
-            postulacion.estado = "ACEPTADA"
-            
         for p_ganadora in postulaciones_ganadoras:
             p_ganadora.estado = "ACEPTADA"
 
@@ -447,11 +446,7 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
                 )
             )
             if not existe_dicta:
-                nueva_asignacion = ProfesorDictaClase(
-                    id_profesor=postulacion.profesor_id,
-                    id_clase=clase_id
-                )
-                db.session.add(nueva_asignacion)
+                db.session.add(ProfesorDictaClase(id_profesor=postulacion.profesor_id, id_clase=clase_id))
         
         # ❌ RECHAZAR EN CASCADA A LOS COMPETIDORES
         otras_postulaciones = db.session.scalars(
@@ -468,7 +463,6 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
             
     elif accion == "rechazar":
         # ❌ RECHAZAR EN CASCADA AL MISMO PROFESOR EN TODO EL BLOQUE
-        # Buscamos todas las postulaciones pendientes de ESTE profesor en las clases afectadas
         postulaciones_a_rechazar = db.session.scalars(
             select(PostulacionClase)
             .filter(
@@ -478,14 +472,9 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
             )
         ).all()
 
-        # Nos aseguramos de mutar la instancia inicial por las dudas
-        postulacion.estado = "RECHAZADA"
-
         for p_a_rechazar in postulaciones_a_rechazar:
             p_a_rechazar.estado = "RECHAZADA"
             
-        print(f" -> Core: Rechazadas {len(postulaciones_a_rechazar)} instancias del bloque para el profesor #{postulacion.profesor_id}")
-        
     else:
         return False
 

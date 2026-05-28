@@ -1,6 +1,8 @@
+from typing import List
+
 from src.core.database import Base
-from sqlalchemy import Integer, String, DateTime, Enum
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import ForeignKey, Integer, String, DateTime, Enum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import enum
@@ -62,3 +64,25 @@ class Usuario(Base):
 
     def __repr__(self):
         return f"<Usuario(id={self.id}, nombre='{self.nombre}', email='{self.email}', rol='{self.rol.value}', estado='{self.estado.value}')>"
+    
+class TipoEspecialidad(enum.Enum):
+    SUPERIOR = "TREN SUPERIOR"
+    MEDIO = "TREN MEDIO"
+    INFERIOR = "TREN INFERIOR"
+
+class Especialidad(Base):
+    __tablename__ = "especialidades"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    nombre: Mapped[TipoEspecialidad] = mapped_column(Enum(TipoEspecialidad), unique=True, nullable=False)
+    profesores: Mapped[List["Profesor"]] = relationship(back_populates="especialidad")
+    
+class Profesor(Usuario):
+    __tablename__ = "profesores"
+    id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), primary_key=True)
+    especialidad: Mapped["Especialidad"] = relationship(back_populates="profesores")
+    id_especialidad: Mapped[int] = mapped_column(ForeignKey("especialidades.id"), nullable=True)
+
+    __mapper_args__ = {
+        "polymorphic_identity": RolUsuario.PROFESOR
+    }

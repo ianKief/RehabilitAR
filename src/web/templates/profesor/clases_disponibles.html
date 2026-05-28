@@ -18,7 +18,7 @@
         </div>
         
         <div class="column is-narrow">
-            <a class="button is-light has-text-grey-darker" href="{{ url_for('profesor.ver_mis_postulaciones') }}">
+            <a class="button is-light has-text-grey-darker" href="{{ url_for('clases.ver_mis_postulaciones') }}">
                 <span class="icon">
                     <i class="fas fa-arrow-left"></i>
                 </span>
@@ -81,7 +81,7 @@
                     </td>
                     
                     <td class="has-text-centered is-vcentered">
-                        <form action="{{ url_for('profesor.postularse') }}" method="POST">
+                        <form action="{{ url_for('clases.postularse') }}" method="POST">
                             {# El filtro |join(',') convierte la lista de Python [1, 2, 3] en la cadena "1,2,3" #}
                             <input type="hidden" name="clases_ids" value="{{ item.ids_clases|join(',') }}">
                             

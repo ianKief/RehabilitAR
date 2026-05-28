@@ -61,7 +61,13 @@
                             <select name="especialidad_id" required>
                                 <option value="" disabled selected>Seleccioná la especialidad...</option>
                                 {% for esp in templates_especialidades %}
-                                    <option value="{{ esp.id }}">{{ esp.nombre }}</option>
+                                    <option value="{{ esp.id }}">
+                                        {% if esp.nombre.value is defined %}
+                                            {{ esp.nombre.value | title }}
+                                        {% else %}
+                                            {{ esp.nombre | title }}
+                                        {% endif %}
+                                    </option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -112,7 +118,7 @@
                                 <option value="" disabled selected>Seleccioná una sala...</option>
                                 {% for sala in puertas_salas %}
                                     <option value="{{ sala.id }}" data-capacidad="{{ sala.capacidad }}">
-                                        {{ sala.numero_puerta }} (Máx: {{ sala.capacidad }} personas)
+                                        Sala {{ sala.numero_puerta }} (Máx: {{ sala.capacidad }} personas)
                                     </option>
                                 {% endfor %}
                             </select>
@@ -215,28 +221,24 @@
     // --- valor de dia minimo para el calendario ---
     const hoy = new Date();
     const mañana = new Date(hoy);
-    mañana.setDate(hoy.getDate() + 1); // Le sumamos un día a la fecha actual
+    mañana.setDate(hoy.getDate() + 1); 
 
-    // Formateamos a YYYY-MM-DD (que es lo que exige el atributo 'min' de HTML)
     const yyyy = mañana.getFullYear();
-    const mm = String(mañana.getMonth() + 1).padStart(2, '0'); // Los meses van de 0 a 11
+    const mm = String(mañana.getMonth() + 1).padStart(2, '0'); 
     const dd = String(mañana.getDate()).padStart(2, '0');
     
     const fechaMinimaString = `${yyyy}-${mm}-${dd}`;
     
-    // Le asignamos el mínimo nativo al input
     fechaInput.min = fechaMinimaString;
-    // --- valor de dia minimo para el calendario ---
 
     // Controla el input de capacidad si la clase es Individual
     tipoClaseSelect.addEventListener('change', function() {
         if (this.value === 'Individual') {
             capacidadInput.value = 1;
-            capacidadInput.readOnly = true; // Bloquea la edición física
+            capacidadInput.readOnly = true; 
             capacidadHelp.textContent = "Las clases individuales están limitadas estrictamente a 1 cupo.";
         } else {
             capacidadInput.readOnly = false;
-            // Al volver a grupal, recalculamos el límite según la sala que esté puesta en ese momento
             ajustarLimiteCapacidad();
         }
     });
@@ -245,44 +247,41 @@
     async function actualizarHorariosDisponibles() {
         const fecha = fechaInput.value;
         const duracion = duracionSelect.value;
-        const sala = salaSelect.value; // <-- Capturamos la sala
-        const tipo = tipoClaseSelect.value; // <-- Capturamos el tipo seleccionado
+        const sala = salaSelect.value; 
+        const tipo = tipoClaseSelect.value; 
 
         if (!fecha || !sala) return; 
 
-        // ... validación de fin de semana ..
         const fechaSeleccionada = new Date(fecha.replace(/-/g, '\/'));
         const diaSemana = fechaSeleccionada.getDay(); 
 
         if (diaSemana === 0 || diaSemana === 6) {
             alert("El centro de rehabilitación solo atiende de lunes a viernes. Por favor, elegí un día hábil.");
-            fechaInput.value = ""; // Limpiamos el calendario
+            fechaInput.value = ""; 
             horarioSelect.disabled = true;
             horarioSelect.innerHTML = '<option value="">Seleccione primero fecha y duración...</option>';
-            return; // Frenamos la ejecución del fetch
+            return; 
         }
 
         horarioSelect.disabled = true;
         horarioSelect.innerHTML = '<option value="">Cargando horarios libres...</option>';
 
         try {
-            // Solicitud asíncrona a la API del controlador pasándole parámetros de consulta
             const response = await fetch(`{{ url_for('clases.api_horarios_disponibles') }}?fecha=${fecha}&duracion=${duracion}&sala_id=${sala}&tipo=${tipo}`);
             const horariosLibres = await response.json();
 
-            horarioSelect.innerHTML = ''; // Limpiamos el cargando...
+            horarioSelect.innerHTML = ''; 
 
             if (horariosLibres.length === 0) {
                 horarioSelect.innerHTML = '<option value="">No hay horarios libres en esta fecha</option>';
             } else {
-                // Rellenamos el select dinámicamente con los strings procesados por el Core
                 horariosLibres.forEach(hora => {
                     const option = document.createElement('option');
                     option.value = hora;
                     option.textContent = `${hora} hs`;
                     horarioSelect.appendChild(option);
                 });
-                horarioSelect.disabled = false; // Liberamos para selección segura
+                horarioSelect.disabled = false; 
             }
         } catch (error) {
             console.error("Error crítico de comunicación con la API del Core:", error);
@@ -291,37 +290,26 @@
     }
 
     function ajustarLimiteCapacidad() {
-        // Obtenemos la opción que el usuario seleccionó físicamente
         const opcionSeleccionada = salaSelect.options[salaSelect.selectedIndex];
         
-        // Si hay una opción válida, leemos su data-capacidad
         if (opcionSeleccionada && opcionSeleccionada.value) {
             const capacidadMaximaSala = parseInt(opcionSeleccionada.getAttribute('data-capacidad'));
-            
-            // Le cambiamos el límite máximo nativo al input numérico
             capacidadInput.max = capacidadMaximaSala;
             
-            // Control de UX: Si el tipo de clase NO es individual (o sea, es grupal)
-            // y el valor actual quedó por encima del nuevo máximo de la sala, lo acomodamos al tope.
             if (tipoClaseSelect.value !== 'Individual' && parseInt(capacidadInput.value) > capacidadMaximaSala) {
                 capacidadInput.value = capacidadMaximaSala;
             }
             
-            // Actualizamos el texto de ayuda dinámicamente para que el usuario sepa el porqué
             if (tipoClaseSelect.value !== 'Individual') {
                 capacidadHelp.textContent = `Cantidad máxima permitida en simultáneo (Límite de esta sala: ${capacidadMaximaSala} personas).`;
             }
         }
     }
 
-    // Escuchamos el cambio de sala para ajustar el límite del input de una
     salaSelect.addEventListener('change', ajustarLimiteCapacidad);
-
-    // Escuchamos disparadores para actualizar la grilla horaria en tiempo real
     fechaInput.addEventListener('change', actualizarHorariosDisponibles);
     duracionSelect.addEventListener('change', actualizarHorariosDisponibles);
     salaSelect.addEventListener('change', actualizarHorariosDisponibles);
-    // NUEVO: Si cambia de Fija a Individual o viceversa, volvemos a escanear la agenda del mes/día
     tipoClaseSelect.addEventListener('change', actualizarHorariosDisponibles);
 </script>
 {% endblock %}

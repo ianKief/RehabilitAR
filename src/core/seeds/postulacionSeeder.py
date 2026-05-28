@@ -1,6 +1,6 @@
 import random
 from sqlalchemy import select
-from src.core.profesores.profesores import Profesor
+from src.core.usuarios.usuarios import Profesor
 from src.core.database import db
 from src.core.clases.clases import Clase, PostulacionClase, ClaseBloque
 
@@ -11,9 +11,7 @@ class PostulacionSeeder:
     def run(self):
         print("Insertando postulaciones de prueba en estado PENDIENTE...")
 
-        # 1. Traer todos los profesores reales con sus IDs y nombres de especialidad (en texto)
-        # Cruzamos Profesor con Especialidad para saber a qué área pertenece cada uno
-        # (Asumo que en el modelo Profesor podés acceder a la Especialidad o filtrar por su id)
+        # 1. Traer todos los profesores reales de la BD
         query_profesores = select(Profesor)
         profesores_reales = self.db.session.scalars(query_profesores).all()
 
@@ -41,24 +39,16 @@ class PostulacionSeeder:
         for rb in relaciones_bloque:
             bloque_a_clases.setdefault(rb.id_bloque, []).append(rb.id_clase)
 
-        # Para llevar registro de a qué clases/bloques ya postulamos a un profesor y evitar duplicados en el loop
-        # Guardamos tuplas: (profesor_id, clase_id) o (profesor_id, f"bloque_{id_bloque}")
+        # Registro para evitar duplicados en el loop
         procesados = set()
-
-        # Nombres de las especialidades mapeados a sus IDs según tu ProfesorSeeder
-        # ID 1: Tren Superior, ID 2: Tren Inferior, ID 3: Tren Medio
-        mapa_especialidades = {
-            1: "Tren Superior",
-            2: "Tren Inferior",
-            3: "Tren Medio"
-        }
 
         # 4. Empezamos el bucle de asignación inteligente
         for clase in clases_disponibles:
-            # Buscamos qué profesores comparten la especialidad exacta de esta clase
+            # 🔄 CAMBIO OBLIGATORIO: Navegamos el objeto especialidad (Enum) y comparamos en mayúsculas (.upper())
+            # para blindar la query contra strings cargados de forma inconsistente en Clase.
             profes_aptos = [
                 p for p in profesores_reales 
-                if mapa_especialidades.get(p.especialidad_id) == clase.especialidad
+                if p.especialidad and p.especialidad.nombre.value == clase.especialidad.upper()
             ]
 
             if not profes_aptos:
@@ -69,14 +59,15 @@ class PostulacionSeeder:
             profes_seleccionados = random.sample(profes_aptos, k=cant_postulantes)
 
             for profe in profes_seleccionados:
-                profesor_id = profe.id_usuario  # O profe.id según tu clave primaria
+                # 🔄 CAMBIO OBLIGATORIO: Se usa .id en lugar de .id_usuario debido a la jerarquía de herencia
+                profesor_id = profe.id  
 
                 # Caso A: La clase es FIJA y pertenece a un bloque recurrente
                 if clase.tipo == "Fija" and clase.id in clase_a_bloque:
                     id_bloque_actual = clase_a_bloque[clase.id]
                     llave_bloque = (profesor_id, f"bloque_{id_bloque_actual}")
 
-                    # Si este profesor ya fue postulado a este bloque entero en una iteración previa, lo salteamos
+                    # Si este profesor ya fue postulado a este bloque entero, lo salteamos
                     if llave_bloque in procesados:
                         continue
 
@@ -104,7 +95,7 @@ class PostulacionSeeder:
                     postulacion_individual = PostulacionClase(
                         clase_id=clase.id,
                         profesor_id=profesor_id,
-                        estado="PENDIENTE"  #  ESTRICTAMENTE PENDIENTE
+                        estado="PENDIENTE"  # 🔥 ESTRICTAMENTE PENDIENTE
                     )
                     self.db.session.add(postulacion_individual)
                     
@@ -117,4 +108,4 @@ class PostulacionSeeder:
             print("¡Seeder de postulaciones pendientes e inteligentes completado con éxito!")
         except Exception as e:
             self.db.session.rollback()
-            print(f" Error al ejecutar el commit de postulaciones: {e}")
+            print(f"❌ Error al ejecutar el commit de postulaciones: {e}")
