@@ -54,8 +54,10 @@ class Comentario(Base):
     )
 
 class Cancelacion(Base):
+    __tablename__ = "cancelaciones"
+
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    id_reserva: Mapped[int] = mapped_column(ForeignKey("reserva"))
+    id_reserva: Mapped[int] = mapped_column(ForeignKey("reserva.id"))
 
     descripcion: Mapped[str] = mapped_column(String(255), nullable=True)
     acredito_devolucion_previamente: Mapped[Boolean] = mapped_column(Boolean, nullable=False, default=False)
@@ -63,7 +65,7 @@ class Cancelacion(Base):
 
     # Relaciones:
     reserva: Mapped["Reserva"] = relationship(back_populates="cancelaciones")
-
+    # NOTA: al obtener una cancelación, procurar que sea la última registrada, dado que el sistema y el dominio no impiden que haya varias (de hecho, gracias a la política de reactivación de cancelaciones pareciera que es posible cancelar dos veces una misma clase)
 
     # Campos de auditoría
     fecha_creacion: Mapped[datetime] = mapped_column(

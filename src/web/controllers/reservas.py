@@ -19,7 +19,6 @@ from src.core.reservas import (
     obtener_clases_mensuales,
     procesar_reservas_mensuales_automatica,
     obtener_clase_por_id,
-    cancelar_cola,
     obtener_alternativas_semana_para_clase,
     obtener_reservas_cliente,
     obtener_profesor_de_clase,
@@ -124,9 +123,6 @@ def calendario_cliente():
         ids_clases_encoladas = obtener_ids_clases_encoladas(usuario_id)
 
     fecha_formateada = fecha_seleccionada.strftime("%d/%m/%Y")
-
-    print (ids_clases_llenas_donde_el_cliente_no_tiene_reserva)
-    print (ids_clases_encoladas)
     
     return render_template("reservas/calendario_reservas.html", clases=clases, fecha_seleccionada=fecha_str, fecha_formateada=fecha_formateada, tipo_seleccionado=tipo, especialidad_seleccionada=especialidad, feriados=feriados, fechas_con_clases=fechas_con_clases, ids_clases_reservadas=ids_clases_reservadas, es_abonado=es_abonado, ids_clases_encoladas=ids_clases_encoladas, ids_clases_llenas_donde_el_cliente_no_tiene_reserva = ids_clases_llenas_donde_el_cliente_no_tiene_reserva)
 
@@ -138,6 +134,7 @@ def reservar_clase(id_clase):
     
     if not _verificar_apto_fisico(cliente):
         return redirect(url_for("reservas.calendario_cliente"))
+    
     #TODO debería verificarse si el apto físico vence para el momento de la clase
 
     #TODO verificar si hay una clase en curso para ese momento ??? Si quieren y da el tiempo :P
@@ -188,6 +185,8 @@ def abonar_clase(id_clase):
 
     if not _verificar_apto_fisico(cliente):
         return redirect(url_for("reservas.calendario_cliente"))
+    
+    #TODO debería verificarse si el apto físico vence para el momento de la clase
 
     clase = obtener_clase_por_id(id_clase)
     if not clase:

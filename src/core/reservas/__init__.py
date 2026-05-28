@@ -209,6 +209,7 @@ def procesar_reservas_mensuales_automatica(id_cliente, clases_a_reservar):
     return reservas_creadas
 
 def cancelar_cola (id_cliente, id_clase):
+    """Cancela la cola, primero obteniéndola vía id_cliente y id_clase. Fuera de operación actualmente"""
     query = (db.session.query(Cola)
         .join (Cliente, Cliente.id == Cola.id_cliente)
         .join (Clase, Clase.id == Cola.id_clase)
