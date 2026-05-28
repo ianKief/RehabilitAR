@@ -3,7 +3,7 @@ from sqlalchemy.orm import contains_eager
 from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.usuarios.usuarios import Usuario, Cliente
-from src.core.reservas.reservas import Reserva, AsistenciaReserva, Cola
+from src.core.reservas.reservas import Reserva, AsistenciaReserva, Cola, Cancelacion
 from datetime import date, timedelta
 import calendar
 
@@ -89,9 +89,14 @@ def reactivar_reserva(reserva):
 def cancelar_reserva_core(reserva):
     """Cambia el estado de una reserva a 'cancelada', liberando el cupo."""
     reserva.asiste = AsistenciaReserva.CANCELADA
+    nueva_cancelacion = Cancelacion (
+        descripcion = "El cliente ha cancelado la reserva",
+        reserva = reserva,
+        acredito_devolucion_previamente = False
+    )
+    db.session.add(nueva_cancelacion)
     if hay_cola (obtener_clase_por_id(reserva.id_clase)):
         dar_acceso_segun_orden_cola (reserva.id_clase)
-    #TODO: crear cancelación de reserva
     db.session.commit()
 
 def cancelar_cola_core(cola):

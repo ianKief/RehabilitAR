@@ -24,6 +24,7 @@ class Reserva(Base):
     cliente: Mapped["Cliente"] = relationship(back_populates="reservas")
     clase: Mapped["Clase"] = relationship(back_populates="reservas")
     comentarios: Mapped[list["Comentario"]] = relationship(back_populates="reserva", cascade="all, delete-orphan")
+    cancelaciones: Mapped[list["Cancelacion"]] = relationship(back_populates="reserva", cascade="all, delete-orphan")
 
     # Campos de auditoría
     fecha_creacion: Mapped[datetime] = mapped_column(
@@ -49,6 +50,29 @@ class Comentario(Base):
     # Campos de auditoría
     fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
+        nullable=False
+    )
+
+class Cancelacion(Base):
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id_reserva: Mapped[int] = mapped_column(ForeignKey("reserva"))
+
+    descripcion: Mapped[str] = mapped_column(String(255), nullable=True)
+    acredito_devolucion_previamente: Mapped[Boolean] = mapped_column(Boolean, nullable=False, default=False)
+    # La variable de arriba dice 
+
+    # Relaciones:
+    reserva: Mapped["Reserva"] = relationship(back_populates="cancelaciones")
+
+
+    # Campos de auditoría
+    fecha_creacion: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
+        nullable=False
+    )
+    fecha_modificacion: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
+        onupdate=lambda: datetime.now(tz_arg).replace(tzinfo=None),
         nullable=False
     )
 
