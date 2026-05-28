@@ -291,7 +291,6 @@ def dar_acceso_segun_orden_cola (id_clase):
     try:
         conseguir_clase = (db.session.query(Clase).filter(id_clase==Clase.id))
         clase=db.session.scalars(conseguir_clase).first()
-        print (clase.nombre)
 
         query = (db.session.query(Cliente, Cola)
         .join (Cola, Cola.id_cliente == Cliente.id)
@@ -312,7 +311,6 @@ def dar_acceso_segun_orden_cola (id_clase):
             )
             existe_abonado = query.first()
 
-            print ("EXISTE ABONADOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO:",existe_abonado)
             if not existe_abonado:
                 raise ValueError ("Ha habido un problema en el servidor. Prueba nuevamente")
         
@@ -324,8 +322,6 @@ def dar_acceso_segun_orden_cola (id_clase):
         cola = datos[1]
         cola.cancelada = True
         cola.en_reserva = True
-        print ('El próximo es:',proximo.nombre)
-        print ('Y su ID es:', proximo.id)
 
         nueva_reserva = Reserva (
             id_cliente = proximo.id,
@@ -353,6 +349,7 @@ def dar_acceso_segun_orden_cola (id_clase):
         return proximo
     except:
         print ("No mandé el mail che")
+        #TODO hacer algo ??? No sé, informar (secundario)
         # Tampoco que me voy a poner a decirle a un cliente que haga algo al respecto. Capaz se puede añadir alguna sección especial cuando se agregue el historial para administradores
     
     return proximo
