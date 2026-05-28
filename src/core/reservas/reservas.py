@@ -60,7 +60,14 @@ class Cola(Base):
     id_cliente: Mapped[int] = mapped_column(ForeignKey("clientes.id"), nullable=False)
 
     cancelada: Mapped[bool] = mapped_column(Boolean, nullable=True, default=False)
+    en_reserva: Mapped[bool] = mapped_column(Boolean, nullable=True, default=False)
 
+    # Relaciones
+    clase: Mapped[list["Clase"]] = relationship(back_populates="colas")
+    cliente: Mapped[list["Cliente"]] = relationship(back_populates="colas")
+
+
+    # Campos de auditoria
     fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
         nullable=False

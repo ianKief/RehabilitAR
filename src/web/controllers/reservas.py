@@ -26,7 +26,8 @@ from src.core.reservas import (
     obtener_cupos_ocupados,
     obtener_ids_clases_encoladas,
     crear_espera_en_cola,
-    obtener_ids_clases_llenas_donde_el_cliente_no_tiene_reserva
+    obtener_ids_clases_llenas_donde_el_cliente_no_tiene_reserva,
+    obtener_colas_cliente
 )
 
 #TODO verificar si cuando un cliente se da de baja de una clase se le da acceso a la persona correcta
@@ -338,13 +339,16 @@ def mis_clases():
         return redirect(url_for("home"))
         
     reservas = obtener_reservas_cliente(usuario_id)
+    colas = obtener_colas_cliente(usuario_id)
     hoy = date.today()
 
     reservas_futuras = [r for r in reservas if r.clase.fecha_clase >= hoy]
     reservas_pasadas = [r for r in reservas if r.clase.fecha_clase < hoy]
     reservas_pasadas.reverse()  # Ordenamos el historial de lo más reciente a lo más antiguo
 
-    return render_template("reservas/mis_clases.html", reservas_futuras=reservas_futuras, reservas_pasadas=reservas_pasadas, hoy=hoy)
+    colas_futuras = [c for c in colas if c.clase.fecha_clase >= hoy]
+
+    return render_template("reservas/mis_clases.html", reservas_futuras=reservas_futuras, reservas_pasadas=reservas_pasadas, colas_futuras=colas_futuras, hoy=hoy)
 
 @reservas_bp.get("/<int:id_clase>/detalle")
 @requiere_rol(["CLIENTE"])
@@ -394,9 +398,12 @@ def cancelar_reserva(id_clase):
         flash("No es posible cancelar clases que ya han comenzado.", "danger")
         return redirect(url_for("reservas.detalle_clase", id_clase=id_clase))
 
-    # Cancelamos la reserva, liberando el cupo inmediatamente
-    cancelar_reserva_core(reserva)
-    tiempo_restante = fecha_hora_clase - ahora
+    try:
+        # Cancelamos la reserva, liberando el cupo inmediatamente
+        cancelar_reserva_core(reserva)
+        tiempo_restante = fecha_hora_clase - ahora
+    except ValueError as e:
+        flash (("Error:", str(e)), "warning")
 
     if clase.tipo == "Fija":
         # Lógicas de la HU "Dar de baja clase fija reservada"

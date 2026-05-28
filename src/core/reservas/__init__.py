@@ -7,6 +7,9 @@ from src.core.reservas.reservas import Reserva, AsistenciaReserva, Cola
 from datetime import date, timedelta
 import calendar
 
+from flask_mail import Message
+from src.web import mail
+
 def listar_clases_disponibles_para_cliente(fecha=None, tipo=None, especialidad=None):
     """
     Retorna las clases disponibles (no suspendidas y aprobadas) con opciones de filtro
@@ -76,6 +79,8 @@ def reactivar_reserva(reserva):
 def cancelar_reserva_core(reserva):
     """Cambia el estado de una reserva a 'cancelada', liberando el cupo."""
     reserva.asiste = AsistenciaReserva.CANCELADA
+    if hay_cola (reserva.id_clase):
+        dar_acceso_segun_orden_cola (reserva.id_clase)
     db.session.commit()
 
 def crear_reserva(id_cliente, id_clase):
@@ -211,6 +216,19 @@ def obtener_reservas_cliente(id_cliente):
     
     return db.session.scalars(query).all()
 
+def obtener_colas_cliente(id_cliente):
+    """
+    Retorna las esperas de un cliente específico, ordenadas por fecha y hora.
+    """
+    query = select(Cola).join(Clase).options(
+        contains_eager(Cola.clase)
+    ).filter(
+        Cola.id_cliente == id_cliente,
+        Cola.cancelada == False
+    ).order_by(Clase.fecha_clase.asc(), Clase.horario.asc())
+    
+    return db.session.scalars(query).all()
+
 def obtener_ids_clases_llenas_donde_el_cliente_no_tiene_reserva (id_cliente):
     
     """NOTA: puede estar en cola. Esa condición se comprueba con otra variante"""
@@ -241,3 +259,62 @@ def devolver_cantidad_esperando_en_cola (clase):
         .filter(Cola.cancelada == False)
         .scalar()
     )
+
+def hay_cola (clase):
+    return devolver_cantidad_esperando_en_cola(clase) > 0
+
+def dar_acceso_segun_orden_cola (clase):
+    try:
+        query = (db.session.query(Cliente, Cola)
+        .join (Cola, Cola.id_cliente == Cliente.id)
+        .filter(Cliente.es_abonado == True)
+        .filter(Cola.cancelada == False)
+        .filter(Cola.id_clase == clase.id)
+        .order_by(Cola.fecha_modificacion.asc())
+        )
+
+        existe_abonado = db.session.query(query.exists()).scalar()
+        if not existe_abonado:
+            query = (db.session.query(Cliente, Cola)
+                .join (Cola, Cola.id_cliente == Cliente.id)
+                .filter(Cliente.es_abonado == False)
+                .filter(Cola.cancelada == False)
+                .filter(Cola.id_clase == clase.id)
+                .order_by(Cola.fecha_modificacion.asc())
+            )
+
+            if not existe_abonado:
+                raise ValueError ("Ha habido un problema en el servidor. Prueba nuevamente")
+        datos = db.session.execute(query).one()
+        proximo = datos[0]
+        cola = datos[1]
+        cola.cancelada = True
+        cola.en_reserva = True
+
+
+        nueva_reserva = Reserva (
+            id_cliente = proximo.id,
+            id_clase = clase.id
+        )
+    except ValueError as e:
+        raise e("Ha habido un error con la base de datos")
+
+    db.session.commit()
+
+    # Sección de enviado de mail
+
+    try:
+
+        body = f"""Hola {proximo.nombre},
+
+            Se le informa que la clase {clase.nombre} de la especialidad {clase.especialidad} ha generado una reserva para usted. En caso de no asistir informe su baja, caso contrario se le harán cargos."""
+        msg = Message(
+            subject="RehabilitAR - Aviso de alta demanda",
+            recipients=[proximo.email]
+        )
+        msg.body = body
+        mail.send(msg)
+        return proximo
+    except:
+        pass
+        # Tampoco que me voy a poner a decirle a un cliente que haga algo al respecto. Capaz se puede añadir alguna sección especial cuando se agregue el historial para administradores
