@@ -7,9 +7,8 @@ from src.core.auth import registrar_cliente as registrar_cliente_core, confirmar
 from src.core.usuarios import obtener_usuario_por_id_core
 from src.core.database import db
 
-from src.core.mail import send_mail
 from src.core.pagos import estado_abono_usuario
-#from src.web import mail
+from src.web import mail
 
 # Creamos el Blueprint llamado 'auth'
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -41,7 +40,14 @@ def registrar_cliente():
         
         # 2. Validar mayoría de edad
         today = datetime.now()
-        birthdate = datetime.strptime(fecha_nacimiento, '%Y-%m-%d')
+        try:
+            birthdate = datetime.strptime(fecha_nacimiento, '%Y-%m-%d')
+        except ValueError:
+            return render_template('auth/registro.html', error="Formato de fecha de nacimiento inválido.")
+        
+        if birthdate.year < 1900:
+            return render_template('auth/registro.html', error="El año de nacimiento debe ser 1900 o posterior.")
+        
         age = (today - birthdate).days // 365
         if age < 18:
             return render_template('auth/registro.html', error="Debes ser mayor de edad para registrarte.")
@@ -103,12 +109,11 @@ def registrar_cliente():
                     Saludos,
                     El equipo de RehabilitAR."""
 
-            send_mail(msg)
-
-            db.session.commit()
+            mail.send(msg)
             
             session['verificacion_user_id'] = nuevo_cliente.id
             session['verificacion_origen'] = 'registro'
+            db.session.commit()
             return redirect(url_for('auth.verificar'))
         except ValueError as e:
             db.session.rollback()
@@ -164,7 +169,7 @@ def login():
             Por razones de seguridad, este código expirará en 15 minutos.
             Si no solicitaste este inicio de sesión, por favor ignora este correo."""
 
-            send_mail(msg)
+            mail.send(msg)
 
             db.session.commit()
 
