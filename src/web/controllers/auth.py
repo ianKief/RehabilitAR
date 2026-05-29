@@ -21,7 +21,10 @@ def registrar_cliente():
         nombre = request.form.get('nombre')
         apellido = request.form.get('apellido')
         dni = request.form.get('dni')
-        telefono = request.form.get('telefono')
+
+        cod_area = request.form.get('cod_area')
+        num = request.form.get('num')
+        telefono = f"{cod_area}{num}" if cod_area and num else None
         fecha_nacimiento = request.form.get('fecha_nacimiento')
         direccion = request.form.get('direccion')
         email = request.form.get('email')
