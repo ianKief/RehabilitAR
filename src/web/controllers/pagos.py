@@ -5,8 +5,12 @@ from src.core.pagos import procesar_mercado_pago_webhook,calcular_valor_abono
 from flask import session
 from src.web.helpers.decorator import requiere_rol
 from src.core.database import db
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from src.core.pagos import PrecioClase
+from src.core.pagos import Pago
+
 
 bp = Blueprint("pagos", __name__)
 
@@ -89,4 +93,25 @@ def precio_clase():
     return render_template(
         "pagos/precio_clase.html",
         precio=precio_actual
+    )
+
+
+@bp.route("/historial-pagos")
+@requiere_rol(["CLIENTE"])
+def historial_pagos():
+
+    user_id = session.get("usuario_id")
+
+    stmt = (
+    select(Pago)
+    .options(selectinload(Pago.detalle_pago))
+    .where(Pago.id_cliente == user_id)
+    .order_by(Pago.fecha_creacion.desc())
+)
+
+    pagos = db.session.execute(stmt).scalars().all()
+
+    return render_template(
+        "pagos/historial_pagos.html",
+        pagos=pagos
     )

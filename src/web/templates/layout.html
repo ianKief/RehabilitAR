@@ -239,6 +239,12 @@
                                         <span class="icon mr-2"><i class="fas fa-chalkboard-user"></i></span>Mis Clases
                                     </a>
                                 </li>
+                                <li>
+                                    <a href="{{ url_for('pagos.historial_pagos') }}"
+                                        class="py-2.5 px-3 {% if request.path.startswith('/pagos/historial') %}menu-item-active{% endif %}">
+                                        <span class="icon mr-2"><i class="fas fa-receipt"></i></span>Historial de Pagos
+                                    </a>
+                                </li>
                             {% endif %}
                             <!-- Agrega más enlaces según sea necesario -->
                         </ul>
