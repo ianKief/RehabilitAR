@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import aliased
 
 from datetime import timedelta
+from pagos import obtener_precio_clase_actual
 
 "Reglas"
 #R1: la activacion del abono dura un mes, si la fecha contr. es 31 -> dura hasta el ult. dia del sig. mes 
