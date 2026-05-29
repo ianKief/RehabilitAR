@@ -53,7 +53,7 @@ def registrar_cliente():
         nombre_archivo_apto = None
         if apto_fisico and apto_fisico.filename != '':
             allowed_extensions = ['pdf', 'jpeg', 'jpg', 'png']
-            if not apto_fisico.filename.lower().endswith((allowed_extensions)):
+            if not apto_fisico.filename.lower().endswith(tuple(allowed_extensions)):
                 return render_template('auth/registro.html', error="El archivo de apto físico debe ser PDF, JPEG o PNG.")
             
             nombre_archivo_apto = secure_filename(apto_fisico.filename)
@@ -106,6 +106,7 @@ def registrar_cliente():
             return render_template('auth/registro.html', error=str(e))
         except Exception as e:
             db.session.rollback()
+            print(f"Error inesperado durante el registro: {e}")
             return render_template('auth/registro.html', error="Ocurrió un error inesperado. Por favor, intente nuevamente.")
 
     # Si es un GET (el usuario recién entra a la página), mostramos el formulario
