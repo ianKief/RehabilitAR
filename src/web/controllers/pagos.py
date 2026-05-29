@@ -33,20 +33,18 @@ def suscripcion():
 #pantalla mostrada cuando el pago fue exitoso
 @bp.route("/contratar_abono/pago_exitoso")
 def pago_exitoso():
-    return render_template("contratar_abono/pago_exitoso.html")
-
+    return render_template("pagos/pago_exitoso.html")
 
 
 #pantalla mostrada cuando el pago falló
 @bp.route("/contratar_abono/pago_fallido")
 def pago_fallido():
-    return render_template("contratar_abono/pago_fallido.html")
-
+    return render_template("pagos/pago_fallido.html")
 
 #pantalla mostrada cuando el pago queda pendiente
 @bp.route("/contratar_abono/pago_pendiente")
 def pago_pendiente():
-    return render_template("contratar_abono/pago_pendiente.html")
+    return render_template("pagos/pago_pendiente.html")
 
 # webhook utilizado por Mercado Pago para notificar pagos
 @bp.route("/webhook", methods=["POST"])

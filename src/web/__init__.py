@@ -1,10 +1,11 @@
 import os
-from flask import Flask, request,render_template
+from flask import Flask, request,render_template,session
 from flask_mail import Mail
 from src.web.config import config
 from src.core.database import init_db, reset_db, seed_db
 import mercadopago
 from src.web.handlers import error
+from src.core.pagos import estado_abono_usuario
 
 """
 Las importaciones de src.web.controllers deben hacerse dentro de create_app() para evitar problemas de importación circular. 
@@ -68,6 +69,8 @@ def create_app():
 
     @app.route("/")
     def home():
-        return render_template("home.html", current_path=request.path)
+        user_id = session.get("usuario_id")
+        estado = estado_abono_usuario(user_id)
+        return render_template("home.html", current_path=request.path,estado_abono=estado)
 
     return app

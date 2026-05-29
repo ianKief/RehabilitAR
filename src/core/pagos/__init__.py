@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import aliased
 
 from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago,Abono
-from src.core.usuarios import Usuario
+from src.core.usuarios.usuarios import Usuario
 from src.core.database import db
 
 from datetime import timedelta
@@ -52,6 +52,17 @@ def calcular_valor_abono(dia_semana_elegido):
 
     return valor
 
+
+def estado_abono_usuario(user_id):
+
+    abono = (
+        db.session.query(Abono)
+        .filter(Abono.id_cliente == user_id)
+        .order_by(Abono.fecha_fin.desc())
+        .first()
+    )
+
+    return estado_abono(abono)
 
 
 def obtener_info_descuento(abono):
@@ -203,9 +214,12 @@ def registrar_pago_desde_payment(payment_id,payment):
 
     if tipo == "renovacion":
         renovar_abono(user_id,dia_fijo)
-        return
-    
-    registrar_abono(user_id,pago.id,dia_fijo)
+    else:
+        registrar_abono(user_id,pago.id,dia_fijo)
+
+    usuario.es_abonado = True
+
+    db.session.commit()
 
 
 
@@ -248,7 +262,7 @@ def procesar_mercado_pago_webhook(data,sdk):
 
 
 
-#cosas a luego implementar
+#cosas que implementare mas adelante
 
 
 
