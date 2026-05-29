@@ -75,9 +75,10 @@
                         <div class="field">
                             <label class="label">Fecha de Nacimiento</label>
                             <div class="control has-icons-left">
-                                <input class="input" type="date" id="fecha_nacimiento" name="fecha_nacimiento" max="9999-12-31" required>
+                                <input class="input" type="date" id="fecha_nacimiento" name="fecha_nacimiento" min="1900-01-01" required>
                                 <span class="icon is-small is-left"><i class="fas fa-calendar-alt"></i></span>
                             </div>
+                            <p class="help is-danger is-hidden" id="error-fecha"></p>
                         </div>
                     </div>
 
@@ -160,17 +161,43 @@
         }
 
         // ==========================================
-        // 2. FECHA DE NACIMIENTO (Límite 18 años)
+        // 2. FECHA DE NACIMIENTO (Calendario nativo, +18 y >1900)
         // ==========================================
         const fechaInput = document.getElementById('fecha_nacimiento');
+        const errorFecha = document.getElementById('error-fecha');
+
         if (fechaInput) {
-            // Calculamos exactamente la fecha de hoy pero 18 años atrás
+            // A. Restringir el calendario visualmente
             const hoy = new Date();
             const hace18Anios = new Date(hoy.getFullYear() - 18, hoy.getMonth(), hoy.getDate());
             
-            // Formateamos a YYYY-MM-DD para el input y lo asignamos como límite máximo
+            // Establecemos el atributo 'max' (hasta hoy hace 18 años)
             const maxDate = hace18Anios.toISOString().split('T')[0];
             fechaInput.setAttribute('max', maxDate);
+
+            // B. Validación extra por si el usuario tipea directamente en vez de usar el calendario
+            fechaInput.addEventListener('change', function(e) {
+                if (!e.target.value) return;
+
+                const selectedDate = new Date(e.target.value);
+                
+                if (selectedDate.getFullYear() < 1900) {
+                    if (errorFecha) {
+                        errorFecha.textContent = "El año de nacimiento debe ser 1900 o posterior.";
+                        errorFecha.classList.remove('is-hidden');
+                    }
+                    fechaInput.classList.add('is-danger');
+                } else if (selectedDate > hace18Anios) {
+                    if (errorFecha) {
+                        errorFecha.textContent = "Debes ser mayor de 18 años para registrarte.";
+                        errorFecha.classList.remove('is-hidden');
+                    }
+                    fechaInput.classList.add('is-danger');
+                } else {
+                    if (errorFecha) errorFecha.classList.add('is-hidden');
+                    fechaInput.classList.remove('is-danger');
+                }
+            });
         }
 
         // ==========================================
@@ -181,14 +208,12 @@
         const telHelp = document.getElementById('telefono-help');
 
         function actualizarTelefono() {
-            // Evitamos que tipee letras
             codAreaInput.value = codAreaInput.value.replace(/\D/g, '');
             numLocalInput.value = numLocalInput.value.replace(/\D/g, '');
 
             const codLen = codAreaInput.value.length;
             
             if (codLen >= 2) {
-                // Si el área tiene 3 (ej: 221), el local máximo es 7. Si área es 2 (11), local es 8.
                 const maxLocal = 10 - codLen;
                 numLocalInput.setAttribute('maxlength', maxLocal);
                 
@@ -201,7 +226,7 @@
                     telHelp.textContent = `Faltan ${10 - total} dígitos para completar los 10 requeridos.`;
                 }
             } else {
-                numLocalInput.setAttribute('maxlength', 8); // Por defecto
+                numLocalInput.setAttribute('maxlength', 8); 
                 telHelp.className = 'help';
                 telHelp.textContent = 'Ingrese su código de área primero.';
             }
