@@ -7,9 +7,8 @@ from src.core.auth import registrar_cliente as registrar_cliente_core, confirmar
 from src.core.usuarios import obtener_usuario_por_id_core
 from src.core.database import db
 
-from src.core.mail import send_mail
 from src.core.pagos import estado_abono_usuario
-#from src.web import mail
+from src.web import mail
 
 # Creamos el Blueprint llamado 'auth'
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -24,7 +23,10 @@ def registrar_cliente():
         nombre = request.form.get('nombre')
         apellido = request.form.get('apellido')
         dni = request.form.get('dni')
-        telefono = request.form.get('telefono')
+
+        cod_area = request.form.get('cod_area')
+        num = request.form.get('num')
+        telefono = f"{cod_area}{num}" if cod_area and num else None
         fecha_nacimiento = request.form.get('fecha_nacimiento')
         direccion = request.form.get('direccion')
         email = request.form.get('email')
@@ -38,7 +40,14 @@ def registrar_cliente():
         
         # 2. Validar mayoría de edad
         today = datetime.now()
-        birthdate = datetime.strptime(fecha_nacimiento, '%Y-%m-%d')
+        try:
+            birthdate = datetime.strptime(fecha_nacimiento, '%Y-%m-%d')
+        except ValueError:
+            return render_template('auth/registro.html', error="Formato de fecha de nacimiento inválido.")
+        
+        if birthdate.year < 1900:
+            return render_template('auth/registro.html', error="El año de nacimiento debe ser 1900 o posterior.")
+        
         age = (today - birthdate).days // 365
         if age < 18:
             return render_template('auth/registro.html', error="Debes ser mayor de edad para registrarte.")
@@ -54,17 +63,16 @@ def registrar_cliente():
 
         # 5. Validar que el archivo de apto físico sea del tipo permitido
         nombre_archivo_apto = None
+        ruta_completa_archivo = None
+        ruta_destino = os.path.join(os.getcwd(), 'src', 'web', 'static', 'uploads', 'aptos_fisicos')
+
         if apto_fisico and apto_fisico.filename != '':
             allowed_extensions = ['pdf', 'jpeg', 'jpg', 'png']
-            if not apto_fisico.filename.lower().endswith((allowed_extensions)):
+            if not apto_fisico.filename.lower().endswith(tuple(allowed_extensions)):
                 return render_template('auth/registro.html', error="El archivo de apto físico debe ser PDF, JPEG o PNG.")
             
-            nombre_archivo_apto = secure_filename(apto_fisico.filename)
-            ruta_destino = os.path.join(os.getcwd(), 'src', 'web', 'static', 'uploads', 'aptos_fisicos')
-
-            os.makedirs(ruta_destino, exist_ok=True)
-
-            apto_fisico.save(os.path.join(ruta_destino, nombre_archivo_apto))
+            nombre_archivo_apto = f"{dni}_{secure_filename(apto_fisico.filename)}"
+            ruta_completa_archivo = os.path.join(ruta_destino, nombre_archivo_apto)
         
         # Si todo está bien, se registra al cliente dejanlo pendiente de verificación
         try:
@@ -79,6 +87,10 @@ def registrar_cliente():
                 password=password,
                 nombre_archivo_apto=nombre_archivo_apto
             )
+
+            if nombre_archivo_apto and ruta_completa_archivo:
+                os.makedirs(ruta_destino, exist_ok=True)
+                apto_fisico.save(ruta_completa_archivo)
 
             msg = Message(
                 subject="RehabilitAR - Código de Verificación",
@@ -97,18 +109,20 @@ def registrar_cliente():
                     Saludos,
                     El equipo de RehabilitAR."""
 
-            send_mail(msg)
-
-            db.session.commit()
+            mail.send(msg)
             
             session['verificacion_user_id'] = nuevo_cliente.id
             session['verificacion_origen'] = 'registro'
+            db.session.commit()
             return redirect(url_for('auth.verificar'))
         except ValueError as e:
             db.session.rollback()
             return render_template('auth/registro.html', error=str(e))
         except Exception as e:
             db.session.rollback()
+            print(f"Error inesperado durante el registro: {e}")
+            if ruta_completa_archivo and os.path.exists(ruta_completa_archivo):
+                os.remove(ruta_completa_archivo)
             return render_template('auth/registro.html', error="Ocurrió un error inesperado. Por favor, intente nuevamente.")
 
     # Si es un GET (el usuario recién entra a la página), mostramos el formulario
@@ -155,7 +169,7 @@ def login():
             Por razones de seguridad, este código expirará en 15 minutos.
             Si no solicitaste este inicio de sesión, por favor ignora este correo."""
 
-            send_mail(msg)
+            mail.send(msg)
 
             db.session.commit()
 

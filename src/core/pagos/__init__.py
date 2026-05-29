@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import aliased
 
 from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago,Abono
-from src.core.usuarios.usuarios import Usuario
+from src.core.usuarios.usuarios import Usuario, Cliente, EstadoUsuario
 from src.core.database import db
 
 from datetime import timedelta
@@ -282,7 +282,38 @@ def actualizar_precio(nuevo_precio):
     db.session.commit()
 
 
-
+def bloquear_morosos_abono():
+    """
+    Bloquea a los clientes abonados cuyo abono esté vencido.
+    Diseñado para ejecutarse el día 11 de cada mes.
+    """
+    hoy = date.today()
+    
+    # Control de seguridad: Si no es el día 11, no hacemos nada
+    if hoy.day != 11:
+        return 0 
+        
+    # Buscamos a todos los clientes activos que sean abonados
+    stmt = (
+        select(Cliente)
+        .filter(Cliente.es_abonado == True)
+        .filter(Cliente.estado == EstadoUsuario.ACTIVO)
+    )
+    clientes_abonados = db.session.execute(stmt).scalars().all()
+    
+    bloqueados = 0
+    
+    for cliente in clientes_abonados:
+        estado_actual = estado_abono_usuario(cliente.id)
+        
+        # Si su último abono ya venció o no tiene, se lo bloquea
+        if estado_actual in ["vencido", "sin_abono"]:
+            cliente.estado = EstadoUsuario.BLOQUEADO
+            cliente.es_abonado = False
+            bloqueados += 1
+            
+    db.session.commit()
+    return bloqueados
 
 
 
