@@ -12,7 +12,7 @@
         <h1 class="title is-3 mb-2">Bienvenido a RehabilitAR</h1>
         <p class="subtitle is-6 has-text-grey">Tu panel de control y resumen de actividad</p>
     </div>
-    {% if session.get('rol') == 'CLIENTE' %}
+    {% if rol == 'cliente' %}
     {% if estado_abono == "activo" %}
     <div class="box mb-5">
         <div class="columns is-vcentered">

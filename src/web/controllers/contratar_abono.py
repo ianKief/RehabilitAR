@@ -1,6 +1,6 @@
 from datetime import date
 from src.web.controllers.pagos import crear_preferencia_mp
-from flask import Blueprint, request, current_app, redirect
+from flask import Blueprint, request, current_app, redirect,flash,url_for
 from flask import session
 from src.core.pagos import estado_abono,obtener_ultimo_abono,calcular_valor_abono
 
@@ -24,7 +24,8 @@ def contratar_abono_route():
     abono = obtener_ultimo_abono(user_id)
 
     if abono and estado_abono(abono) == "activo":
-        return "Ya tenes un abono activo"
+        flash("Ya tenés un abono activo", "warning")
+        return redirect(url_for("home"))
     
     #crea la preferencia de pago en Mercado Pago
     resultado = calcular_contratacion_abono(dia_semana_elegido, sdk,user_id)
