@@ -130,7 +130,7 @@ class Abono(Base):
     fecha_fin: Mapped[datetime] = mapped_column(DateTime,nullable=False)
 
 class PrecioAbono(Base):
-    __tablename__ = "precio_clase"
+    __tablename__ = "precio_abono"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     precio: Mapped[int] = mapped_column(Integer, nullable=False)
     fecha_creacion: Mapped[datetime] = mapped_column(
