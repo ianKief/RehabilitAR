@@ -6,7 +6,10 @@ from werkzeug.utils import secure_filename
 from src.core.auth import registrar_cliente as registrar_cliente_core, confirmar_codigo as confirmar_codigo_core, login as login_core
 from src.core.usuarios import obtener_usuario_por_id_core
 from src.core.database import db
-from src.web import mail
+
+from src.core.mail import send_mail
+from src.core.pagos import estado_abono_usuario
+#from src.web import mail
 
 # Creamos el Blueprint llamado 'auth'
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -97,7 +100,7 @@ def registrar_cliente():
                     Saludos,
                     El equipo de RehabilitAR."""
 
-            mail.send(msg)
+            send_mail(msg)
 
             db.session.commit()
             
@@ -139,6 +142,8 @@ def login():
                 session.permanent = True
                 session['usuario_id'] = usuario.id
                 session['rol'] = usuario.rol.name
+                # esto de abajo sirve para que cada vez que inicia sesion verifique que el abono no se haya vencido
+                usuario.es_abonado = estado_abono_usuario(usuario.id) == "activo"
                 flash("¡Bienvenido! (Verificación omitida para pruebas)", "success")
                 return redirect(url_for('home'))
 
@@ -154,7 +159,7 @@ def login():
             Por razones de seguridad, este código expirará en 15 minutos.
             Si no solicitaste este inicio de sesión, por favor ignora este correo."""
 
-            mail.send(msg)
+            send_mail(msg)
 
             db.session.commit()
 

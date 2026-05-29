@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+
+{% block title %}Historial de Pagos{% endblock %}
+
+{% block content %}
+
+<h1 class="title is-4 mb-4">Historial de pagos</h1>
+
+{% if pagos %}
+
+<table class="table is-fullwidth is-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Monto</th>
+            <th>Estado</th>
+            <th>Fecha</th> 
+            <th>Motivo</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for pago in pagos %}
+        <tr>
+            <td>#{{ pago.id }}</td>
+            <td>${{ pago.monto_total }}</td>
+            <td>
+                {% if pago.estado_pago.name == "COMPLETADO" %}
+                    <span class="tag is-success">Completado</span>
+                {% else %}
+                    <span class="tag is-warning">Pendiente</span>
+                {% endif %}
+            </td>
+            <td>{{ pago.fecha_creacion.strftime('%d/%m/%Y') }}</td>
+            <td>
+                {% if pago.detalle_pago and pago.detalle_pago|length > 0 %}
+                    {{ pago.detalle_pago[0].concepto_pago.value.replace('_', ' ').capitalize() }}
+                {% else %}
+                    Sin detalle
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% else %}
+
+<div class="notification is-info">
+    No tenés pagos registrados todavía.
+</div>
+
+{% endif %}
+
+{% endblock %}

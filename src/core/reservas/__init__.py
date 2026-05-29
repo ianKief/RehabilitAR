@@ -8,7 +8,8 @@ from datetime import date, timedelta
 import calendar
 
 from flask_mail import Message
-from src.web import mail
+from src.core.mail import send_mail
+#from src.web import mail
 
 def listar_clases_disponibles_para_cliente(fecha=None, tipo=None, especialidad=None):
     """
@@ -345,7 +346,7 @@ def dar_acceso_segun_orden_cola (id_clase):
             recipients=[proximo.email]
         )
         msg.body = body
-        mail.send(msg)
+        send_mail(msg)
         return proximo
     except:
         print ("No mandé el mail che")

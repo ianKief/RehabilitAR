@@ -1,0 +1,48 @@
+
+
+{% extends "layout.html" %}
+
+{% block title %}Pago Rechazado{% endblock %}
+
+{% block content %}
+
+<div class="columns is-centered">
+
+    <div class="column is-6">
+
+        <div class="box has-text-centered">
+
+            <span class="icon has-text-danger is-large">
+                <i class="fas fa-times-circle fa-3x"></i>
+            </span>
+
+            <h1 class="title mt-4">
+                Pago rechazado
+            </h1>
+
+            <p class="subtitle has-text-grey">
+                No se pudo completar el pago del abono mensual.
+            </p>
+
+            <p class="mb-5">
+                Verificá los datos ingresados o intentá nuevamente con otro medio de pago.
+            </p>
+
+            <div class="buttons is-centered">
+
+                <a href="{{ url_for('pagos.suscripcion') }}" class="button is-warning">
+                    Reintentar Pago
+                </a>                    
+                <a href="/" class="button is-light">
+                    Volver al Inicio
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
