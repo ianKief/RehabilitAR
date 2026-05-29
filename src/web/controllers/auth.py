@@ -57,17 +57,16 @@ def registrar_cliente():
 
         # 5. Validar que el archivo de apto físico sea del tipo permitido
         nombre_archivo_apto = None
+        ruta_completa_archivo = None
+        ruta_destino = os.path.join(os.getcwd(), 'src', 'web', 'static', 'uploads', 'aptos_fisicos')
+
         if apto_fisico and apto_fisico.filename != '':
             allowed_extensions = ['pdf', 'jpeg', 'jpg', 'png']
             if not apto_fisico.filename.lower().endswith(tuple(allowed_extensions)):
                 return render_template('auth/registro.html', error="El archivo de apto físico debe ser PDF, JPEG o PNG.")
             
-            nombre_archivo_apto = secure_filename(apto_fisico.filename)
-            ruta_destino = os.path.join(os.getcwd(), 'src', 'web', 'static', 'uploads', 'aptos_fisicos')
-
-            os.makedirs(ruta_destino, exist_ok=True)
-
-            apto_fisico.save(os.path.join(ruta_destino, nombre_archivo_apto))
+            nombre_archivo_apto = f"{dni}_{secure_filename(apto_fisico.filename)}"
+            ruta_completa_archivo = os.path.join(ruta_destino, nombre_archivo_apto)
         
         # Si todo está bien, se registra al cliente dejanlo pendiente de verificación
         try:
@@ -82,6 +81,10 @@ def registrar_cliente():
                 password=password,
                 nombre_archivo_apto=nombre_archivo_apto
             )
+
+            if nombre_archivo_apto and ruta_completa_archivo:
+                os.makedirs(ruta_destino, exist_ok=True)
+                apto_fisico.save(ruta_completa_archivo)
 
             msg = Message(
                 subject="RehabilitAR - Código de Verificación",
@@ -113,6 +116,8 @@ def registrar_cliente():
         except Exception as e:
             db.session.rollback()
             print(f"Error inesperado durante el registro: {e}")
+            if ruta_completa_archivo and os.path.exists(ruta_completa_archivo):
+                os.remove(ruta_completa_archivo)
             return render_template('auth/registro.html', error="Ocurrió un error inesperado. Por favor, intente nuevamente.")
 
     # Si es un GET (el usuario recién entra a la página), mostramos el formulario
