@@ -2,6 +2,7 @@ from sqlalchemy import func, text, or_, select, cast, Integer, and_, case
 from sqlalchemy.orm import aliased
 
 from flask_mail import Message
+from src.core.mail import send_mail
 #from src.web import mail
 
 from src.core.database import db
@@ -231,8 +232,8 @@ def informar_alta_demanda (clase):
                         recipients=[admin.email]
                     )
             msg.body = body
+            send_mail(msg)
             #mail.send(msg)
-            mail = None
     except ValueError as e:
         clase.aviso_alta_demanda = False
 # Tampoco voy a informar al cliente del problema, mejor guardar el aviso para una próxima ocasión

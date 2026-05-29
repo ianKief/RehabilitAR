@@ -71,6 +71,6 @@ def create_app():
     def home():
         user_id = session.get("usuario_id")
         estado = estado_abono_usuario(user_id)
-        return render_template("home.html", current_path=request.path,estado_abono=estado)
+        return render_template("home.html", current_path=request.path,estado_abono=estado,rol=session.get("rol"))
 
     return app

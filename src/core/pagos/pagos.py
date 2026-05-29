@@ -108,13 +108,11 @@ class Beneficio (Base):
 class PrecioClase(Base):
     __tablename__ = "precio_clase"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    fecha_hasta: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     precio: Mapped[int] = mapped_column(Integer, nullable=False)
-
     fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
         nullable=False
-    )
+    ) 
 
 
 #elvis
@@ -128,12 +126,3 @@ class Abono(Base):
     dia_fijo: Mapped[int] = mapped_column(Integer, nullable=False)
     fecha_inicio: Mapped[datetime] = mapped_column(DateTime,nullable=False)
     fecha_fin: Mapped[datetime] = mapped_column(DateTime,nullable=False)
-
-class PrecioAbono(Base):
-    __tablename__ = "precio_abono"
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    precio: Mapped[int] = mapped_column(Integer, nullable=False)
-    fecha_creacion: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
-        nullable=False
-    )

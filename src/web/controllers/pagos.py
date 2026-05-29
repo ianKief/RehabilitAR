@@ -1,11 +1,12 @@
 #importo herramientas
 from flask import Blueprint, jsonify, current_app
-from flask import request
-from flask import render_template
-from flask import redirect
+from flask import request,render_template, redirect,url_for, flash
 from src.core.pagos import procesar_mercado_pago_webhook,calcular_valor_abono
 from flask import session
+from src.web.helpers.decorator import requiere_rol
+from src.core.database import db
 
+from src.core.pagos import PrecioClase
 
 bp = Blueprint("pagos", __name__)
 
@@ -17,6 +18,7 @@ def crear_preferencia_mp(sdk, preference_data):
 
 #pantalla principal de suscripción
 @bp.route("/contratar_abono/suscripcion")
+@requiere_rol(["CLIENTE"])
 def suscripcion():
 
     precios = {}
@@ -58,3 +60,33 @@ def webhook():
     procesar_mercado_pago_webhook(data,sdk)
     print("termine webhook")
     return "OK", 200
+
+@bp.route("/admin/precio-clase", methods=["GET", "POST"])
+@requiere_rol(["ADMINISTRADOR"])
+def precio_clase():
+
+    if request.method == "POST":
+        nuevo_precio = request.form.get("precio")
+
+        if not nuevo_precio:
+            flash("Debes ingresar un precio", "danger")
+            return redirect(url_for("pagos.precio_clase"))
+
+        precio = PrecioClase(precio=int(nuevo_precio))
+        db.session.add(precio)
+        db.session.commit()
+
+        flash("Precio actualizado correctamente", "success")
+        return redirect(url_for("pagos.precio_clase"))
+
+    # GET -> traer último precio
+    precio_actual = (
+        db.session.query(PrecioClase)
+        .order_by(PrecioClase.fecha_creacion.desc())
+        .first()
+    )
+
+    return render_template(
+        "pagos/precio_clase.html",
+        precio=precio_actual
+    )

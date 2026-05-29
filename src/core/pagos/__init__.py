@@ -12,7 +12,7 @@ from datetime import timedelta
 
 from flask import current_app
 
-"Reglas"
+"contratar abono primera vez"
 #R1: la activacion del abono dura un mes, si la fecha contr. es 31 -> dura hasta el ult. dia del sig. mes 
 def duracion_abono_mensual(fecha_contratacion:date):
     nueva_fecha=fecha_contratacion+relativedelta(months=1)
@@ -65,6 +65,24 @@ def estado_abono_usuario(user_id):
     return estado_abono(abono)
 
 
+def estado_abono(abono):
+
+    if not abono:
+        return "sin_abono"
+
+    hoy = datetime.today()
+
+    # vencido
+    if abono.fecha_fin < hoy:
+        return "vencido"
+
+    # opcional futuro (si lo usás más adelante)
+    if abono.fecha_fin < hoy - timedelta(days=10):
+        return "suspendido"
+
+    return "activo"
+
+
 def obtener_info_descuento(abono):
     
     usuario = db.session.get(Usuario, abono.id_cliente)
@@ -99,17 +117,14 @@ def obtener_info_descuento(abono):
 def obtener_precio_clase_actual():
     stmt = (
         select(PrecioClase)
-        .where(
-            PrecioClase.fecha_hasta == None
-        )
         .order_by(PrecioClase.fecha_creacion.desc())
+        .limit(1)
     )
 
     precio = db.session.execute(stmt).scalars().first()
 
-    #momentaneo->crear funcion admin para agregar precio a la clase.
     if not precio:
-        return 100
+        return 100  # fallback
 
     return precio.precio
 
@@ -213,7 +228,8 @@ def registrar_pago_desde_payment(payment_id,payment):
 
 
     if tipo == "renovacion":
-        renovar_abono(user_id,dia_fijo)
+       # renovar_abono(user_id,dia_fijo)
+       print ("renovar")
     else:
         registrar_abono(user_id,pago.id,dia_fijo)
 
@@ -247,10 +263,23 @@ def procesar_mercado_pago_webhook(data,sdk):
 
 
 
+"precio clase"
+def obtener_precio_actual():
+    return (
+        db.session.query(PrecioClase)
+        .order_by(PrecioClase.fecha_creacion.desc())
+        .first()
+    )
+
+def obtener_valor_actual():
+    precio = obtener_precio_actual()
+    return precio.precio if precio else 0
 
 
-
-
+def actualizar_precio(nuevo_precio):
+    precio = PrecioClase(precio=nuevo_precio)
+    db.session.add(precio)
+    db.session.commit()
 
 
 
@@ -266,133 +295,133 @@ def procesar_mercado_pago_webhook(data,sdk):
 
 
 
-def abono_esta_activo(abono):
-    if not abono:
-        return False
+# def abono_esta_activo(abono):
+#     if not abono:
+#         return False
 
-    return abono.activo and abono.fecha_fin >= datetime.today()
+#     return abono.activo and abono.fecha_fin >= datetime.today()
 
-def usuario_tiene_abono_activo(user_id):
+# def usuario_tiene_abono_activo(user_id):
 
-    stmt = (
-        select(Abono)
-        .where(Abono.id_cliente == user_id)
-        .order_by(Abono.fecha_fin.desc())
-    )
+#     stmt = (
+#         select(Abono)
+#         .where(Abono.id_cliente == user_id)
+#         .order_by(Abono.fecha_fin.desc())
+#     )
 
-    abono = db.session.execute(stmt).scalars().first()
+#     abono = db.session.execute(stmt).scalars().first()
 
-    if not abono or estado_abono(abono) == "suspendido":
-        return False
+#     if not abono or estado_abono(abono) == "suspendido":
+#         return False
 
-    return estado_abono(abono) == "activo"
+#     return estado_abono(abono) == "activo"
 
-def calcular_monto_renovacion(abono,dia_fijo,descuento_usuario=0.0):
-    valor_clase = obtener_precio_clase_actual()
+# def calcular_monto_renovacion(abono,dia_fijo,descuento_usuario=0.0):
+#     valor_clase = obtener_precio_clase_actual()
 
-    fecha_actual = date.today()
+#     fecha_actual = date.today()
 
-    fecha_fin = duracion_abono_mensual(
-        fecha_actual
-    )
+#     fecha_fin = duracion_abono_mensual(
+#         fecha_actual
+#     )
 
-    dias = contar_dias_semana(
-        dia_fijo,
-        fecha_actual,
-        fecha_fin
-    )
+#     dias = contar_dias_semana(
+#         dia_fijo,
+#         fecha_actual,
+#         fecha_fin
+#     )
     
-    descuento_base=calcular_descuento_automatico(dias)
+#     descuento_base=calcular_descuento_automatico(dias)
 
-    descuento_total=calcular_descuento_total(descuento_base,descuento_usuario)
+#     descuento_total=calcular_descuento_total(descuento_base,descuento_usuario)
 
-    valor_total = valor_abono_mensual(dias,valor_clase)*(1-descuento_total)
+#     valor_total = valor_abono_mensual(dias,valor_clase)*(1-descuento_total)
 
-    return valor_total
+#     return valor_total
 
-def validar_descuento_usuario(descuento_usuario):
-    if descuento_usuario < 0:
-        return 0.0
-    if descuento_usuario > 0.30:
-        return 0.30
-    return descuento_usuario
-
-
-def calcular_descuento_total(descuento_auto, descuento_usuario):
-    descuento_usuario = validar_descuento_usuario(descuento_usuario)
-
-    total = descuento_auto + descuento_usuario
-
-    if total > 0.30:
-        total = 0.30
-
-    return total
+# def validar_descuento_usuario(descuento_usuario):
+#     if descuento_usuario < 0:
+#         return 0.0
+#     if descuento_usuario > 0.30:
+#         return 0.30
+#     return descuento_usuario
 
 
+# def calcular_descuento_total(descuento_auto, descuento_usuario):
+#     descuento_usuario = validar_descuento_usuario(descuento_usuario)
 
-def renovar_abono(id_cliente,dia_fijo):
+#     total = descuento_auto + descuento_usuario
+
+#     if total > 0.30:
+#         total = 0.30
+
+#     return total
+
+
+
+# def renovar_abono(id_cliente,dia_fijo):
     
-    # busca el ultimo abono del usuario
-    abono = db.session.execute(
-        select(Abono)
-        .where(Abono.id_cliente == id_cliente)
-        .order_by(Abono.fecha_fin.desc())
-    ).scalars().first()
+#     # busca el ultimo abono del usuario
+#     abono = db.session.execute(
+#         select(Abono)
+#         .where(Abono.id_cliente == id_cliente)
+#         .order_by(Abono.fecha_fin.desc())
+#     ).scalars().first()
     
-    #validar si se puede renovar
-    if not abono or not puede_renovar(abono):
-        return False
+#     #validar si se puede renovar
+#     if not abono or not puede_renovar(abono):
+#         return False
 
-    #extiende la fecha
-    abono.fecha_fin = abono.fecha_fin + relativedelta(months=1)    
+#     #extiende la fecha
+#     abono.fecha_fin = abono.fecha_fin + relativedelta(months=1)    
     
-    abono.dia_fijo=dia_fijo
+#     abono.dia_fijo=dia_fijo
 
-    #Reactiva el abono
-    abono.activo = True
+#     #Reactiva el abono
+#     abono.activo = True
 
-    #guarda cambios
-    db.session.commit()
-    return True
+#     #guarda cambios
+#     db.session.commit()
+#     return True
 
-def iniciar_renovacion_abono(user_id):
-    abono = obtener_ultimo_abono(user_id)
+# def iniciar_renovacion_abono(user_id):
+#     abono = obtener_ultimo_abono(user_id)
 
-    if not abono or not puede_renovar(abono):
-        return None
+#     if not abono or not puede_renovar(abono):
+#         return None
     
 
-    monto = calcular_monto_renovacion(abono)
+#     monto = calcular_monto_renovacion(abono)
 
-    return {
-        "user_id": user_id,
-        "abono_id": abono.id,
-        "monto": monto
-    }
+#     return {
+#         "user_id": user_id,
+#         "abono_id": abono.id,
+#         "monto": monto
+#     }
 
-def estado_abono(abono):
+# def estado_abono(abono):
 
-    if not abono:
-        return "sin_abono"
+#     if not abono:
+#         return "sin_abono"
 
-    hoy = datetime.today()
+#     hoy = datetime.today()
 
-    if not abono.activo:
-        return "suspendido"
+#     if not abono.activo:
+#         return "suspendido"
 
-    if abono.fecha_fin < hoy - timedelta(days=10):
-        return "suspendido"  
+#     if abono.fecha_fin < hoy - timedelta(days=10):
+#         return "suspendido"  
 
-    if abono.fecha_fin < hoy:
-        return "vencido"
+#     if abono.fecha_fin < hoy:
+#         return "vencido"
 
-    return "activo"
+#     return "activo"
 
-def puede_renovar(abono):
+# def puede_renovar(abono):
 
-    if not abono:
-        return False
+#     if not abono:
+#         return False
 
-    hoy = datetime.today()
+#     hoy = datetime.today()
 
-    return hoy <= abono.fecha_fin + timedelta(days=10)
+#     return hoy <= abono.fecha_fin + timedelta(days=10)

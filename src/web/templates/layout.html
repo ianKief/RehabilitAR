@@ -208,6 +208,12 @@
                                     <span class="icon mr-2"><i class="far fa-calendar-alt"></i></span>Clases
                                 </a>
                             </li>
+                            <li>
+                                <a href="{{ url_for('pagos.precio_clase') }}"
+                                    class="py-2.5 px-3 {% if request.path.startswith('/admin/precio-clase') %}menu-item-active{% endif %}">
+                                    <span class="icon mr-2"><i class="fas fa-dollar-sign"></i></span>Precio de Clases
+                                </a>
+                            </li>
                             {% endif %}
 
                             <!-- Navegación para profesores-->

@@ -7,7 +7,8 @@ from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 from src.core.database import db
 from flask_mail import Message
-from src.web import mail
+from src.core.mail import send_mail
+#from src.web import mail
 
 users_bp = Blueprint('usuarios', __name__, url_prefix='/usuarios')
 
@@ -232,7 +233,7 @@ Si crees que esto es un error o tenés alguna duda, por favor contactate con la 
 Saludos,
 El equipo de RehabilitAR."""
 
-        mail.send(msg)
+        send_mail(msg)
         
         # 4. Mostramos el mensaje exacto que pide tu HU
         flash("Cuenta eliminada con éxito.", "success")
