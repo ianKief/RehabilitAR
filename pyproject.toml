@@ -15,6 +15,8 @@ dependencies = [
     "flask-sqlalchemy-lite (>=0.2.1,<0.3.0)",
     "tzdata (>=2026.2,<2027.0)",
     "flask-mail (>=0.10.0,<0.11.0)",
+    "mercadopago (>=3.1.1,<4.0.0)",
+    "python-dateutil (>=2.9.0.post0,<3.0.0)",
 ]
 
 packages = [{include = "web", from = "src"}]
