@@ -37,7 +37,10 @@ def contratar_abono_route():
 
 #calcula el valor del abono y crea la preferencia de pago
 def calcular_contratacion_abono(dia_semana_elegido, sdk, user_id):
-    
+    import os
+
+    URL = os.environ.get('URL_NGROK')
+
     #calcula el precio final del abono
     valor = calcular_valor_abono(dia_semana_elegido)
 
@@ -58,11 +61,11 @@ def calcular_contratacion_abono(dia_semana_elegido, sdk, user_id):
         },
 
         "back_urls": {
-            "success": "https://boss-daybed-chuck.ngrok-free.dev/contratar_abono/pago_exitoso",
-            "failure": "https://boss-daybed-chuck.ngrok-free.dev/contratar_abono/pago_fallido",
-            "pending": "https://boss-daybed-chuck.ngrok-free.dev/contratar_abono/pago_pendiente"
+            "success": f"{URL}/contratar_abono/pago_exitoso",
+            "failure": f"{URL}/contratar_abono/pago_fallido",
+            "pending": f"{URL}/contratar_abono/pago_pendiente"
         },
-        "notification_url": "https://boss-daybed-chuck.ngrok-free.dev/webhook"
+        "notification_url": f"{URL}/webhook"
     }
     
     #crea la preferencia de pago utilizando el SDK de Mercado Pago
