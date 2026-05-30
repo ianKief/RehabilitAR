@@ -57,7 +57,8 @@ def estado_abono_usuario(user_id):
 
     abono = (
         db.session.query(Abono)
-        .filter(Abono.id_cliente == user_id)
+        .join(Abono.pago)
+        .filter(Pago.id_cliente == user_id)
         .order_by(Abono.fecha_fin.desc())
         .first()
     )
@@ -85,7 +86,7 @@ def estado_abono(abono):
 
 def obtener_info_descuento(abono):
     
-    usuario = db.session.get(Usuario, abono.id_cliente)
+    usuario = db.session.get(Usuario, abono.pago.id_cliente)
 
     dias = contar_dias_semana(
         abono.dia_fijo,
@@ -130,14 +131,15 @@ def obtener_precio_clase_actual():
 
 
 def obtener_ultimo_abono(user_id):
+
     stmt = (
         select(Abono)
-        .where(Abono.id_cliente == user_id)
+        .join(Abono.pago)
+        .where(Pago.id_cliente == user_id)
         .order_by(Abono.fecha_fin.desc())
     )
 
     return db.session.execute(stmt).scalars().first()
-
 
 
 

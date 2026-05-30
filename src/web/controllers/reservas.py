@@ -203,7 +203,7 @@ def abonar_clase(id_clase):
         flash("¡Pago de seña exitoso! Tu reserva para la clase individual ha sido confirmada.", "success")
         return redirect(url_for("reservas.calendario_cliente"))
         
-    return render_template("reservas/pago_senia.html", clase=clase)
+    return render_template("pagos/pago_senia.html", clase=clase)
 
 @reservas_bp.route("/<int:id_clase>/reservar_mensual", methods=["GET", "POST"])
 @requiere_rol(["CLIENTE"])
