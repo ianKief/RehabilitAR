@@ -7,7 +7,6 @@ def filtro_clase_actual ():
     hora_actual = devolver_hora_actual()
 
     return [
-
         func.current_date() == Clase.fecha_clase,
 
         hora_actual > Clase.horario,

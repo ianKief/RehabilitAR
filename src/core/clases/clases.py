@@ -15,7 +15,7 @@ class Clase(Base):
     duracion: Mapped[int] = mapped_column(Integer, nullable=False) # duracion en minutos
     capacidad_maxima: Mapped[int] = mapped_column(Integer, nullable=False)
     descripcion: Mapped[str] = mapped_column(String(255), nullable=True)
-    suspendida: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    suspendida: Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
     fecha_clase: Mapped[date] = mapped_column(Date, nullable=False)
     horario: Mapped[time] = mapped_column(Time, nullable=False)
     aprobada:Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

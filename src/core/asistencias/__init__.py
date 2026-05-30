@@ -30,14 +30,14 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
 
     # Inicializaciones necesarias
     filters = []
-    # LEER ABAJO: cliente_filtrado = False
+    cliente_filtrado = False
  
     # Aplicando filtros al query
- 
     if (busqueda != ""):
         cliente_filtrado = True
         filters.append(or_(Cliente.nombre.ilike(f"%{busqueda}%"), Cliente.apellido.ilike(f"%{busqueda}%"), Cliente.dni.ilike(f"%{busqueda}%"), Comentario.comentario.ilike(f"%{busqueda}%"), Clase.nombre.ilike(f"%{busqueda}%")))
         filters.append(Cliente.rol == RolUsuario.CLIENTE)
+
     # Nota: estado puede ser "seleccionar_todos", "presente" o "ausente"
     if (estado != "seleccionar_todos"):
 
@@ -70,8 +70,6 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
     else:
         query = query.outerjoin(Comentario, Comentario.id_reserva == Reserva.id)
 
-    """Si en algún momento agregamos FKs y relationships, esta alternativa es la correcta y nos permitirá sacar la otra función en ver_asistencias.py
-
     if cliente_filtrado:
         query = query.options(
             contains_eager(Reserva.cliente),
@@ -84,9 +82,8 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
             joinedload(Reserva.clase),
             selectinload(Reserva.comentarios)
         )
-    """
 
-    return query.unique().all()
+    return query.distinct().all()
         
 
 def subir_comentario (dni_alumno, comentario):

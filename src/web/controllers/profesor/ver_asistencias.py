@@ -41,11 +41,13 @@ def ver_comentarios_y_asistencias ():
     hay_filtro = busqueda!="" or fecha!="" or solo_comentarios==True or estado != "seleccionar_todos"
 
     # NOTA: Si en algún momento se aplican las FK y relationships adecuadas, puede quitarse la función de nombre largo
-    lista_de_asistencias = agrupacion_manual_de_datos_de_comentarios_por_asistencia_y_alumno(conseguir_asistencias(id_profesor,
+    lista_de_asistencias = conseguir_asistencias(id_profesor,
         busqueda=busqueda,
         estado=estado,
         fecha=fecha,
-        solo_comentarios=solo_comentarios))
+        solo_comentarios=solo_comentarios)
+    
+    print (lista_de_asistencias)
     
     return render_template ('profesor/ver_asistencias.html', lista_de_asistencias=lista_de_asistencias,
                                                                                     busqueda=busqueda,

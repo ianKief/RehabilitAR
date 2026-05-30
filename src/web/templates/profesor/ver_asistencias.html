@@ -113,33 +113,33 @@
 <!--Lista-->
 
     {% if (lista_de_asistencias != []) %}
-        {% for asistencia in lista_de_asistencias %}
-            {% if asistencia.reserva.asiste != 'CANCELADA' %} <!--Nota: esto puede provocar bugs raros si una clase solo tiene reservas canceladas. Dado que no entra en las posibilidades del sistema no lo corregiré, pero queda registrado acá-->
+        {% for reserva in lista_de_asistencias %}
+            {% if reserva.asiste != 'CANCELADA' %} <!--Nota: esto puede provocar bugs raros si una clase solo tiene reservas canceladas. Dado que no entra en las posibilidades del sistema no lo corregiré, pero queda registrado acá-->
                 <div class="box">
 
-                    <!-- Cabecera asistencia -->
+                    <!-- Cabecera reserva -->
                     <div class="level">
                         <div class="level-left">
                             <div>
-                                <p class="title is-5">{{asistencia.cliente.nombre}} {{asistencia.cliente.apellido}}</p>
-                                <p class="title is-6">DNI: {{asistencia.cliente.dni}}</p>
-                                <p class="subtitle is-6">{{asistencia.clase.nombre}} - {{asistencia.clase.fecha_clase}}</p>
+                                <p class="title is-5">{{reserva.cliente.nombre}} {{reserva.cliente.apellido}}</p>
+                                <p class="title is-6">DNI: {{reserva.cliente.dni}}</p>
+                                <p class="subtitle is-6">{{reserva.clase.nombre}} - {{reserva.clase.fecha_clase}}</p>
                             </div>
                         </div>
 
                         <div class="level-right">
-                            {% if asistencia.reserva.asiste.value == "presente" %}
+                            {% if reserva.asiste.value == "presente" %}
                                 <span class="tag is-success">Presente</span>
                             {% endif %}
-                            {% if asistencia.reserva.asiste.value == "ausente" %}
+                            {% if reserva.asiste.value == "ausente" %}
                                 <span class="tag is-warning">Ausente</span> <!--verificar-->
                             {% endif %}
                         </div>
                     </div>
 
                     <!-- Comentarios -->
-                {% if asistencia.comentarios != [] %}
-                        {% for comentario in asistencia.comentarios %}
+                {% if reserva.comentarios != [] %}
+                        {% for comentario in reserva.comentarios %}
                             <div class="content mt-4">
                                 <article class="message is-small">
                                     <div class="message-body">
