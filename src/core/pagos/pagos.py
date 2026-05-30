@@ -10,6 +10,10 @@ tz_arg = ZoneInfo("America/Argentina/Buenos_Aires")
 
 # Clases de pago
 
+class ConceptoPago (enum.Enum):
+    RESERVA = "reserva" # Vale tanto para reservar como para esperar en la cola
+    ABONO = "abono"
+
 class EstadoPago (enum.Enum):
     PENDIENTE = "pendiente"
     COMPLETADO = "completado"
@@ -25,6 +29,7 @@ class Pago (Base):
 
     monto_total: Mapped[int] = mapped_column(Integer, nullable=False)
     estado_pago: Mapped[EstadoPago] = mapped_column(Enum(EstadoPago), default=EstadoPago.PENDIENTE, nullable=False)
+    concepto_pago: Mapped[ConceptoPago] = mapped_column(Enum(ConceptoPago), default=ConceptoPago.RESERVA, nullable=False)
 
     fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
@@ -38,15 +43,6 @@ class Pago (Base):
     abono = relationship("Abono", back_populates="pago")
 
 
-class ConceptoPago (enum.Enum):
-    RESERVA_MENSUAL = "reserva_mensual"
-    RESERVA_INDIVIDUAL = "reserva_individual"
-    #TODO Cambiar a:
-    # RESERVA = "reserva"
-    # ABONO = "abono"
-    # cambiar referencias de reserva_mensual y reserva_individual a los actuales.
-
-
 class DetallePago (Base):
     __tablename__ = "detalle_pago"
 
@@ -56,8 +52,7 @@ class DetallePago (Base):
     cantidad: Mapped[int] = mapped_column(Integer, nullable=False)
     precio_unitario: Mapped[int] = mapped_column(Integer, nullable=False)
     subtotal: Mapped[int] = mapped_column(Integer, nullable=False)
-    concepto_pago: Mapped[ConceptoPago] = mapped_column(Enum(ConceptoPago), default=ConceptoPago.RESERVA_MENSUAL, nullable=False)
-    #TODO mover este campo a Pago, permitiendo decidir si se accede a DetallePago o a Abono
+
     # Relationships
 
     pago = relationship("Pago", back_populates="detalle_pago")

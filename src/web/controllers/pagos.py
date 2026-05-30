@@ -5,11 +5,8 @@ from src.core.pagos import procesar_mercado_pago_webhook,calcular_valor_abono
 from flask import session
 from src.web.helpers.decorator import requiere_rol
 from src.core.database import db
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
-from src.core.pagos import PrecioClase
-from src.core.pagos import Pago
+from src.core.pagos import PrecioClase, Pago, devolver_pagos_de_reservas_de_usuarios, devolver_abonos_de_usuarios
 
 
 bp = Blueprint("pagos", __name__)
@@ -102,16 +99,13 @@ def historial_pagos():
 
     user_id = session.get("usuario_id")
 
-    stmt = (
-    select(Pago)
-    .options(selectinload(Pago.detalle_pago))
-    .where(Pago.id_cliente == user_id)
-    .order_by(Pago.fecha_creacion.desc())
-)
-
-    pagos = db.session.execute(stmt).scalars().all()
+    renderizar_lista = False
+    abonos = devolver_abonos_de_usuarios (user_id)
+    pagos = devolver_pagos_de_reservas_de_usuarios (user_id)
+    if pagos or abonos:
+        renderizar_lista = True
 
     return render_template(
         "pagos/historial_pagos.html",
-        pagos=pagos
+        pagos = pagos, abonos = abonos, renderizar_lista = renderizar_lista
     )

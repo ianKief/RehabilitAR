@@ -2,7 +2,7 @@ from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 
 from sqlalchemy import select
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import selectinload
 
 from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago,Abono
 from src.core.usuarios.usuarios import Usuario, Cliente, EstadoUsuario
@@ -173,7 +173,8 @@ def registrar_pago_abono_mensual(payment_id,id_cliente,monto):
         payment_id=str(payment_id),
         id_cliente = id_cliente,
         monto_total=monto,
-        estado_pago=EstadoPago.COMPLETADO
+        estado_pago=EstadoPago.COMPLETADO,
+        concepto_pago= ConceptoPago.ABONO
     )
 
     db.session.add(pago)
@@ -184,7 +185,6 @@ def registrar_pago_abono_mensual(payment_id,id_cliente,monto):
         cantidad=1,
         precio_unitario=monto,
         subtotal=monto,
-        concepto_pago=ConceptoPago.RESERVA_MENSUAL
     )
 
     db.session.add(detalle_pago)
@@ -319,6 +319,27 @@ def bloquear_morosos_abono():
     db.session.commit()
     return bloqueados
 
+def devolver_abonos_de_usuarios (id_usuario):
+    stmt = (
+        select(Pago)
+        .where(Pago.concepto_pago == ConceptoPago.ABONO)
+        .options(selectinload(Pago.abono))
+        .where(Pago.id_cliente == id_usuario)
+        .order_by(Pago.fecha_creacion.desc())
+    )
+
+    return db.session.execute(stmt).scalars().all()
+
+def devolver_pagos_de_reservas_de_usuarios (id_usuario):
+    stmt = (
+        select(Pago)
+        .where(Pago.concepto_pago == ConceptoPago.RESERVA)
+        .options(selectinload(Pago.detalle_pago))
+        .where(Pago.id_cliente == id_usuario)
+        .order_by(Pago.fecha_creacion.desc())
+    )
+
+    return db.session.execute(stmt).scalars().all()
 
 
 
