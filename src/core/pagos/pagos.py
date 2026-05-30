@@ -35,11 +35,16 @@ class Pago (Base):
 
     detalle_pago = relationship("DetallePago", back_populates="pago")
     beneficios = relationship("Beneficio", back_populates="pago")
+    abono = relationship("Abono", back_populates="pago")
 
 
 class ConceptoPago (enum.Enum):
     RESERVA_MENSUAL = "reserva_mensual"
     RESERVA_INDIVIDUAL = "reserva_individual"
+    #TODO Cambiar a:
+    # RESERVA = "reserva"
+    # ABONO = "abono"
+    # cambiar referencias de reserva_mensual y reserva_individual a los actuales.
 
 
 class DetallePago (Base):
@@ -52,10 +57,27 @@ class DetallePago (Base):
     precio_unitario: Mapped[int] = mapped_column(Integer, nullable=False)
     subtotal: Mapped[int] = mapped_column(Integer, nullable=False)
     concepto_pago: Mapped[ConceptoPago] = mapped_column(Enum(ConceptoPago), default=ConceptoPago.RESERVA_MENSUAL, nullable=False)
+    #TODO mover este campo a Pago, permitiendo decidir si se accede a DetallePago o a Abono
     # Relationships
 
     pago = relationship("Pago", back_populates="detalle_pago")
     detalle_pago_reserva = relationship("DetallePagoReserva", back_populates="detalle_pago")
+
+class Abono(Base):
+    __tablename__ = "abonos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    id_cliente: Mapped[int] = mapped_column(ForeignKey("usuarios.id"),nullable=False)
+    #TODO sacar este campo y sus referencias a .join(pago).join(cliente)
+    id_pago: Mapped[int] = mapped_column( ForeignKey("pagos.id"),nullable=False)
+
+    dia_fijo: Mapped[int] = mapped_column(Integer, nullable=False)
+    fecha_inicio: Mapped[datetime] = mapped_column(DateTime,nullable=False)
+    fecha_fin: Mapped[datetime] = mapped_column(DateTime,nullable=False)
+
+    # Relationships:
+    pago = relationship("Pago", back_populates="abono")
+
 
 
 
@@ -72,6 +94,8 @@ class DetallePagoReserva (Base):
     # Relationships:
 
     detalle_pago = relationship("DetallePago", back_populates="detalle_pago_reserva")
+
+
 
 #Beneficio
 
@@ -112,17 +136,6 @@ class PrecioClase(Base):
     fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
         nullable=False
-    ) 
-
-
-#elvis
-
-class Abono(Base):
-    __tablename__ = "abonos"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    id_cliente: Mapped[int] = mapped_column(ForeignKey("usuarios.id"),nullable=False)
-    id_pago: Mapped[int] = mapped_column( ForeignKey("pagos.id"),nullable=False)
-    dia_fijo: Mapped[int] = mapped_column(Integer, nullable=False)
-    fecha_inicio: Mapped[datetime] = mapped_column(DateTime,nullable=False)
-    fecha_fin: Mapped[datetime] = mapped_column(DateTime,nullable=False)
+    )
+    fecha_hasta: Mapped[datetime] = mapped_column (DateTime, default=None, nullable=True)
+    # No lo testeé

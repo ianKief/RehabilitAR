@@ -101,6 +101,7 @@ def obtener_info_descuento(abono):
         maximo_por_regla = 0.0
 
     descuento_disponible_usuario = usuario.descuento_acumulado
+    # TODO obtener descuento acumulado de los bonos no usados (aquellos que no tienen join con PagoBeneficio)
 
     maximo_usuario = min(
         descuento_disponible_usuario,
@@ -220,10 +221,13 @@ def registrar_pago_desde_payment(payment_id,payment):
     usuario = db.session.get(Usuario, user_id)
 
     usuario.descuento_acumulado -= descuento_usuario
+    # TODO obtener descuento acumulado de los bonos no usados (aquellos que no tienen join con PagoBeneficio)
 
     if usuario.descuento_acumulado < 0:
         usuario.descuento_acumulado = 0
-    
+    #TODO no se entiende del todo el if de arriba. Hacer iteración de obtención de descuentos que se acabe cuando:
+    # 1. No hay más descuentos que no tengan join con PagoBeneficio (beneficios sin usar tal que sean descuentos)
+    # 2. Se llegue al 30% --> En caso de estar a menos del 30%, tomar un descuento más y, si supera el 30%, generar un nuevo descuento cuyo descuento sea el sobrante, con la descripción "Sobra del descuento anterior, si se tiene número de operación mejor"
     pago=registrar_pago_abono_mensual(payment_id,user_id,monto)
 
 
