@@ -4,7 +4,7 @@ import json
 import urllib.request
 
 from src.web.helpers.decorator import requiere_rol
-from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido, informar_alta_demanda
+from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido, informar_alta_demanda, es_abonado
 from src.core.clases import clase_tiene_lugar, comprobar_alta_demanda
 from src.core.reservas.reservas import AsistenciaReserva
 from src.core.reservas import (
@@ -69,7 +69,8 @@ def calendario_cliente():
     """Ruta que muestra el calendario interactivo de clases para el cliente."""
     usuario_id = session.get("usuario_id")
     usuario = obtener_usuario_por_id_core(usuario_id)
-    es_abonado = getattr(usuario, 'es_abonado', False)
+    abonado = es_abonado(usuario_id)
+    print ("Es abonado:", abonado)
     
     # El cliente debe estar "activo" para acceder.
     if usuario.estado != EstadoUsuario.ACTIVO:
@@ -124,7 +125,7 @@ def calendario_cliente():
 
     fecha_formateada = fecha_seleccionada.strftime("%d/%m/%Y")
     
-    return render_template("reservas/calendario_reservas.html", clases=clases, fecha_seleccionada=fecha_str, fecha_formateada=fecha_formateada, tipo_seleccionado=tipo, especialidad_seleccionada=especialidad, feriados=feriados, fechas_con_clases=fechas_con_clases, ids_clases_reservadas=ids_clases_reservadas, es_abonado=es_abonado, ids_clases_encoladas=ids_clases_encoladas, ids_clases_llenas_donde_el_cliente_no_tiene_reserva = ids_clases_llenas_donde_el_cliente_no_tiene_reserva)
+    return render_template("reservas/calendario_reservas.html", clases=clases, fecha_seleccionada=fecha_str, fecha_formateada=fecha_formateada, tipo_seleccionado=tipo, especialidad_seleccionada=especialidad, feriados=feriados, fechas_con_clases=fechas_con_clases, ids_clases_reservadas=ids_clases_reservadas, es_abonado=abonado, ids_clases_encoladas=ids_clases_encoladas, ids_clases_llenas_donde_el_cliente_no_tiene_reserva = ids_clases_llenas_donde_el_cliente_no_tiene_reserva)
 
 @reservas_bp.post("/<int:id_clase>/reservar")
 @requiere_rol(["CLIENTE"])
@@ -163,7 +164,7 @@ def reservar_clase(id_clase):
         return redirect(url_for("reservas.calendario_cliente"))
         
     if clase.tipo == "Fija":
-        if getattr(cliente, 'es_abonado', False):
+        if es_abonado(usuario_id):
             if verificar_reserva_semanal_existente(usuario_id, clase.fecha_clase):
                 flash("Límite alcanzado: solo puede realizar una reserva puntual de clase fija por semana.", "warning")
                 return redirect(url_for("reservas.calendario_cliente"))
@@ -219,7 +220,7 @@ def reservar_mensual(id_clase):
         flash("Clase no válida para reserva mensual.", "danger")
         return redirect(url_for("reservas.calendario_cliente"))
 
-    if not getattr(cliente, 'es_abonado', False):
+    if not es_abonado(usuario_id):
         flash("Solo los clientes abonados pueden realizar reservas mensuales.", "warning")
         return redirect(url_for("reservas.calendario_cliente"))
 

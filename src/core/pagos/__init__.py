@@ -8,6 +8,8 @@ from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, E
 from src.core.usuarios.usuarios import Usuario, Cliente, EstadoUsuario
 from src.core.database import db
 
+from src.core.functions import filtro_cliente_abonado
+
 from datetime import timedelta
 
 from flask import current_app
@@ -237,8 +239,6 @@ def registrar_pago_desde_payment(payment_id,payment):
     else:
         registrar_abono(user_id,pago.id,dia_fijo)
 
-    usuario.es_abonado = True
-
     db.session.commit()
 
 
@@ -300,7 +300,7 @@ def bloquear_morosos_abono():
     # Buscamos a todos los clientes activos que sean abonados
     stmt = (
         select(Cliente)
-        .filter(Cliente.es_abonado == True)
+        .filter(*filtro_cliente_abonado(Cliente.id))
         .filter(Cliente.estado == EstadoUsuario.ACTIVO)
     )
     clientes_abonados = db.session.execute(stmt).scalars().all()
@@ -313,7 +313,6 @@ def bloquear_morosos_abono():
         # Si su último abono ya venció o no tiene, se lo bloquea
         if estado_actual in ["vencido", "sin_abono"]:
             cliente.estado = EstadoUsuario.BLOQUEADO
-            cliente.es_abonado = False
             bloqueados += 1
             
     db.session.commit()

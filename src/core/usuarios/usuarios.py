@@ -101,9 +101,7 @@ class Usuario(Base):
 class Cliente(Usuario):
     __tablename__ = "clientes"
     id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), primary_key=True)
-    es_abonado: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    #TODO sacar este campo. Reemplazar por la función que ya hizo alfonso "es_abonado". Reemplazar todas las referencias de cliente.es_abonado por el llamado a la función. Hacer que la función es_abonado devuelva el filter, similar a la función de filtro_clase_actual que está en core/functions
-
+    
     descuento_acumulado: Mapped[float] = mapped_column(Float, default=0)
     #TODO eliminar este campo y cambiar las funciones en las cuales se accede este campo por la lógica de descuentos. Crequear funciones que hizo alfonso para ahorrar tiempo, dado que ya programó esta lógica.
 

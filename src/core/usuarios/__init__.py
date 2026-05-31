@@ -1,4 +1,4 @@
-from sqlalchemy import func, text, or_, select, cast, Integer, and_, case
+from sqlalchemy import func, text, or_, select, and_, case, exists
 from sqlalchemy.orm import aliased
 
 from flask_mail import Message
@@ -9,8 +9,10 @@ from src.core.usuarios.usuarios import Usuario, RolUsuario, EstadoUsuario
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reservas.reservas import Reserva, AsistenciaReserva
 from src.core.usuarios.usuarios import Usuario, Cliente, Profesor, Administrador, Recepcionista, RolUsuario
+from src.core.pagos import Pago, ConceptoPago
 
-from src.core.functions import filtro_clase_actual
+from src.core.functions import filtro_clase_actual, devolver_fecha_hora_actual
+
 from datetime import datetime
 
 def alumno_pertenece_a_clase_actual_profesor (id_profesor, dni_alumno):
@@ -235,3 +237,17 @@ def informar_alta_demanda (clase):
     except ValueError as e:
         clase.aviso_alta_demanda = False
 # Tampoco voy a informar al cliente del problema, mejor guardar el aviso para una próxima ocasión
+
+def es_abonado (id_cliente):
+    query = (db.session.query(exists().where(
+        and_(
+            Pago.id_cliente == id_cliente,
+            Pago.concepto_pago == ConceptoPago.ABONO,
+            devolver_fecha_hora_actual() <= (
+                Pago.fecha_creacion +
+                text("INTERVAL '1 month'")
+            )
+        )
+    )))
+
+    return query.scalar()

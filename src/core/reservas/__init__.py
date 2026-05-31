@@ -7,6 +7,8 @@ from src.core.reservas.reservas import Reserva, AsistenciaReserva, Cola, Cancela
 from datetime import date, timedelta
 import calendar
 
+from src.core.functions import filtro_cliente_abonado
+
 from flask_mail import Message
 from src.core.mail import send_mail
 #from src.web import mail
@@ -295,7 +297,7 @@ def dar_acceso_segun_orden_cola (id_clase):
 
         query = (db.session.query(Cliente, Cola)
         .join (Cola, Cola.id_cliente == Cliente.id)
-        .filter(Cliente.es_abonado == True)
+        .filter(*filtro_cliente_abonado(Cliente.id))
         .filter(Cola.cancelada == False)
         .filter(Cola.id_clase == id_clase)
         .order_by(Cola.fecha_modificacion.asc())
@@ -305,7 +307,7 @@ def dar_acceso_segun_orden_cola (id_clase):
         if not existe_abonado:
             query = (db.session.query(Cliente, Cola)
                 .join (Cola, Cola.id_cliente == Cliente.id)
-                .filter(Cliente.es_abonado == False)
+                .filter(*filtro_cliente_abonado(Cliente.id))
                 .filter(Cola.cancelada == False)
                 .filter(Cola.id_clase == id_clase)
                 .order_by(Cola.fecha_modificacion.asc())
@@ -350,7 +352,4 @@ def dar_acceso_segun_orden_cola (id_clase):
         return proximo
     except:
         print ("No mandé el mail che")
-        #TODO hacer algo ??? No sé, informar (secundario)
-        # Tampoco que me voy a poner a decirle a un cliente que haga algo al respecto. Capaz se puede añadir alguna sección especial cuando se agregue el historial para administradores
-    
     return proximo
