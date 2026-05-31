@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago,Abono
+from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago,Abono, Beneficio, TipoBeneficio
 from src.core.usuarios.usuarios import Usuario, Cliente, EstadoUsuario
 from src.core.database import db
 
@@ -149,13 +149,12 @@ def obtener_ultimo_abono(user_id):
 
 
 
-def registrar_abono(id_cliente, id_pago, dia_fijo):
+def registrar_abono(id_pago, dia_fijo):
     fecha_inicio = datetime.today()
 
     fecha_fin = fecha_inicio + relativedelta(months=1)
 
     nuevo_abono = Abono(
-        id_cliente=id_cliente,
         id_pago=id_pago,
         dia_fijo=dia_fijo,
         fecha_inicio=fecha_inicio,
@@ -205,8 +204,10 @@ def registrar_pago_desde_payment(payment_id,payment):
 
     metadata = payment.get("metadata") or {}
     dia_fijo = metadata.get("dia_fijo")
+    print ("El día fijo es:", dia_fijo)
     
     tipo = metadata.get("tipo") 
+    print ("TIPO EXISTE????", tipo)
 
     descuento_usuario = float(metadata.get("descuento_usuario", 0.0))
     
@@ -225,33 +226,40 @@ def registrar_pago_desde_payment(payment_id,payment):
         return
     user_id = int(external_ref)
 
-    usuario = db.session.get(Usuario, user_id)
+    id_cliente = db.session.get(Usuario, user_id)
 
-    if tiene_beneficios (dni_cliente, tipo=TipoBeneficio.DESCUENTO):
-        descuentos = devolver_beneficios_activos (dni_cliente, tipo=TipoBeneficio.DESCUENTO)
-        tendra_descuento = True
+    descuento = bool(metadata.get("descuento", False))
+    print ("ESTE DATO DICE SI TIENE DESCUENTO :O", descuento)
+
+    if descuento and tiene_beneficios (id_cliente, tipo=TipoBeneficio.DESCUENTO):
+        print ("Entré al bloque tendrá descuento (?)")
         descuentos_a_tachar = []
+        descuentos = devolver_beneficios_activos (id_cliente, tipo=TipoBeneficio.DESCUENTO)
+        tendra_descuento = True
         cantidad_descuento = 0
         for descuento in descuentos:
             descuentos_a_tachar.append(descuento)
             if (cantidad_descuento + descuento.porcentaje_descuento) > 0.3:
-                registrar_beneficio (id_cliente, descripcion = "Resto de descuentos anteriores", tipo=TipoBeneficio.DESCUENTO, session=session, porcentaje_descuento = cantidad_descuento + descuento.porcentaje_descuento - 0.3)
+                registrar_beneficio (id_cliente, descripcion = "Resto de descuentos anteriores", tipo=TipoBeneficio.DESCUENTO, session=db.session, porcentaje_descuento = cantidad_descuento + descuento.porcentaje_descuento - 0.3)
+                print ("Registramos un nuevo beneficio")
                 break
             else:
                 cantidad_descuento+=descuento.porcentaje_descuento
                 if (cantidad_descuento + descuento.porcentaje_descuento) == 0.3:
                     break
         monto = monto * (1 - cantidad_descuento)
+        for descuento in descuentos_a_tachar:
+            descuento.usado = True
+            descuento.id_pago = pago.id
+        print ("Y estos son los descuentos a tachar",descuentos_a_tachar)
 
-    
-    pago=registrar_pago_abono_mensual(payment_id,user_id,monto)
-
+    pago = registrar_pago_abono_mensual (payment_id, user_id,monto)
 
     if tipo == "renovacion":
        # renovar_abono(user_id,dia_fijo)
        print ("renovar")
     else:
-        registrar_abono(user_id,pago.id,dia_fijo)
+        registrar_abono (pago.id, dia_fijo)
 
     db.session.commit()
 
@@ -354,10 +362,61 @@ def devolver_pagos_de_reservas_de_usuarios (id_usuario):
 
     return db.session.execute(stmt).scalars().all()
 
+def tiene_beneficios (id_cliente, tipo = TipoBeneficio.CREDITO):
+    """Dado el DNI de un cliente, devuelve si tiene créditos o no (Boolean).
+    tipo acepta un objeto tipo TipoBeneficio. Entradas posibles: CREDITO o DESCUENTO"""
+    query = (db.session.query(Beneficio)
+        .join(Cliente, Cliente.id == Beneficio.id_cliente)
+        .filter (Cliente.id == id_cliente)
+        .filter (Beneficio.tipo == tipo)
+        .filter (Beneficio.usado.is_(False))
+    )
 
+    return db.session.query(
+        query.exists()
+    ).scalar()
 
+def devolver_beneficios_activos (id_cliente, tipo=TipoBeneficio.CREDITO):
 
+    query = (db.session.query(Beneficio)
+        .join(Cliente, Cliente.id == Beneficio.id_cliente)
+        .filter (Cliente.id == id_cliente)
+        .filter (Beneficio.usado.is_(False))
+        .filter (Beneficio.tipo == tipo)
+    )
 
+    return db.session.scalars(query).all()
+
+def registrar_beneficio (id_cliente, descripcion = None, tipo = TipoBeneficio.CREDITO, session=None, porcentaje_descuento=0):
+    """Registra un nuevo beneficio para el cliente
+    tipo es un objeto TipoBeneficio. Sus entradas posibles son CREDITO o DESCUENTO
+    Puede ingresársele un session en caso de contemplar rollback"""
+    if (session == None):
+        session = db.session
+
+    nuevo_credito = Beneficio (
+        id_cliente = id_cliente,
+        tipo = tipo,
+        descripcion = descripcion,
+    )
+    session.add(nuevo_credito)
+    session.flush()
+
+def conseguir_precio_actual ():
+    return (
+        db.session.query(PrecioClase)
+        .order_by(PrecioClase.fecha_creacion.desc())
+        .first()
+    )
+
+def calcular_descuento_maximo (id_cliente):
+    descuentos = devolver_beneficios_activos (id_cliente, tipo=TipoBeneficio.DESCUENTO)
+    cantidad_descuento = 0
+    for descuento in descuentos:
+        cantidad_descuento+=descuento.porcentaje_descuento
+        if (cantidad_descuento + descuento.porcentaje_descuento) >= 0.3:
+            return 0.3
+    return cantidad_descuento
 
 
 #cosas que implementare mas adelante

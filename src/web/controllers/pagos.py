@@ -6,7 +6,7 @@ from flask import session
 from src.web.helpers.decorator import requiere_rol
 from src.core.database import db
 
-from src.core.pagos import PrecioClase, Pago, devolver_pagos_de_reservas_de_usuarios, devolver_abonos_de_usuarios
+from src.core.pagos import PrecioClase, Pago, TipoBeneficio, devolver_pagos_de_reservas_de_usuarios, devolver_abonos_de_usuarios, conseguir_precio_actual, tiene_beneficios, calcular_descuento_maximo
 
 
 bp = Blueprint("pagos", __name__)
@@ -22,22 +22,28 @@ def crear_preferencia_mp(sdk, preference_data):
 @requiere_rol(["CLIENTE"])
 def suscripcion():
 
+    id_cliente = session.get("usuario_id")
     precios = {}
 
     for dia in range(5):
 
         precios[dia] = calcular_valor_abono(dia)
 
+    tiene_descuento = tiene_beneficios (id_cliente, tipo=TipoBeneficio.DESCUENTO)
+    print ("TIENE DESCUENTO:", tiene_descuento)
+    if tiene_descuento:
+        descuento_maximo = calcular_descuento_maximo (id_cliente)
+    print ("DESCUENTO MÁXIMO:", descuento_maximo)
     return render_template(
          "pagos/suscripcion.html",
-        precios=precios
+        precios=precios,
+        descuento_maximo=descuento_maximo
     )
 
 #pantalla mostrada cuando el pago fue exitoso
 @bp.route("/contratar_abono/pago_exitoso")
 def pago_exitoso():
     return render_template("pagos/pago_exitoso.html")
-
 
 #pantalla mostrada cuando el pago falló
 @bp.route("/contratar_abono/pago_fallido")
@@ -80,12 +86,7 @@ def precio_clase():
         flash("Precio actualizado correctamente", "success")
         return redirect(url_for("pagos.precio_clase"))
 
-    # GET -> traer último precio
-    precio_actual = (
-        db.session.query(PrecioClase)
-        .order_by(PrecioClase.fecha_creacion.desc())
-        .first()
-    )
+    precio_actual = conseguir_precio_actual ()
 
     return render_template(
         "pagos/precio_clase.html",

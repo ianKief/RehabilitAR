@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 from src.core.usuarios import Usuario, Profesor, Cliente, EstadoUsuario
 from src.core.reservas.reservas import Reserva, Comentario
 from src.core.clases import Clase, ProfesorDictaClase
+from src.core.pagos import Beneficio, TipoBeneficio
 
 from src.core.functions import filtro_clase_actual
 

@@ -16,6 +16,10 @@ def contratar_abono_route():
     #obtiene el día fijo elegido por el usuario desde el formulario HTML
     dia_semana_elegido = int(request.form["dia_fijo"])
     
+    descuento = 0
+    if request.form.get("descuento"):
+        descuento = float(request.form["descuento"])
+    
     #obtiene el ID del usuario logueado desde la sesión
     user_id = session.get("usuario_id")
     
@@ -28,7 +32,7 @@ def contratar_abono_route():
         return redirect(url_for("home"))
     
     #crea la preferencia de pago en Mercado Pago
-    resultado = calcular_contratacion_abono(dia_semana_elegido, sdk,user_id)
+    resultado = calcular_contratacion_abono(dia_semana_elegido, descuento, sdk,user_id)
     print(resultado)
     #redirige al usuario a Mercado Pago
     return redirect(resultado["response"]["init_point"])
@@ -36,13 +40,15 @@ def contratar_abono_route():
 
 
 #calcula el valor del abono y crea la preferencia de pago
-def calcular_contratacion_abono(dia_semana_elegido, sdk, user_id):
+def calcular_contratacion_abono(dia_semana_elegido, descuento, sdk, user_id):
     import os
 
     URL = os.environ.get('URL_NGROK')
 
     #calcula el precio final del abono
     valor = calcular_valor_abono(dia_semana_elegido)
+
+    valor = valor * (1- descuento)
 
     #datos enviados a Mercado Pago
     preference_data = {
@@ -67,6 +73,12 @@ def calcular_contratacion_abono(dia_semana_elegido, sdk, user_id):
         },
         "notification_url": f"{URL}/webhook"
     }
+
+    print("URL:", repr(URL))
+    print("VALOR:", repr(valor))
+    print("PAYLOAD:")
+    from pprint import pprint
+    pprint(preference_data)
     
     #crea la preferencia de pago utilizando el SDK de Mercado Pago
     return crear_preferencia_mp(sdk, preference_data)
