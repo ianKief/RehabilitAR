@@ -101,9 +101,6 @@ class Usuario(Base):
 class Cliente(Usuario):
     __tablename__ = "clientes"
     id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), primary_key=True)
-    
-    descuento_acumulado: Mapped[float] = mapped_column(Float, default=0)
-    #TODO eliminar este campo y cambiar las funciones en las cuales se accede este campo por la lógica de descuentos. Crequear funciones que hizo alfonso para ahorrar tiempo, dado que ya programó esta lógica.
 
     # Relaciones
     apto_fisico: Mapped["AptoFisico"] = relationship(back_populates="cliente", uselist=False)

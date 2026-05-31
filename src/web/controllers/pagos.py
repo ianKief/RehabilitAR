@@ -102,10 +102,8 @@ def historial_pagos():
     renderizar_lista = False
     abonos = devolver_abonos_de_usuarios (user_id)
     pagos = devolver_pagos_de_reservas_de_usuarios (user_id)
-    if pagos or abonos:
-        renderizar_lista = True
 
     return render_template(
         "pagos/historial_pagos.html",
-        pagos = pagos, abonos = abonos, renderizar_lista = renderizar_lista
+        pagos = pagos, abonos = abonos
     )
