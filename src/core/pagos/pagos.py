@@ -62,8 +62,6 @@ class Abono(Base):
     __tablename__ = "abonos"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    id_cliente: Mapped[int] = mapped_column(ForeignKey("usuarios.id"),nullable=False)
-    #TODO sacar este campo y sus referencias a .join(pago).join(cliente)
     id_pago: Mapped[int] = mapped_column( ForeignKey("pagos.id"),nullable=False)
 
     dia_fijo: Mapped[int] = mapped_column(Integer, nullable=False)
