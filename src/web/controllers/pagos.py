@@ -31,6 +31,7 @@ def suscripcion():
 
     tiene_descuento = tiene_beneficios (id_cliente, tipo=TipoBeneficio.DESCUENTO)
     print ("TIENE DESCUENTO:", tiene_descuento)
+    descuento_maximo=0.0
     if tiene_descuento:
         descuento_maximo = calcular_descuento_maximo (id_cliente)
     print ("DESCUENTO MÁXIMO:", descuento_maximo)
