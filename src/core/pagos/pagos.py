@@ -10,6 +10,10 @@ tz_arg = ZoneInfo("America/Argentina/Buenos_Aires")
 
 # Clases de pago
 
+class ConceptoPago (enum.Enum):
+    RESERVA = "reserva" # Vale tanto para reservar como para esperar en la cola
+    ABONO = "abono"
+
 class EstadoPago (enum.Enum):
     PENDIENTE = "pendiente"
     COMPLETADO = "completado"
@@ -25,6 +29,7 @@ class Pago (Base):
 
     monto_total: Mapped[int] = mapped_column(Integer, nullable=False)
     estado_pago: Mapped[EstadoPago] = mapped_column(Enum(EstadoPago), default=EstadoPago.PENDIENTE, nullable=False)
+    concepto_pago: Mapped[ConceptoPago] = mapped_column(Enum(ConceptoPago), default=ConceptoPago.RESERVA, nullable=False)
 
     fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
@@ -35,12 +40,7 @@ class Pago (Base):
 
     detalle_pago = relationship("DetallePago", back_populates="pago")
     beneficios = relationship("Beneficio", back_populates="pago")
-    abono = relationship("Abono", back_populates="pago", uselist=False)
-    
-
-class ConceptoPago (enum.Enum):
-    RESERVA_MENSUAL = "reserva_mensual"
-    RESERVA_INDIVIDUAL = "reserva_individual" 
+    abono = relationship("Abono", back_populates="pago")
 
 
 class DetallePago (Base):
@@ -52,11 +52,26 @@ class DetallePago (Base):
     cantidad: Mapped[int] = mapped_column(Integer, nullable=False)
     precio_unitario: Mapped[int] = mapped_column(Integer, nullable=False)
     subtotal: Mapped[int] = mapped_column(Integer, nullable=False)
-    concepto_pago: Mapped[ConceptoPago] = mapped_column(Enum(ConceptoPago), default=ConceptoPago.RESERVA_MENSUAL, nullable=False)
+
     # Relationships
 
     pago = relationship("Pago", back_populates="detalle_pago")
     detalle_pago_reserva = relationship("DetallePagoReserva", back_populates="detalle_pago")
+
+class Abono(Base):
+    __tablename__ = "abonos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    id_pago: Mapped[int] = mapped_column( ForeignKey("pagos.id"),nullable=False)
+
+    dia_fijo: Mapped[int] = mapped_column(Integer, nullable=False)
+    #TODO convertir en enum
+    fecha_inicio: Mapped[datetime] = mapped_column(DateTime,nullable=False, default=datetime.now(tz_arg).replace(tzinfo=None))
+    fecha_fin: Mapped[datetime] = mapped_column(DateTime,nullable=False)
+
+    # Relationships:
+    pago = relationship("Pago", back_populates="abono")
+
 
 
 
@@ -73,6 +88,8 @@ class DetallePagoReserva (Base):
     # Relationships:
 
     detalle_pago = relationship("DetallePago", back_populates="detalle_pago_reserva")
+
+
 
 #Beneficio
 
@@ -113,17 +130,6 @@ class PrecioClase(Base):
     fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
         nullable=False
-    ) 
-
-
-#elvis
-
-class Abono(Base):
-    __tablename__ = "abonos"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    id_pago: Mapped[int] = mapped_column( ForeignKey("pagos.id"),nullable=False)
-    dia_fijo: Mapped[int] = mapped_column(Integer, nullable=False)
-    fecha_inicio: Mapped[datetime] = mapped_column(DateTime,nullable=False)
-    fecha_fin: Mapped[datetime] = mapped_column(DateTime,nullable=False)
-    pago = relationship("Pago", back_populates="abono")
+    )
+    fecha_hasta: Mapped[datetime] = mapped_column (DateTime, default=None, nullable=True)
+    # No lo testeé

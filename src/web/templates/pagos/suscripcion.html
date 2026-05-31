@@ -5,27 +5,20 @@
 {% block content %}
 
 <div class="columns is-centered">
-
     <div class="column is-7">
-
         <div class="box">
-
             <h1 class="title is-3">
                 Abono Mensual
             </h1>
-
             <p class="subtitle has-text-grey">
                 Accedé a clases, reservas y beneficios exclusivos de RehabilitAR.
             </p>
-
             <hr>
-
             <div class="content">
 
                 <h2 class="title is-5">
                     Beneficios incluidos
                 </h2>
-
                 <ul>
                     <li>Prioridad en listas de espera para reservas. </li>
                     <li>Acceso a clases fijas exclusivas para abonados.</li>
@@ -37,67 +30,53 @@
             </div>
 
             <div class="notification is-info is-light">
-
                 <p class="mb-2">
                     <strong>Valor mensual:</strong>
                     $<span id="precio"></span>
                 </p>
-
                 <p>
                     Si el día elegido aparece 4 veces en el mes,
                     se aplica un 20% de descuento.
                 </p>
-
             </div>
 
             <form action="/contratar_abono" method="POST">
-
                 <div class="field">
-
                     <label class="label">
                         Elegí un día fijo
                     </label>
-
                     <div class="control">
-
                         <div class="select is-fullwidth">
-
                             <select name="dia_fijo">
-
                                     <option value="0">Lunes</option>
                                     <option value="1">Martes</option>
                                     <option value="2">Miércoles</option>
                                     <option value="3">Jueves</option>
                                     <option value="4">Viernes</option>
-
                             </select>
-
                         </div>
-
                     </div>
-
                 </div>
 
+                {% if descuento_maximo != 0 %}
+                    <div>
+                        <input type="checkbox" name="descuento" value="{{descuento_maximo}}" id="descuento">Usar mis descuentos (máximo, {{descuento_maximo*100}}%)
+                    </div>
+                {% endif %}
+
                 <button class="button is-primary is-fullwidth is-medium mt-5">
-
                     Continuar al Pago
-
                 </button>
-
             </form>
-
         </div>
-
     </div>
-
 </div>
 
 <script>
 
+/* Lo que había antes
     const precios = JSON.parse('{{ precios | tojson | safe }}');
-
     const selectDia = document.querySelector('select[name="dia_fijo"]');
-
     const precioSpan = document.getElementById('precio');
 
     function actualizarPrecio() {
@@ -111,7 +90,30 @@
     selectDia.addEventListener('change', actualizarPrecio);
 
     actualizarPrecio();
+*/
 
+    const precios = JSON.parse('{{ precios | tojson | safe }}');
+    const selectDia = document.querySelector('select[name="dia_fijo"]');
+    const checkboxDescuento = document.getElementById("descuento");
+    const precioSpan = document.getElementById("precio");
+
+    function actualizarPrecio() {
+        const dia = selectDia.value;
+        let precio = precios[dia];
+        if (checkboxDescuento && checkboxDescuento.checked) {
+            const porcentaje = Number(checkboxDescuento.value);
+            precio *= (1 - porcentaje);
+        }
+        precioSpan.innerText = precio.toFixed(2);
+    }
+
+    selectDia.addEventListener('change', actualizarPrecio);
+
+    if (checkboxDescuento) {
+        checkboxDescuento.addEventListener('change', actualizarPrecio);
+    }
+
+    actualizarPrecio();
 </script>
 
 {% endblock %}

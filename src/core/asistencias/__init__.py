@@ -1,4 +1,4 @@
-from sqlalchemy import or_, func, text
+from sqlalchemy import or_, func, text, select, func
 from sqlalchemy.orm import joinedload, selectinload, contains_eager, aliased
 from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
@@ -30,14 +30,14 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
 
     # Inicializaciones necesarias
     filters = []
-    # LEER ABAJO: cliente_filtrado = False
+    cliente_filtrado = False
  
     # Aplicando filtros al query
- 
     if (busqueda != ""):
         cliente_filtrado = True
         filters.append(or_(Cliente.nombre.ilike(f"%{busqueda}%"), Cliente.apellido.ilike(f"%{busqueda}%"), Cliente.dni.ilike(f"%{busqueda}%"), Comentario.comentario.ilike(f"%{busqueda}%"), Clase.nombre.ilike(f"%{busqueda}%")))
         filters.append(Cliente.rol == RolUsuario.CLIENTE)
+
     # Nota: estado puede ser "seleccionar_todos", "presente" o "ausente"
     if (estado != "seleccionar_todos"):
 
@@ -70,8 +70,6 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
     else:
         query = query.outerjoin(Comentario, Comentario.id_reserva == Reserva.id)
 
-    """Si en algún momento agregamos FKs y relationships, esta alternativa es la correcta y nos permitirá sacar la otra función en ver_asistencias.py
-
     if cliente_filtrado:
         query = query.options(
             contains_eager(Reserva.cliente),
@@ -84,9 +82,8 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
             joinedload(Reserva.clase),
             selectinload(Reserva.comentarios)
         )
-    """
 
-    return query.unique().all()
+    return query.distinct().all()
         
 
 def subir_comentario (dni_alumno, comentario):
@@ -163,11 +160,9 @@ def finalizar_clase_y_penalizar(id_clase):
         ausentes_marcados += 1
         
         # 3. Calculamos el porcentaje histórico de inasistencias
-        # TODO: Implementar la lógica real de cálculo de porcentaje
-        # porcentaje_inasistencia = calcular_porcentaje_inasistencia(reserva.id_cliente)
-        porcentaje_inasistencia = 0 # Temporal
+        porcentaje_inasistencia, total_clases = calcular_porcentaje_inasistencia(reserva.id_cliente)
         
-        if porcentaje_inasistencia >= 50:
+        if porcentaje_inasistencia >= 50 and total_clases >= 4:
             try:
                 bloquear_usuario(reserva.id_cliente)
                 bloqueados += 1
@@ -177,3 +172,29 @@ def finalizar_clase_y_penalizar(id_clase):
     db.session.commit()
     
     return ausentes_marcados, bloqueados
+
+def calcular_porcentaje_inasistencia(id_cliente):
+    """Calcula el porcentaje histórico de inasistencias de un cliente."""
+    
+    # 1. Obtenemos el total de clases (Presentes + Ausentes)
+    stmt_total = (
+        select(func.count(Reserva.id))
+        .filter(Reserva.id_cliente == id_cliente)
+        .filter(Reserva.asiste.in_([AsistenciaReserva.PRESENTE, AsistenciaReserva.AUSENTE]))
+    )
+    total_clases = db.session.execute(stmt_total).scalar()
+
+    # Si nunca tuvo una clase completada, el porcentaje es 0
+    if not total_clases or total_clases == 0:
+        return 0.0
+
+    # 2. Obtenemos el total de ausencias
+    stmt_ausencias = (
+        select(func.count(Reserva.id))
+        .filter(Reserva.id_cliente == id_cliente)
+        .filter(Reserva.asiste == AsistenciaReserva.AUSENTE)
+    )
+    total_ausencias = db.session.execute(stmt_ausencias).scalar()
+
+    # 3. Calculamos el porcentaje
+    return (total_ausencias / total_clases) * 100, total_clases
