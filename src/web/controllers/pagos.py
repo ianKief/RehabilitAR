@@ -1,15 +1,12 @@
 #importo herramientas
 from flask import Blueprint, jsonify, current_app
 from flask import request,render_template, redirect,url_for, flash
-from src.core.pagos import procesar_mercado_pago_webhook,calcular_valor_abono
+from src.core.pagos import estado_abono_usuario, procesar_mercado_pago_webhook,calcular_valor_abono
 from flask import session
 from src.web.helpers.decorator import requiere_rol
 from src.core.database import db
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
-from src.core.pagos import PrecioClase
-from src.core.pagos import Pago
+from src.core.pagos import PrecioClase, Pago, TipoBeneficio, devolver_pagos_de_reservas_de_usuarios, devolver_abonos_de_usuarios, conseguir_precio_actual, tiene_beneficios, calcular_descuento_maximo
 
 
 bp = Blueprint("pagos", __name__)
@@ -25,22 +22,30 @@ def crear_preferencia_mp(sdk, preference_data):
 @requiere_rol(["CLIENTE"])
 def suscripcion():
 
+    id_cliente = session.get("usuario_id")
     precios = {}
+    descuentos_por_dia = {}
 
     for dia in range(5):
-
         precios[dia] = calcular_valor_abono(dia)
+        descuentos_por_dia[dia] = calcular_descuento_maximo(id_cliente,dia)
+    
+    tiene_descuento = tiene_beneficios(id_cliente,tipo=TipoBeneficio.DESCUENTO)
+
+    estado_actual = estado_abono_usuario(id_cliente)
 
     return render_template(
-         "pagos/suscripcion.html",
-        precios=precios
+        "pagos/suscripcion.html",
+        precios=precios,
+        descuentos_por_dia=descuentos_por_dia,
+        tiene_descuento=tiene_descuento,
+        estado_abono=estado_actual
     )
 
 #pantalla mostrada cuando el pago fue exitoso
 @bp.route("/contratar_abono/pago_exitoso")
 def pago_exitoso():
     return render_template("pagos/pago_exitoso.html")
-
 
 #pantalla mostrada cuando el pago falló
 @bp.route("/contratar_abono/pago_fallido")
@@ -83,12 +88,7 @@ def precio_clase():
         flash("Precio actualizado correctamente", "success")
         return redirect(url_for("pagos.precio_clase"))
 
-    # GET -> traer último precio
-    precio_actual = (
-        db.session.query(PrecioClase)
-        .order_by(PrecioClase.fecha_creacion.desc())
-        .first()
-    )
+    precio_actual = conseguir_precio_actual ()
 
     return render_template(
         "pagos/precio_clase.html",
@@ -102,16 +102,11 @@ def historial_pagos():
 
     user_id = session.get("usuario_id")
 
-    stmt = (
-    select(Pago)
-    .options(selectinload(Pago.detalle_pago))
-    .where(Pago.id_cliente == user_id)
-    .order_by(Pago.fecha_creacion.desc())
-)
-
-    pagos = db.session.execute(stmt).scalars().all()
+    renderizar_lista = False
+    abonos = devolver_abonos_de_usuarios (user_id)
+    pagos = devolver_pagos_de_reservas_de_usuarios (user_id)
 
     return render_template(
         "pagos/historial_pagos.html",
-        pagos=pagos
+        pagos = pagos, abonos = abonos
     )
