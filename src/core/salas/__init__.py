@@ -1,15 +1,19 @@
 from sqlalchemy import select
 from src.core.database import db
 from src.core.salas.salas import Sala, EstadoSala
+from datetime import date
 
 def listar_salas():
     """Obtiene una lista de todas las salas."""
-    stmt = select(Sala).order_by(Sala.numero_puerta)
+    stmt = select(Sala).filter_by(eliminada=False).order_by(Sala.numero_puerta)
     return db.session.execute(stmt).scalars().all()
 
 def obtener_sala(id):
     """Obtiene una sala por su ID."""
-    return db.session.get(Sala, id)
+    sala = db.session.get(Sala, id)
+    if sala and not sala.eliminada:
+        return sala
+    return None
 
 def crear_sala(**kwargs):
     """Crea una nueva sala en la base de datos."""
@@ -72,24 +76,37 @@ def actualizar_sala(id, **kwargs):
     return sala
 
 def eliminar_sala(id):
-    """Elimina físicamente una sala de la base de datos."""
+    """Elimina lógicamente una sala de la base de datos."""
     sala = obtener_sala(id)
     if sala:
         if tiene_clases_pendientes(id):
             raise ValueError("Acción bloqueada: la sala tiene actividades programadas")
-        db.session.delete(sala)
+        sala.eliminada = True
         db.session.commit()
         return True
     return False
 
 def buscar_sala_por_numero(numero_puerta):
     """Busca una sala por su número de puerta único."""
-    return db.session.execute(select(Sala).filter_by(numero_puerta=numero_puerta)).scalar_one_or_none()
+    return db.session.execute(select(Sala).filter_by(numero_puerta=numero_puerta, eliminada=False)).scalar_one_or_none()
+
+def obtener_clases_por_sala(sala_id):
+    """Obtiene el cronograma de clases asignadas a una sala."""
+    try:
+        from src.core.clases.clases import Clase
+        stmt = select(Clase).filter_by(id_sala=sala_id).order_by(Clase.fecha_clase, Clase.horario)
+        return db.session.execute(stmt).scalars().all()
+    except ImportError:
+        return []
 
 def tiene_clases_pendientes(sala_id):
-    """Verifica si una sala tiene clases asignadas a futuro. (Placeholder)"""
-    # TODO: Implementar validación real cuando exista el modelo de Clases en la BD
-    return False
+    """Verifica si una sala tiene clases asignadas a futuro."""
+    try:
+        from src.core.clases.clases import Clase
+        stmt = select(Clase).filter(Clase.id_sala == sala_id, Clase.fecha_clase >= date.today())
+        return db.session.execute(stmt).first() is not None
+    except ImportError:
+        return False
 
 def toggle_estado_sala(id):
     """Alterna el estado de una sala entre HABILITADA y DESHABILITADA."""

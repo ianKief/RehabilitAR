@@ -75,7 +75,9 @@ def clase_tiene_lugar(clase):
 
     ocupados = (db.session.scalar(cantidad_lugares_ocupados) or 0)
 
-    return ocupados < clase.capacidad_maxima
+    if not clase.sala:
+        return False
+    return ocupados < clase.sala.capacidad
 
 def comprobar_alta_demanda (clase):
     """Devuelve true si hay que informar alta demanda, False si no hay que hacerlo o si ya se comprobó previamente"""

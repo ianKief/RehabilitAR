@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 from src.core.usuarios import Usuario, Profesor, Cliente, EstadoUsuario
 from src.core.reservas.reservas import Reserva, Comentario
 from src.core.clases import Clase, ProfesorDictaClase
+from src.core.salas.salas import Sala
 
 from src.core.functions import filtro_clase_actual
 
@@ -55,16 +56,32 @@ class SeedAsistenciaYSeguimientoSprint1 ():
 
         print("Profesores para sprint 1 épica Asistencia y seguimiento creados con éxito. Insertando clases y reservas...")
 
+        sala_sprint1_1 = Sala(
+            numero_puerta="101-S1",
+            descripcion="Sala Sprint 1 (Capacidad 4)",
+            capacidad=4,
+            estado="HABILITADA"
+        )
+        sala_sprint1_2 = Sala(
+            numero_puerta="102-S1",
+            descripcion="Sala Sprint 1 (Capacidad 1)",
+            capacidad=1,
+            estado="HABILITADA"
+        )
+        self.db.session.add(sala_sprint1_1)
+        self.db.session.add(sala_sprint1_2)
+        self.db.session.flush()
+
         clase1 = Clase(
             nombre= "Clase 1 de profesor 1 con reservas",
             especialidad= "Programación",
             duracion=180,
-            capacidad_maxima = 4,
             descripcion = "Otorgamos una clase de 3 horas para 4 personas para que nuestro cliente pueda apreciar la implementación de la HU sin inconvenientes",
             fecha_clase = datetime.now(tz_arg).replace(tzinfo=None).date(),
             horario = datetime.now(tz_arg).replace(tzinfo=None).time(),
             aprobada = True,
-            tipo = "individual"
+            tipo = "individual",
+            id_sala = sala_sprint1_1.id
         )
         self.db.session.add(clase1)
 
@@ -72,12 +89,12 @@ class SeedAsistenciaYSeguimientoSprint1 ():
             nombre= "Clase 2 de profesor 2 sin reservas",
             especialidad= "Programación",
             duracion=180,
-            capacidad_maxima = 1,
             descripcion = "Otorgamos una clase de 3 horas para 4 personas para que nuestro cliente pueda apreciar la implementación de la HU sin inconvenientes",
             fecha_clase = datetime.now(tz_arg).replace(tzinfo=None).date(),
             horario = datetime.now(tz_arg).replace(tzinfo=None).time(),
             aprobada = True,
-            tipo = "individual"
+            tipo = "individual",
+            id_sala = sala_sprint1_2.id
         )
         self.db.session.add(clase2)
 
