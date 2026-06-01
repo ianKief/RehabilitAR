@@ -60,7 +60,7 @@
 
                 {% if descuento_maximo != 0 %}
                     <div>
-                        <input type="checkbox" name="descuento" value="{{descuento_maximo}}" id="descuento">Usar mis descuentos (máximo, {{descuento_maximo*100}}%)
+                        <input type="checkbox" name="descuento" value="{{descuento_maximo}}" id="descuento"> Usar mis descuentos (máximo, {{ "%.0f"|format(descuento_maximo * 100) }}%)
                     </div>
                 {% endif %}
 
@@ -104,7 +104,8 @@
             const porcentaje = Number(checkboxDescuento.value);
             precio *= (1 - porcentaje);
         }
-        precioSpan.innerText = precio.toFixed(2);
+        //cuando es un nro sin decimales lo muestra sin decimales, y si tiene muestra hasta dos decimales.
+        precioSpan.innerText = Number(precio.toFixed(2));
     }
 
     selectDia.addEventListener('change', actualizarPrecio);

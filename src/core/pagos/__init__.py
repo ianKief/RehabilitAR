@@ -86,39 +86,6 @@ def estado_abono(abono):
     return "activo"
 
 
-def obtener_info_descuento(abono):
-    id_cliente = db.session.scalar(db.session.query(Pago.id_cliente)
-        .join(Abono)
-        .filter(Abono.id == abono.id)
-    )
-    usuario = db.session.get(Usuario, id_cliente)
-
-    dias = contar_dias_semana(
-        abono.dia_fijo,
-        abono.fecha_inicio,
-        abono.fecha_fin
-    )
-
-    descuento_auto = calcular_descuento_automatico(dias)
-
-    maximo_por_regla = 0.30 - descuento_auto
-
-    if maximo_por_regla < 0:
-        maximo_por_regla = 0.0
-
-    descuento_disponible_usuario = usuario.descuento_acumulado
-    # TODO obtener descuento acumulado de los bonos no usados (aquellos que no tienen join con PagoBeneficio)
-
-    maximo_usuario = min(
-        descuento_disponible_usuario,
-        maximo_por_regla
-    )
-
-    return {
-        "tiene_descuento": maximo_usuario > 0,
-        "max_usuario": maximo_usuario
-    }
-
 "consultas de abono y precio"
 
 def obtener_precio_clase_actual():
@@ -197,6 +164,23 @@ def registrar_pago_abono_mensual(payment_id,id_cliente,monto):
 
     return pago
 
+def consumir_descuentos(id_cliente, pago, limite):
+
+    descuentos = devolver_beneficios_activos(id_cliente,tipo=TipoBeneficio.DESCUENTO   )
+    restante = limite
+    for beneficio in descuentos:
+        if restante <= 0:
+            break
+        disponible = beneficio.porcentaje_descuento
+        if disponible <= restante:
+            restante -= disponible
+            beneficio.porcentaje_descuento = 0
+            beneficio.usado = True
+        else:
+            beneficio.porcentaje_descuento -= restante
+            restante = 0
+        beneficio.id_pago = pago.id
+
 def registrar_pago_desde_payment(payment_id,payment):
     monto = payment.get("transaction_amount")
     estado = payment.get("status")
@@ -208,14 +192,12 @@ def registrar_pago_desde_payment(payment_id,payment):
     tipo = metadata.get("tipo") 
     print ("TIPO EXISTE????", tipo)
 
-    descuento_usuario = float(metadata.get("descuento_usuario", 0.0))
-    
     # si no está aprobado, no hacer nada
     if estado != "approved" :
         print("Pago no aprobado:", estado)
         return
     
-    # evitar duplicados
+    # evitar duplicado
     if pago_ya_procesado(payment_id):
         print("Pago duplicado")
         return
@@ -225,40 +207,15 @@ def registrar_pago_desde_payment(payment_id,payment):
         return
     user_id = int(external_ref)
 
-    id_cliente = db.session.get(Usuario, user_id)
-
-    descuento = bool(metadata.get("descuento", False))
+    descuento = float(metadata.get("descuento_usuario", 0))
     print ("ESTE DATO DICE SI TIENE DESCUENTO :O", descuento)
 
-    if descuento and tiene_beneficios (id_cliente, tipo=TipoBeneficio.DESCUENTO):
-        print ("Entré al bloque tendrá descuento (?)")
-        descuentos_a_tachar = []
-        descuentos = devolver_beneficios_activos (id_cliente, tipo=TipoBeneficio.DESCUENTO)
-        tendra_descuento = True
-        cantidad_descuento = 0
-        for descuento in descuentos:
-            descuentos_a_tachar.append(descuento)
-            if (cantidad_descuento + descuento.porcentaje_descuento) > 0.3:
-                registrar_beneficio (id_cliente, descripcion = "Resto de descuentos anteriores", tipo=TipoBeneficio.DESCUENTO, session=db.session, porcentaje_descuento = cantidad_descuento + descuento.porcentaje_descuento - 0.3)
-                print ("Registramos un nuevo beneficio")
-                break
-            else:
-                cantidad_descuento+=descuento.porcentaje_descuento
-                if (cantidad_descuento + descuento.porcentaje_descuento) == 0.3:
-                    break
-        monto = monto * (1 - cantidad_descuento)
-        for descuento in descuentos_a_tachar:
-            descuento.usado = True
-            descuento.id_pago = pago.id
-        print ("Y estos son los descuentos a tachar",descuentos_a_tachar)
+    pago = registrar_pago_abono_mensual(payment_id, user_id, monto)
 
-    pago = registrar_pago_abono_mensual (payment_id, user_id,monto)
+    if descuento>0:
+        consumir_descuentos(user_id, pago, descuento)
 
-    if tipo == "renovacion":
-       # renovar_abono(user_id,dia_fijo)
-       print ("renovar")
-    else:
-        registrar_abono (pago.id, dia_fijo)
+    registrar_abono (pago.id, dia_fijo)
 
     db.session.commit()
 
@@ -305,6 +262,8 @@ def actualizar_precio(nuevo_precio):
     precio = PrecioClase(precio=nuevo_precio)
     db.session.add(precio)
     db.session.commit()
+
+
 
 
 def bloquear_morosos_abono():
@@ -408,14 +367,12 @@ def conseguir_precio_actual ():
         .first()
     )
 
-def calcular_descuento_maximo (id_cliente):
-    descuentos = devolver_beneficios_activos (id_cliente, tipo=TipoBeneficio.DESCUENTO)
+def calcular_descuento_maximo(id_cliente):
+    descuentos = devolver_beneficios_activos(id_cliente,tipo=TipoBeneficio.DESCUENTO)
     cantidad_descuento = 0
     for descuento in descuentos:
-        cantidad_descuento+=descuento.porcentaje_descuento
-        if (cantidad_descuento + descuento.porcentaje_descuento) >= 0.3:
-            return 0.3
-    return cantidad_descuento
+        cantidad_descuento += descuento.porcentaje_descuento
+    return min(cantidad_descuento, 0.3)
 
 
 #cosas que implementare mas adelante

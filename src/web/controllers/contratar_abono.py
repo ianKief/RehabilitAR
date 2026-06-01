@@ -1,5 +1,5 @@
 from datetime import date
-from src.web.controllers.pagos import crear_preferencia_mp
+from src.web.controllers.pagos import crear_preferencia_mp,calcular_descuento_maximo
 from flask import Blueprint, request, current_app, redirect,flash,url_for
 from flask import session
 from src.core.pagos import estado_abono,obtener_ultimo_abono,calcular_valor_abono
@@ -16,15 +16,16 @@ def contratar_abono_route():
     #obtiene el día fijo elegido por el usuario desde el formulario HTML
     dia_semana_elegido = int(request.form["dia_fijo"])
     
-    descuento = 0
-    if request.form.get("descuento"):
-        descuento = float(request.form["descuento"])
-    
     #obtiene el ID del usuario logueado desde la sesión
     user_id = session.get("usuario_id")
-    
     print("USER_ID EN SESSION:", session.get("usuario_id"))
 
+
+    descuento = 0
+
+    if request.form.get("descuento"):
+        descuento = calcular_descuento_maximo(user_id)
+    
     abono = obtener_ultimo_abono(user_id)
 
     if abono and estado_abono(abono) == "activo":
@@ -63,7 +64,8 @@ def calcular_contratacion_abono(dia_semana_elegido, descuento, sdk, user_id):
         #datos personalizados enviados a Mercado Pago
         #se recuperan luego desde el webhook
         "metadata": {
-            "dia_fijo": dia_semana_elegido
+            "dia_fijo": dia_semana_elegido,
+            "descuento_usuario": descuento
         },
 
         "back_urls": {
