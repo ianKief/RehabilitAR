@@ -1,6 +1,6 @@
 from src.core.reservas.reservas import Cola, Reserva
 from src.core.salas.salas import Sala
-from src.core.usuarios.usuarios import Usuario
+
 from src.core.database import Base
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, Integer, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship

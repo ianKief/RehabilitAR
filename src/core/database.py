@@ -29,25 +29,21 @@ def seed_db():
     """Pobla la base de datos con datos de prueba."""
     from src.core.database import db
     from src.core.seeds.salas_seeds import SalaSeeder
-    # Seeder de Profesores y Especialidades
-    # Levantamos las especialidades e IDs bases antes de procesar la cartelera
-    # from src.core.seeds.profesores_seeds import ProfesorSeeder
-    # seeder_profesores = ProfesorSeeder(db)
 
-    #from src.core.seeds.postulacionSeeder import PostulacionSeeder
-    #seeder_postulacion= PostulacionSeeder(db)
-    
-    from src.core.seeds.clases_seeds import ClaseSeeder, ProfesorDictaClaseSeeder
+    from src.core.seeds.profesores_seeds import ProfesorSeeder
+    from src.core.seeds.postulacionSeeder import PostulacionSeeder    
+    from src.core.seeds.clases_seeds import ClaseSeeder
     from src.core.seeds.usuarios_seeds import UsuarioSeeder
-    from src.core.seeds.sprint1_escenarios import SeedAsistenciaYSeguimientoSprint1
+    #from src.core.seeds.sprint1_escenarios import SeedAsistenciaYSeguimientoSprint1
 
     # Definimos el orden lógico de ejecución de los seeders
     seeders = [
         SalaSeeder(db),
         UsuarioSeeder(db),
+        ProfesorSeeder(db),
         ClaseSeeder(db),
-        ProfesorDictaClaseSeeder(db),
-        SeedAsistenciaYSeguimientoSprint1(db)
+        PostulacionSeeder(db),
+        #SeedAsistenciaYSeguimientoSprint1(db)
     ]
 
     for seeder in seeders:

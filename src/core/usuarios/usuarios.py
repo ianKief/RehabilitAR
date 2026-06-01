@@ -1,15 +1,11 @@
 from typing import List
-
 from src.core.reservas.reservas import Cola, Reserva
-from src.core.database import Base
-from sqlalchemy import ForeignKey, Integer, String, DateTime, Enum
 from src.core.database import Base
 from sqlalchemy import Integer, String, DateTime, Enum, ForeignKey, Boolean,Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import enum
-from typing import List
 
 class EstadoUsuario(enum.Enum):
     PENDIENTE = "pendiente"
@@ -70,9 +66,6 @@ class Usuario(Base):
     direccion: Mapped[str] = mapped_column(String(255), nullable=True)
     telefono: Mapped[str] = mapped_column(String(20), nullable=True)
     fecha_nacimiento: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    ruta_apto_fisico: Mapped[str] = mapped_column(String(255), nullable=True)
-    estado_apto_fisico: Mapped[EstadoAptoFisico] = mapped_column(Enum(EstadoAptoFisico), default=EstadoAptoFisico.SIN_CARGAR, nullable=True)
-    fecha_apto_fisico: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     
     rol: Mapped[RolUsuario] = mapped_column(Enum(RolUsuario), default=RolUsuario.CLIENTE, nullable=False)
     estado: Mapped[EstadoUsuario] = mapped_column(Enum(EstadoUsuario), default=EstadoUsuario.PENDIENTE, nullable=True)
@@ -97,25 +90,10 @@ class Usuario(Base):
     def __repr__(self):
         return f"<Usuario(id={self.id}, nombre='{self.nombre}', email='{self.email}', rol='{self.rol.value}', estado='{self.estado.value}')>"
     
-class TipoEspecialidad(enum.Enum):
-    SUPERIOR = "TREN SUPERIOR"
-    MEDIO = "TREN MEDIO"
-    INFERIOR = "TREN INFERIOR"
-
-class Especialidad(Base):
-    __tablename__ = "especialidades"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    nombre: Mapped[TipoEspecialidad] = mapped_column(Enum(TipoEspecialidad), unique=True, nullable=False)
-    profesores: Mapped[List["Profesor"]] = relationship(back_populates="especialidad")
-    
     __mapper_args__ = {
         "polymorphic_on": "rol",
         "polymorphic_identity": "usuario_base"
     }
-
-    def __repr__(self):
-        return f"<Usuario(id={self.id}, nombre='{self.nombre}', email='{self.email}', rol='{self.rol.value}', estado='{self.estado.value}')>"
 
 # ==========================================
 # 2. CLASES HIJAS
@@ -139,8 +117,10 @@ class Cliente(Usuario):
 class Profesor(Usuario):
     __tablename__ = "profesores"
     id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), primary_key=True)
-    especialidad: Mapped["Especialidad"] = relationship(back_populates="profesores")
     id_especialidad: Mapped[int] = mapped_column(ForeignKey("especialidades.id"), nullable=True)
+
+    # Relaciones
+    especialidad: Mapped["Especialidad"] = relationship(back_populates="profesores")
 
     __mapper_args__ = {
         "polymorphic_identity": RolUsuario.PROFESOR

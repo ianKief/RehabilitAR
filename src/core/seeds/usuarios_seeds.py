@@ -84,7 +84,8 @@ class UsuarioSeeder:
                 password=password, 
                 estado=estado, 
                 direccion=direccion, 
-                telefono=telefono, 
+                telefono=telefono,
+                fecha_nacimiento= fecha_nacimiento
             )
 
             if rol == RolUsuario.CLIENTE:

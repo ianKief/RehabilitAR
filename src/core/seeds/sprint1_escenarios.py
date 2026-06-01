@@ -1,4 +1,4 @@
-from datetime import datetime
+"""from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from src.core.usuarios import Usuario, Profesor, Cliente, EstadoUsuario
@@ -140,4 +140,4 @@ class SeedAsistenciaYSeguimientoSprint1 ():
         )
         self.db.session.add(comentario3)
 
-        self.db.session.commit()
+        self.db.session.commit()"""

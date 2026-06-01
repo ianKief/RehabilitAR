@@ -2,7 +2,7 @@ from sqlalchemy import select, func, case
 from sqlalchemy.orm import contains_eager
 from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
-from src.core.usuarios.usuarios import Usuario, Cliente
+
 from src.core.reservas.reservas import Reserva, AsistenciaReserva, Cola, Cancelacion
 from datetime import date, timedelta
 import calendar
@@ -59,6 +59,7 @@ def obtener_ids_clases_reservadas(id_cliente):
     return [r.id_clase for r in reservas]
 
 def obtener_ids_clases_encoladas(id_cliente):
+    from src.core.usuarios.usuarios import Cliente
     """Obtiene una lista con los IDs de las clases en las que un cliente tiene una espera en cola activada (no cancelada)."""
     query = (db.session.query(Cola.id_clase)
         .join (Cliente, Cliente.id == Cola.id_cliente)
@@ -151,6 +152,7 @@ def obtener_alternativas_semana_para_clase(clase_base):
     return db.session.scalars(query).all()
 
 def obtener_profesor_de_clase(id_clase):
+    from src.core.usuarios.usuarios import Usuario
     """Devuelve el profesor asignado a una clase."""
     query = select(Usuario).join(
         ProfesorDictaClase, Usuario.id == ProfesorDictaClase.id_profesor
@@ -210,6 +212,7 @@ def procesar_reservas_mensuales_automatica(id_cliente, clases_a_reservar):
     return reservas_creadas
 
 def cancelar_cola (id_cliente, id_clase):
+    from src.core.usuarios.usuarios import Cliente
     """Cancela la cola, primero obteniéndola vía id_cliente y id_clase. Fuera de operación actualmente"""
     query = (db.session.query(Cola)
         .join (Cliente, Cliente.id == Cola.id_cliente)
@@ -289,6 +292,7 @@ def hay_cola (clase):
     return devolver_cantidad_esperando_en_cola(clase) > 0
 
 def dar_acceso_segun_orden_cola (id_clase):
+    from src.core.usuarios.usuarios import Cliente
     try:
         conseguir_clase = (db.session.query(Clase).filter(id_clase==Clase.id))
         clase=db.session.scalars(conseguir_clase).first()

@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import aliased
 
 from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago,Abono
-from src.core.usuarios.usuarios import Usuario, Cliente, EstadoUsuario
+
 from src.core.database import db
 
 from datetime import timedelta
@@ -84,7 +84,7 @@ def estado_abono(abono):
 
 
 def obtener_info_descuento(abono):
-    
+    from core.usuarios.usuarios import Usuario
     usuario = db.session.get(Usuario, abono.id_cliente)
 
     dias = contar_dias_semana(
@@ -192,6 +192,7 @@ def registrar_pago_abono_mensual(payment_id,id_cliente,monto):
     return pago
 
 def registrar_pago_desde_payment(payment_id,payment):
+    from core.usuarios.usuarios import Usuario
     monto = payment.get("transaction_amount")
     estado = payment.get("status")
 
@@ -283,6 +284,7 @@ def actualizar_precio(nuevo_precio):
 
 
 def bloquear_morosos_abono():
+    from core.usuarios.usuarios import Cliente, EstadoUsuario
     """
     Bloquea a los clientes abonados cuyo abono esté vencido.
     Diseñado para ejecutarse el día 11 de cada mes.

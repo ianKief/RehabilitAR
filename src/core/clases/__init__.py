@@ -1,24 +1,13 @@
 import calendar
 from datetime import date, datetime, time, timedelta
-from sqlalchemy import select, text, func, case
+from sqlalchemy import select, func, case, and_, extract
 from sqlalchemy.orm import aliased
 
+
 from src.core.database import db
 
-from src.core.clases.clases import Clase, ProfesorDictaClase
+from src.core.clases.clases import Clase, ProfesorDictaClase, ClaseBloque, PostulacionClase
 from src.core.reservas.reservas import Reserva, AsistenciaReserva
-from src.core.usuarios.usuarios import Usuario, RolUsuario
-from src.core.reservas import devolver_cantidad_esperando_en_cola
-
-from src.core.functions import filtro_clase_actual
-
-from sqlalchemy import and_, extract, func, select
-from src.core.usuarios.usuarios import Especialidad, Profesor, Usuario
-
-from src.core.database import db
-from src.core.clases.clases import Clase, ClaseBloque, PostulacionClase, ProfesorDictaClase
-from src.core.salas.salas import Sala, EstadoSala
-from src.core.usuarios.usuarios import tz_arg
 
 # <VER CLASES ADMIN>
 def listar_clases():
@@ -40,6 +29,8 @@ def obtener_clase_por_id(clase_id: int):
     return clase
 
 def obtener_postulantes_clase(clase_id: int):
+    from src.core.usuarios.usuarios import Usuario, Profesor, Especialidad
+    
     """
     Retorna los postulantes de una clase y la información del profesor asignado si existiese.
     Adaptado a la herencia polimórfica y Enums del nuevo esquema.
@@ -160,6 +151,7 @@ def obtener_horarios_disponibles(fecha_evaluar, duracion_minutos=45, sala_id_eva
     return horarios_libres
 
 def listar_especialidades_activas():
+    from src.core.usuarios.usuarios import Especialidad
     """
     Retorna la lista real de especialidades ordenadas alfabéticamente
     directo desde la base de datos.
@@ -248,6 +240,7 @@ def crear_clases_agenda(**datos_clase):
 
 # <POSTULACION DE PROFESORES>
 def obtener_clases_disponibles_para_profesor(profesor_id):
+    from src.core.usuarios.usuarios import Profesor, Especialidad
     hoy = date.today()
 
     # 1. 🔍 BUSCAMOS LA ESPECIALIDAD DEL PROFESOR
@@ -365,6 +358,7 @@ def obtener_postulaciones_de_profesor(profesor_id):
     return list(bloques_postulados.values())
 
 def obtener_clases_dictadas_por_profesor(profesor_id: int):
+    from src.core.clases.clases import tz_arg
     """
     Trae las clases asignadas a un profesor que aún no sucedieron o que 
     terminaron hace menos de 30 minutos (margen de tolerancia).
@@ -499,6 +493,8 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
         return False
 
 def conseguir_clase_actual (id_profesor):
+    from src.core.functions import filtro_clase_actual
+    from src.core.usuarios.usuarios import Usuario, RolUsuario
     """Retorna la clase actual del profesor o None. profesor/index.html maneja None de manera adaptativa"""
 
     Profesor = aliased(Usuario)
@@ -528,6 +524,8 @@ def conseguir_clase_actual (id_profesor):
     return db.session.execute(query).one_or_none()
 
 def profesor_está_en_clase (id_profesor):
+    from src.core.functions import filtro_clase_actual
+    from src.core.usuarios.usuarios import Usuario, RolUsuario
     """Retorna un valor booleano que representa si el profesor está en clase"""
 
     Profesor = aliased(Usuario)
@@ -558,6 +556,7 @@ def clase_tiene_lugar(clase):
     return ocupados < clase.capacidad_maxima
 
 def comprobar_alta_demanda (clase):
+    from src.core.reservas import devolver_cantidad_esperando_en_cola
     """Devuelve true si hay que informar alta demanda, False si no hay que hacerlo o si ya se comprobó previamente"""
     
     if (not clase.aviso_alta_demanda) and (devolver_cantidad_esperando_en_cola (clase) == 10):
