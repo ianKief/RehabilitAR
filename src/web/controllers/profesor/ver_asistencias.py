@@ -3,8 +3,6 @@ from flask import render_template, session, request, flash, url_for, redirect
 from src.core.usuarios import tiene_alumnos
 from src.core.asistencias import conseguir_asistencias
 
-from src.web.functions import agrupacion_manual_de_datos_de_comentarios_por_asistencia_y_alumno
-
 def ver_comentarios_y_asistencias ():
     
     id_profesor = session.get("usuario_id")
