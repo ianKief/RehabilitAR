@@ -32,6 +32,7 @@ def seed_db():
     from src.core.seeds.clases_seeds import ClaseSeeder, ProfesorDictaClaseSeeder
     from src.core.seeds.usuarios_seeds import UsuarioSeeder
     from src.core.seeds.sprint1_escenarios import SeedAsistenciaYSeguimientoSprint1
+    from src.core.seeds.lista_de_espera_sprint1_seeds import SeedListaDeEspera
 
     # Definimos el orden lógico de ejecución de los seeders
     seeders = [
@@ -39,7 +40,8 @@ def seed_db():
         UsuarioSeeder(db),
         ClaseSeeder(db),
         ProfesorDictaClaseSeeder(db),
-        SeedAsistenciaYSeguimientoSprint1(db)
+        SeedAsistenciaYSeguimientoSprint1(db),
+        SeedListaDeEspera (db)
     ]
 
     for seeder in seeders:

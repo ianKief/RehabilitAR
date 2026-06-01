@@ -38,9 +38,9 @@ reservas_bp = Blueprint("reservas", __name__, url_prefix="/reservas")
 # Caché en memoria para no saturar la API externa ni enlentecer la carga de la página
 _CACHE_FERIADOS = {}
 
-def _verificar_apto_fisico(cliente) -> bool:
+def _verificar_apto_fisico(cliente, fecha_clase = datetime.now()) -> bool:
     """Helper para validar el apto físico del cliente de forma centralizada."""
-    if not tiene_apto_fisico_valido(cliente):
+    if not tiene_apto_fisico_valido(cliente, fecha_clase):
         flash("Debe contar con un apto físico aceptado y vigente para reservar.", "warning")
         return False
     return True
@@ -134,8 +134,6 @@ def reservar_clase(id_clase):
     
     if not _verificar_apto_fisico(cliente):
         return redirect(url_for("reservas.calendario_cliente"))
-    
-    #TODO debería verificarse si el apto físico vence para el momento de la clase
 
     #TODO verificar si hay una clase en curso para ese momento ??? Si quieren y da el tiempo :P
 
@@ -145,6 +143,10 @@ def reservar_clase(id_clase):
     if not clase:
         flash("La clase solicitada no existe.", "danger")
         return redirect(url_for("reservas.calendario_cliente"))
+    
+    # Verifico si el apto físico seguirá habilitado para el momento de la clase
+    if not _verificar_apto_fisico(cliente, fecha_clase=datetime.combine(clase.fecha_clase, datetime.min.time())):
+        return redirect(url_for("reservas.calendario_cliente"))    
     
     reserva_existente = obtener_reserva(usuario_id, id_clase)
     if reserva_existente and clase_tiene_lugar(clase):
