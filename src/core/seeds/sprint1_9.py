@@ -111,7 +111,7 @@ class SeedListaDeEspera ():
                 telefono=telefono, 
             )
 
-            usuario = Cliente(**datos_usuario, es_abonado=random.choice([True, False]))
+            usuario = Cliente(**datos_usuario)
                 
             self.db.session.add(usuario)
 
