@@ -12,131 +12,164 @@
         <h1 class="title is-3 mb-2">Bienvenido a RehabilitAR</h1>
         <p class="subtitle is-6 has-text-grey">Tu panel de control y resumen de actividad</p>
     </div>
-    {% if rol == 'cliente' %}
-    {% if estado_abono == "activo" %}
-    <div class="box mb-5">
-        <div class="columns is-vcentered">
 
-            <div class="column">
-                <h2 class="title is-5 mb-2">
-                    <i class="fas fa-check-circle"></i>
-                    Abono activo
-                </h2>
-
-                <p class="has-text-grey">
-                    Tenés todos los beneficios activos.
-                </p>
-            </div>
-
-            <div class="column is-narrow">
-                <button class="button is-success is-medium" disabled>
-                    Activo
-                </button>
-            </div>
-
-        </div>
-    </div>
-
-    {% else %}
-
-    <div class="box mb-5">
-        <div class="columns is-vcentered">
-
-            <div class="column">
-                <h2 class="title is-5 mb-2">
-                    <i class="fas fa-credit-card"></i>
-                    Abono mensual
-                </h2>
-
-                <p class="has-text-grey">
-                    Contratá tu suscripción y accedé a beneficios.
-                </p>
-            </div>
-
-            <div class="column is-narrow">
-                <a href="/contratar_abono/suscripcion"
-                class="button is-primary is-medium">
-                    Contratar Abono
-                </a>
-            </div>
-
-        </div>
-    </div>
-
-{% endif %}
-{% endif %}
-
-    <div class="columns is-multiline mb-6">
-        <div class="column is-3-desktop is-6-tablet">
-            <div class="box">
-                <div class="has-text-centered">
-                    <p class="heading has-text-info">Salas Disponibles</p>
-                    <p class="title is-3 has-text-info">8</p>
+    {% if session.get('rol') == 'CLIENTE' %}
+        <!-- ========================================== -->
+        <!-- DASHBOARD CLIENTE                          -->
+        <!-- ========================================== -->
+        {% if estado_abono == "activo" %}
+        <div class="box mb-5">
+            <div class="columns is-vcentered">
+                <div class="column">
+                    <h2 class="title is-5 mb-2">
+                        <i class="fas fa-check-circle has-text-success"></i>
+                        Abono activo
+                    </h2>
+                    <p class="has-text-grey">
+                        Tenés todos los beneficios activos.
+                    </p>
+                </div>
+                <div class="column is-narrow">
+                    <button class="button is-success is-medium" disabled>
+                        Activo
+                    </button>
                 </div>
             </div>
         </div>
-        <div class="column is-3-desktop is-6-tablet">
-            <div class="box">
-                <div class="has-text-centered">
-                    <p class="heading has-text-success">Clases Hoy</p>
-                    <p class="title is-3 has-text-success">5</p>
+        {% else %}
+        <div class="box mb-5">
+            <div class="columns is-vcentered">
+                <div class="column">
+                    <h2 class="title is-5 mb-2">
+                        <i class="fas fa-credit-card has-text-primary"></i>
+                        Abono mensual
+                    </h2>
+                    <p class="has-text-grey">
+                        Contratá tu suscripción y accedé a beneficios.
+                    </p>
+                </div>
+                <div class="column is-narrow">
+                    <a href="/contratar_abono/suscripcion" class="button is-primary is-medium">
+                        Contratar Abono
+                    </a>
                 </div>
             </div>
         </div>
-        <div class="column is-3-desktop is-6-tablet">
-            <div class="box">
-                <div class="has-text-centered">
-                    <p class="heading has-text-warning">Pacientes Activos</p>
-                    <p class="title is-3 has-text-warning">24</p>
-                </div>
-            </div>
-        </div>
-        <div class="column is-3-desktop is-6-tablet">
-            <div class="box">
-                <div class="has-text-centered">
-                    <p class="heading has-text-danger">Próximas Reservas</p>
-                    <p class="title is-3 has-text-danger">12</p>
-                </div>
-            </div>
-        </div>
-    </div>
+        {% endif %}
 
-    <div class="columns is-multiline">
-        <div class="column is-12">
-            <div class="box">
-                <h2 class="title is-5 mb-4">
-                    <span class="icon mr-2"><i class="fas fa-calendar-alt"></i></span>
-                    Próximas Clases
-                </h2>
-                <div class="content is-small">
-                    <table class="table is-fullwidth is-hoverable is-size-7">
-                        <tbody>
-                            <tr>
-                                <td><strong>Terapia Física</strong></td>
-                                <td>Sala A</td>
-                                <td class="has-text-right">10:00 AM</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Pilates</strong></td>
-                                <td>Sala B</td>
-                                <td class="has-text-right">11:30 AM</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Yoga Terapéutico</strong></td>
-                                <td>Sala C</td>
-                                <td class="has-text-right">02:00 PM</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Recuperación</strong></td>
-                                <td>Sala D</td>
-                                <td class="has-text-right">03:30 PM</td>
-                            </tr>
-                        </tbody>
-                    </table>
+        <div class="columns is-multiline">
+            <div class="column is-6">
+                <div class="box has-text-centered is-fullheight p-5">
+                    <span class="icon is-large has-text-primary mb-3"><i class="far fa-calendar-check fa-3x"></i></span>
+                    <h3 class="title is-5">Reservar Turno</h3>
+                    <p class="has-text-grey mb-4">Explorá el calendario y reservá tu próxima sesión de rehabilitación.</p>
+                    <a href="{{ url_for('reservas.calendario_cliente') }}" class="button is-primary is-rounded">Ir al Calendario</a>
+                </div>
+            </div>
+            <div class="column is-6">
+                <div class="box has-text-centered is-fullheight p-5">
+                    <span class="icon is-large has-text-info mb-3"><i class="fas fa-chalkboard-user fa-3x"></i></span>
+                    <h3 class="title is-5">Mis Clases</h3>
+                    <p class="has-text-grey mb-4">Revisá el historial de tus sesiones, tus reservas actuales y lugares en espera.</p>
+                    <a href="{{ url_for('reservas.mis_clases') }}" class="button is-info is-rounded">Ver Mis Clases</a>
                 </div>
             </div>
         </div>
-    </div>
+
+    {% elif session.get('rol') == 'ADMINISTRADOR' %}
+        <!-- ========================================== -->
+        <!-- DASHBOARD ADMINISTRADOR                    -->
+        <!-- ========================================== -->
+        <div class="columns is-multiline mb-6">
+            <div class="column is-3-desktop is-6-tablet">
+                <div class="box">
+                    <div class="has-text-centered">
+                        <p class="heading has-text-info">Salas Disponibles</p>
+                        <p class="title is-3 has-text-info">8</p>
+                    </div>
+                </div>
+            </div>
+            <div class="column is-3-desktop is-6-tablet">
+                <div class="box">
+                    <div class="has-text-centered">
+                        <p class="heading has-text-success">Clases Hoy</p>
+                        <p class="title is-3 has-text-success">5</p>
+                    </div>
+                </div>
+            </div>
+            <div class="column is-3-desktop is-6-tablet">
+                <div class="box">
+                    <div class="has-text-centered">
+                        <p class="heading has-text-warning">Pacientes Activos</p>
+                        <p class="title is-3 has-text-warning">24</p>
+                    </div>
+                </div>
+            </div>
+            <div class="column is-3-desktop is-6-tablet">
+                <div class="box">
+                    <div class="has-text-centered">
+                        <p class="heading has-text-danger">Próximas Reservas</p>
+                        <p class="title is-3 has-text-danger">12</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="columns is-multiline">
+            <div class="column is-12">
+                <div class="box">
+                    <h2 class="title is-5 mb-4">
+                        <span class="icon mr-2"><i class="fas fa-calendar-alt"></i></span>
+                        Próximas Clases
+                    </h2>
+                    <div class="content is-small">
+                        <table class="table is-fullwidth is-hoverable is-size-7">
+                            <tbody>
+                                <tr>
+                                    <td><strong>Terapia Física</strong></td>
+                                    <td>Sala A</td>
+                                    <td class="has-text-right">10:00 AM</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Pilates</strong></td>
+                                    <td>Sala B</td>
+                                    <td class="has-text-right">11:30 AM</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Yoga Terapéutico</strong></td>
+                                    <td>Sala C</td>
+                                    <td class="has-text-right">02:00 PM</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Recuperación</strong></td>
+                                    <td>Sala D</td>
+                                    <td class="has-text-right">03:30 PM</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    {% elif session.get('rol') == 'PROFESOR' %}
+        <!-- ========================================== -->
+        <!-- DASHBOARD PROFESOR                         -->
+        <!-- ========================================== -->
+        <div class="columns is-multiline">
+            <div class="column is-12">
+                <div class="box has-text-centered py-6">
+                    <span class="icon is-large has-text-primary mb-3"><i class="far fa-bookmark fa-3x"></i></span>
+                    <h3 class="title is-4">Panel de Profesor</h3>
+                    <p class="subtitle is-6 has-text-grey mb-5">Bienvenido. Desde aquí podés gestionar la asistencia de tus alumnos y realizar el seguimiento de su evolución.</p>
+                    <a href="/profesor" class="button is-primary is-medium is-rounded shadow-button">
+                        <span class="icon"><i class="fas fa-clipboard-list"></i></span>
+                        <span>Ir a Asistencia y Seguimiento</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 
 {% else %}
     <!-- ========================================== -->
