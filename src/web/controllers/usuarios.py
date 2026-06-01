@@ -1,7 +1,7 @@
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, request
 from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_aptos_en_revision, obtener_usuario_por_id_core, actualizar_rol_usuario, bloquear_usuario, habilitar_usuario, eliminar_usuario, revisar_y_aprobar_apto, revisar_y_rechazar_apto
-from src.core.usuarios.usuarios import Cliente, EstadoAptoFisico
+from src.core.usuarios.usuarios import EstadoAptoFisico, Cliente, AptoFisico
 from src.web.helpers.decorator import requiere_rol
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
@@ -121,9 +121,12 @@ def perfil():
         return redirect(url_for('auth.login'))
     
     dias_restantes = 0
-    if usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO' and usuario.apto_fisico.fecha_carga:
-        fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
-        dias_restantes = (fecha_vencimiento - datetime.now()).days
+
+    if isinstance(usuario, Cliente) and usuario.apto_fisico:
+        apto = usuario.apto_fisico
+        if apto.estado.name == 'ACEPTADO' and apto.fecha_carga:
+            fecha_vencimiento = apto.fecha_carga + timedelta(days=365)
+            dias_restantes = (fecha_vencimiento - datetime.now()).days
     
     return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes)
 
@@ -139,9 +142,14 @@ def subir_apto():
     if not usuario:
         return redirect(url_for('auth.login'))
     
-    if usuario.estado_apto_fisico and usuario.estado_apto_fisico.name == 'ACEPTADO' and usuario.fecha_apto_fisico:
-        fecha_vencimiento = usuario.fecha_apto_fisico + timedelta(days=365)
-        if fecha_vencimiento > datetime.today():
+    if not isinstance(usuario, Cliente):
+        flash("Solo los clientes pueden subir certificados médicos.", "danger")
+        return redirect(url_for('usuarios.perfil'))
+    
+    apto = usuario.apto_fisico
+    if apto and apto.estado.name == 'ACEPTADO' and apto.fecha_carga:
+        fecha_vencimiento = apto.fecha_carga + timedelta(days=365)
+        if fecha_vencimiento > datetime.now():
             flash("Ya posee un apto físico aprobado actualmente", "danger")
             return redirect(url_for('usuarios.perfil'))
         
@@ -159,16 +167,24 @@ def subir_apto():
         return redirect(url_for('usuarios.perfil'))
     
     if archivo and archivo.filename != '':
-        nombre_archivo_apto = secure_filename(archivo.filename)
+        nombre_archivo_apto = f"{usuario.dni}_{secure_filename(archivo.filename)}"
         ruta_destino = os.path.join(os.getcwd(), 'src', 'web', 'static', 'uploads', 'aptos_fisicos')
 
         os.makedirs(ruta_destino, exist_ok=True)
 
         archivo.save(os.path.join(ruta_destino, nombre_archivo_apto))
 
-        usuario.ruta_apto_fisico = f"uploads/aptos_fisicos/{nombre_archivo_apto}"
-        usuario.estado_apto_fisico = EstadoAptoFisico.EN_REVISION
-        usuario.fecha_apto_fisico = datetime.today()
+        if not usuario.apto_fisico:
+            nuevo_apto = AptoFisico(
+                ruta_archivo=nombre_archivo_apto,
+                fecha_carga=datetime.now(),
+                estado=EstadoAptoFisico.EN_REVISION
+            )
+            usuario.apto_fisico = nuevo_apto
+        else:
+            usuario.apto_fisico.ruta_archivo = nombre_archivo_apto
+            usuario.apto_fisico.fecha_carga = datetime.now()
+            usuario.apto_fisico.estado = EstadoAptoFisico.EN_REVISION
 
         db.session.commit()
 
