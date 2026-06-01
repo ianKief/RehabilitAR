@@ -33,7 +33,7 @@ def seed_db():
     from src.core.seeds.usuarios_seeds import UsuarioSeeder
     from src.core.seeds.sprint1_5 import SeedPagosSprint1
     from src.core.seeds.sprint1_8 import SeedAsistenciaYSeguimientoSprint1
-    from src.core.seeds.lista_de_espera_sprint1_seeds import SeedListaDeEspera
+    from src.core.seeds.sprint1_9 import SeedListaDeEspera
 
     # Definimos el orden lógico de ejecución de los seeders
     seeders = [
