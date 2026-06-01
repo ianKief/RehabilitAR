@@ -58,9 +58,10 @@
                     </div>
                 </div>
 
-                {% if descuento_maximo != 0 %}
-                    <div>
-                        <input type="checkbox" name="descuento" value="{{descuento_maximo}}" id="descuento"> Usar mis descuentos (máximo, {{ "%.0f"|format(descuento_maximo * 100) }}%)
+                {% if tiene_descuento %}
+                    <div>                       
+                        <input type="checkbox" name="descuento" value="1" id="descuento">
+                        <span id="texto-descuento"></span>
                     </div>
                 {% endif %}
 
@@ -96,12 +97,19 @@
     const selectDia = document.querySelector('select[name="dia_fijo"]');
     const checkboxDescuento = document.getElementById("descuento");
     const precioSpan = document.getElementById("precio");
+    const descuentosPorDia = JSON.parse('{{ descuentos_por_dia | tojson | safe }}');
+    const textoDescuento = document.getElementById("texto-descuento");
 
     function actualizarPrecio() {
         const dia = selectDia.value;
         let precio = precios[dia];
-        if (checkboxDescuento && checkboxDescuento.checked) {
-            const porcentaje = Number(checkboxDescuento.value);
+        const porcentaje = descuentosPorDia[dia];
+        if (textoDescuento) {
+            textoDescuento.innerText =
+            `Usar mis descuentos (máximo, ${(porcentaje * 100).toFixed(0)}%)`;
+        }
+        
+        if (checkboxDescuento && checkboxDescuento.checked) {    
             precio *= (1 - porcentaje);
         }
         //cuando es un nro sin decimales lo muestra sin decimales, y si tiene muestra hasta dos decimales.

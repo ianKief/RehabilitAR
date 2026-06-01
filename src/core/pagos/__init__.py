@@ -367,12 +367,19 @@ def conseguir_precio_actual ():
         .first()
     )
 
-def calcular_descuento_maximo(id_cliente):
+def calcular_descuento_maximo(id_cliente, dia_semana):
+    fecha = date.today()
+    dias = contar_dias_semana(dia_semana,fecha,duracion_abono_mensual(fecha))
+    descuento_automatico = calcular_descuento_automatico(dias)
+    maximo_usuario = 0.30 - descuento_automatico
+    if maximo_usuario < 0:
+        maximo_usuario = 0
     descuentos = devolver_beneficios_activos(id_cliente,tipo=TipoBeneficio.DESCUENTO)
-    cantidad_descuento = 0
+    total = 0
     for descuento in descuentos:
-        cantidad_descuento += descuento.porcentaje_descuento
-    return min(cantidad_descuento, 0.3)
+        total += descuento.porcentaje_descuento
+    total = min(total, 0.30)
+    return min(total, maximo_usuario)
 
 
 #cosas que implementare mas adelante

@@ -24,7 +24,7 @@ def contratar_abono_route():
     descuento = 0
 
     if request.form.get("descuento"):
-        descuento = calcular_descuento_maximo(user_id)
+        descuento = calcular_descuento_maximo(user_id,dia_semana_elegido)
     
     abono = obtener_ultimo_abono(user_id)
 

@@ -24,21 +24,19 @@ def suscripcion():
 
     id_cliente = session.get("usuario_id")
     precios = {}
+    descuentos_por_dia = {}
 
     for dia in range(5):
-
         precios[dia] = calcular_valor_abono(dia)
+        descuentos_por_dia[dia] = calcular_descuento_maximo(id_cliente,dia)
+    
+    tiene_descuento = tiene_beneficios(id_cliente,tipo=TipoBeneficio.DESCUENTO)
 
-    tiene_descuento = tiene_beneficios (id_cliente, tipo=TipoBeneficio.DESCUENTO)
-    print ("TIENE DESCUENTO:", tiene_descuento)
-    descuento_maximo=0.0
-    if tiene_descuento:
-        descuento_maximo = calcular_descuento_maximo (id_cliente)
-    print ("DESCUENTO MÁXIMO:", descuento_maximo)
     return render_template(
-         "pagos/suscripcion.html",
+        "pagos/suscripcion.html",
         precios=precios,
-        descuento_maximo=descuento_maximo
+        descuentos_por_dia=descuentos_por_dia,
+        tiene_descuento=tiene_descuento
     )
 
 #pantalla mostrada cuando el pago fue exitoso
