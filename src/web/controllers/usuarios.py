@@ -1,7 +1,7 @@
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, request
 from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_aptos_en_revision, obtener_usuario_por_id_core, actualizar_rol_usuario, bloquear_usuario, habilitar_usuario, eliminar_usuario, revisar_y_aprobar_apto, revisar_y_rechazar_apto
-from src.core.usuarios.usuarios import EstadoAptoFisico
+from src.core.usuarios.usuarios import Cliente, EstadoAptoFisico
 from src.web.helpers.decorator import requiere_rol
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
@@ -106,6 +106,7 @@ def cambiar_rol(id):
         flash("Ocurrió un error inesperado al actualizar el rol.", "danger")
         
     return redirect(url_for('usuarios.detalle_usuario', id=id))
+
 @users_bp.route('/perfil')
 def perfil():
     user_id = session.get('usuario_id')
@@ -113,20 +114,21 @@ def perfil():
         flash("Debes iniciar sesion para ver tu perfil.", "warning")
         return redirect(url_for('auth.login'))
     
-    usuario = obtener_usuario_por_id_core(user_id)
+    usuario = db.session.get(Cliente, user_id)
 
     if not usuario:
         session.clear()
         return redirect(url_for('auth.login'))
     
     dias_restantes = 0
-    if usuario.estado_apto_fisico and usuario.estado_apto_fisico.name == 'ACEPTADO' and usuario.fecha_apto_fisico:
-        fecha_vencimiento = usuario.fecha_apto_fisico + timedelta(days=365)
+    if usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO' and usuario.apto_fisico.fecha_carga:
+        fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
         dias_restantes = (fecha_vencimiento - datetime.now()).days
     
     return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes)
 
 allowed_extensions = ('pdf', 'jpeg', 'jpg', 'png')
+
 @users_bp.route('/perfil/subir_apto', methods=['POST'])
 def subir_apto():
     usuario_id = session.get('usuario_id')
