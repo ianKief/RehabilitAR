@@ -53,41 +53,43 @@
         <h4 class="title is-5 mb-2"><i class="fas fa-file-alt has-text-primary mr-2"></i> Descripción del tratamiento</h4>
         <p class="has-text-grey" style="word-break: break-word;">{{ clase.descripcion }}</p>
 
-        {% if reserva and reserva.asiste.name != 'CANCELADA' %}
-        <hr class="my-4" style="background-color: var(--bulma-border-weak); opacity: 0.5;">
-        
-        <div class="is-flex is-justify-content-space-between is-align-items-center mb-3">
-            <h4 class="title is-5 is-size-6-mobile mb-0"><i class="fas fa-bookmark has-text-primary mr-2"></i> Estado de tu Reserva</h4>
-            {% if clase.fecha_clase >= hoy %}
-                <form action="{{ url_for('reservas.cancelar_reserva', id_clase=clase.id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas cancelar tu asistencia a esta clase?\n\nLas políticas de retención de seña o beneficios aplican según la antelación de tu cancelación.');">
-                    <button type="submit" class="button is-small is-danger is-light is-rounded has-text-weight-semibold shadow-button">
-                        <span class="icon is-small"><i class="fas fa-times"></i></span>
-                        <span>Cancelar Reserva</span>
-                    </button>
-                </form>
-            {% endif %}
-        </div>
-        <div class="notification is-success is-light p-4 is-flex is-align-items-center">
-            <span class="icon is-medium mr-3" style="flex-shrink: 0;"><i class="fas fa-check-circle fa-lg"></i></span>
-            <div>
-                {% if clase.fecha_clase < hoy %}
-                    {% if reserva.asiste.name == 'PRESENTE' %}
-                        <strong>Asistió:</strong> Estuviste presente en esta sesión.
-                    {% else %}
-                        <strong>Ausente / Finalizada:</strong> La clase ya concluyó.
+        {% if reserva %} 
+            {% if reserva.asiste.name != 'CANCELADA' %}
+                <hr class="my-4" style="background-color: var(--bulma-border-weak); opacity: 0.5;">
+                
+                <div class="is-flex is-justify-content-space-between is-align-items-center mb-3">
+                    <h4 class="title is-5 is-size-6-mobile mb-0"><i class="fas fa-bookmark has-text-primary mr-2"></i> Estado de tu Reserva</h4>
+                    {% if clase.fecha_clase >= hoy %}
+                        <form action="{{ url_for('reservas.cancelar_reserva', id_clase=clase.id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas cancelar tu asistencia a esta clase?\n\nLas políticas de retención de seña o beneficios aplican según la antelación de tu cancelación.');">
+                            <button type="submit" class="button is-small is-danger is-light is-rounded has-text-weight-semibold shadow-button">
+                                <span class="icon is-small"><i class="fas fa-times"></i></span>
+                                <span>Cancelar Reserva</span>
+                            </button>
+                        </form>
                     {% endif %}
-                {% else %}
-                    <strong>Confirmada:</strong> Tienes tu lugar asegurado para esta clase.
-                {% endif %}
-            </div>
-        </div>
-        {% else %}
-            <div class="notification is-danger is-light p-4 is-flex is-align-items-center">
-                <span class="icon is-medium mr-3" style="flex-shrink: 0;"><i class="fas fa-check-circle fa-lg"></i></span>
-                <div>
-                    <strong>Cancelada:</strong> Has cancelado esta reserva
                 </div>
-            </div>
+                <div class="notification is-success is-light p-4 is-flex is-align-items-center">
+                    <span class="icon is-medium mr-3" style="flex-shrink: 0;"><i class="fas fa-check-circle fa-lg"></i></span>
+                    <div>
+                        {% if clase.fecha_clase < hoy %}
+                            {% if reserva.asiste.name == 'PRESENTE' %}
+                                <strong>Asistió:</strong> Estuviste presente en esta sesión.
+                            {% else %}
+                                <strong>Ausente / Finalizada:</strong> La clase ya concluyó.
+                            {% endif %}
+                        {% else %}
+                            <strong>Confirmada:</strong> Tienes tu lugar asegurado para esta clase.
+                        {% endif %}
+                    </div>
+                </div>
+            {% elif reserva.asiste.name == 'CANCELADA' %}
+                <div class="notification is-danger is-light p-4 is-flex is-align-items-center">
+                    <span class="icon is-medium mr-3" style="flex-shrink: 0;"><i class="fas fa-check-circle fa-lg"></i></span>
+                    <div>
+                        <strong>Cancelada:</strong> Has cancelado esta reserva
+                    </div>
+                </div>
+            {% endif %}
         {% endif %}
 
         {% if cola and cola.cancelada != True %}
