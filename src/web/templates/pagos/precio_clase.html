@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h1 class="title">Precio de clases</h1>
+
+{% if precio %}
+    <p class="mb-4">
+        Precio actual: <strong>${{ precio.precio }}</strong>
+    </p>
+{% else %}
+    <p class="mb-4">No hay precio definido todavía.</p>
+{% endif %}
+
+<form method="POST" class="box">
+    <div class="field">
+        <label class="label">Nuevo precio</label>
+        <div class="control">
+            <input class="input" type="number" name="precio" placeholder="Ej: 5000">
+        </div>
+    </div>
+
+    <button class="button is-primary" type="submit">
+        Guardar
+    </button>
+</form>
+
+{% endblock %}

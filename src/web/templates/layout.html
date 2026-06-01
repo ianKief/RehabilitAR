@@ -7,7 +7,13 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
     {% block head %}{% endblock %}
+    <script>
+        // Aplicar tema inmediatamente en el head
+        const initialTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', initialTheme);
+    </script>
 </head>
 <body class="is-flex is-flex-direction-column is-flex-grow-1" style="min-height: 100vh;">
     <nav class="navbar has-shadow" role="navigation" aria-label="main navigation">
@@ -27,10 +33,12 @@
                             style="background: transparent; border: none;">
                             <span class="icon"><i class="far fa-moon"></i></span>
                         </button>
-                        <a class="button is-primary is-outlined is-small ml-2" href="/perfil"
+                        {% if session.get('usuario_id') %}
+                        <a class="button is-primary is-outlined is-small ml-2" href="{{ url_for('usuarios.perfil') }}"
                             style="padding-left: 0.75rem; padding-right: 0.75rem;">
                             <span class="icon"><i class="far fa-user"></i></span>
                         </a>
+                        {% endif %}
                     </div>
                 </div>
         
@@ -47,38 +55,84 @@
                     <a class="navbar-item py-3 px-4" href="/">
                         <span class="icon mr-2"><i class="fas fa-home"></i></span>Inicio
                     </a>
+                    {% if session.get('rol') == 'ADMINISTRADOR' %}
                     <!-- Navegación para personal (ocultar según rol) -->
-                    {% if True %}
-                        <a class="navbar-item py-3 px-4" href="/salas">
-                            <span class="icon mr-2"><i class="far fa-hospital"></i></span>Salas
-                        </a>
-                        <a class="navbar-item py-3 px-4" href="/clases/admin">
-                            <span class="icon mr-2"><i class="far fa-calendar-alt"></i></span>Clases
-                        </a>
+                    <a class="navbar-item py-3 px-4" href="/salas">
+                        <span class="icon mr-2"><i class="far fa-hospital"></i></span>Salas
+                    </a>
+                    <a class="navbar-item py-3 px-4" href="/clases/admin">
+                        <span class="icon mr-2"><i class="far fa-calendar-alt"></i></span>Clases
+                    </a>
                     {% endif %}
-                    <!-- Agrega más enlaces según sea necesario -->
+                    {% if session.get('rol') == 'PROFESOR' %}
+                    <!-- Navegación para profesores -->
+                    <a class="navbar-item py-3 px-4" href="/profesor">
+                        <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Asistencia y seguimiento
+                    </a>
+                    {% endif %}
                     <!-- Navegación para clientes (solo si son clientes) -->
-                    {% if session.get('user_role') == 'cliente' %}
-                        <a class="navbar-item py-3 px-4" href="/reservas">
-                            <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Reservas
+                    {% if session.get('rol') == 'CLIENTE' %}
+                        <a class="navbar-item py-3 px-4" href="{{ url_for('reservas.calendario_cliente') }}">
+                            <span class="icon mr-2"><i class="far fa-calendar-check"></i></span>Reservas
                         </a>
-                        <a class="navbar-item py-3 px-4" href="/mis-clases">
+                        <a class="navbar-item py-3 px-4" href="{{ url_for('reservas.mis_clases') }}">
                             <span class="icon mr-2"><i class="fas fa-chalkboard-user"></i></span>Mis Clases
                         </a>
                     {% endif %}
-                    <!-- Agrega más enlaces según sea necesario -->
+                    
+                    <hr class="navbar-divider" style="background-color: var(--bulma-border-weak); opacity: 0.5;">
+                    
+                    {% if session.get('usuario_id') %}
+                        <a class="navbar-item py-3 px-4 has-text-danger" href="{{ url_for('auth.logout') }}">
+                            <span class="icon mr-2"><i class="fas fa-sign-out-alt"></i></span>Cerrar Sesión
+                        </a>
+                    {% else %}
+                        <a class="navbar-item py-3 px-4" href="{{ url_for('auth.login') }}">
+                            <span class="icon mr-2"><i class="fas fa-sign-in-alt"></i></span>Iniciar Sesión
+                        </a>
+                        <a class="navbar-item py-3 px-4" href="{{ url_for('auth.registrar_cliente') }}">
+                            <span class="icon mr-2"><i class="fas fa-user-plus"></i></span>Registrarse
+                        </a>
+                    {% endif %}
                 </div>
                 <div class="navbar-end is-hidden-touch">
                     <div class="navbar-item">
                         <div class="buttons">
+                            
+                            <!-- Botón de Tema: Siempre visible para todos -->
                             <button class="button theme-toggle mr-3 has-text-grey" title="Alternar tema"
                                 style="background: transparent; border: none;">
                                 <span class="icon is-medium"><i class="far fa-moon is-size-5"></i></span>
                             </button>
-                            <a class="button is-primary is-rounded px-5" href="/perfil">
-                                <span class="icon mr-2"><i class="far fa-user"></i></span>
-                                <span>Mi Perfil</span>
-                            </a>
+
+                            <!-- Lógica de Sesión -->
+                            {% if session.get('usuario_id') %}
+                                <!-- SI EL USUARIO ESTÁ LOGUEADO -->
+                                
+                                <a href="{{ url_for('usuarios.perfil') }}" class="button is-primary is-rounded px-5">
+                                    <span class="icon mr-2"><i class="far fa-user"></i></span>
+                                    <span>Mi Perfil</span>
+                                </a>
+                                
+                                <a id="btn-logout" href="{{ url_for('auth.logout') }}" class="button is-danger is-light is-rounded px-5">
+                                    <span class="icon mr-2"><i class="fas fa-sign-out-alt"></i></span>
+                                    <span>Cerrar Sesión</span>
+                                </a>
+                                
+                            {% else %}
+                                <!-- SI ES UN VISITANTE (NO LOGUEADO) -->
+                                
+                                <a href="{{ url_for('auth.registrar_cliente') }}" class="button is-primary is-rounded px-5">
+                                    <strong>Registrarse</strong>
+                                </a>
+                                
+                                <a href="{{ url_for('auth.login') }}" class="button is-light is-rounded px-5">
+                                    <span class="icon mr-2"><i class="fas fa-sign-in-alt"></i></span>
+                                    <span>Iniciar Sesión</span>
+                                </a>
+                                
+                            {% endif %}
+                            
                         </div>
                     </div>
                 </div>
@@ -88,7 +142,22 @@
 
     <main class="section is-flex is-flex-direction-column px-3 py-5">
         <div class="container is-flex is-flex-direction-column is-flex-grow-1">
+            
+            <!-- Mensajes Flash Globales -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                <div class="block mb-4">
+                {% for category, message in messages %}
+                  <div class="notification is-{{ category }} auto-dismiss">
+                    {{ message }}
+                  </div>
+                {% endfor %}
+                </div>
+              {% endif %}
+            {% endwith %}
+
             <div class="columns is-variable is-4-desktop is-flex-grow-1 is-stretch">
+                {% if session.get('usuario_id') %}
                 <aside class="column is-3 is-hidden-touch is-flex is-flex-direction-column is-flex-grow-1">
                     <div class="box is-flex-grow-1">
                         <p class="menu-label has-text-weight-bold px-2 mb-3 has-text-grey-light">
@@ -97,38 +166,83 @@
                         <ul class="menu-list">
                             <li>
                                 <a href="/"
-                                    class="py-2.5 px-3 {% if current_path == '/' %} has-text-primary{% endif %}">
+                                    class="py-2.5 px-3 {% if request.path == '/' %}menu-item-active{% endif %}">
                                     <span class="icon mr-2"><i class="fas fa-house"></i></span>Inicio
                                 </a>
                             </li>
                             <!-- Navegación para personal (ocultar según rol) -->
-                            {% if True %} <!-- para hacer pruebas visuales if true en el rol a inspeccionar -->
-                                <li>
-                                    <a href="/salas"
-                                        class="py-2.5 px-3 {% if current_path == '/salas/' %}has-text-primary{% endif %}">
-                                        <span class="icon mr-2"><i class="far fa-hospital"></i></span>Salas
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/clases/admin"
-                                        class="py-2.5 px-3 {% if current_path == '/clases/admin' %}has-text-primary{% endif %}">
-                                        <span class="icon mr-2"><i class="far fa-calendar-alt"></i></span>Clases
-                                    </a>
-                                </li>
+                             {% if session.get('rol') == 'ADMINISTRADOR' %}
+                            <li>
+                                <a id="btn-toggle-usuarios" class="py-2.5 px-3 has-text-weight-semibold" style="cursor: pointer;">
+                                    <span class="icon mr-2"><i class="fas fa-users-cog"></i></span>
+                                    Usuarios
+                                    <span class="icon is-small is-pulled-right mt-1">
+                                        <i id="icono-flecha-usuarios" class="fas fa-angle-down"></i>
+                                    </span>
+                                </a>
+                                
+                                <ul id="submenu-usuarios" class="is-hidden ml-4 mt-2" style="border-left: 2px solid var(--bulma-border-weak);">
+                                    <li>
+                                        <a href="{{ url_for('usuarios.listar_usuarios') }}" 
+                                        class="py-2 px-3 {% if request.path.startswith('/usuarios/lista') %}menu-item-active{% endif %}">
+                                            <span class="icon mr-2"><i class="fas fa-list"></i></span>Listado de Usuarios
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ url_for('usuarios.crear_usuario') }}" 
+                                        class="py-2 px-3 {% if request.path.startswith('/usuarios/crear') %}menu-item-active{% endif %}">
+                                            <span class="icon mr-2"><i class="fas fa-user-plus"></i></span>Crear Usuario
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>
+                                <a href="/salas"
+                                    class="py-2.5 px-3 {% if request.path.startswith('/salas') %}menu-item-active{% endif %}">
+                                    <span class="icon mr-2"><i class="far fa-hospital"></i></span>Salas
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/clases/admin"
+                                    class="py-2.5 px-3 {% if request.path.startswith('/clases/admin') %}menu-item-active{% endif %}">
+                                    <span class="icon mr-2"><i class="far fa-calendar-alt"></i></span>Clases
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('pagos.precio_clase') }}"
+                                    class="py-2.5 px-3 {% if request.path.startswith('/admin/precio-clase') %}menu-item-active{% endif %}">
+                                    <span class="icon mr-2"><i class="fas fa-dollar-sign"></i></span>Precio de Clases
+                                </a>
+                            </li>
                             {% endif %}
-                            <!-- Agrega más enlaces según sea necesario -->
+
+                            <!-- Navegación para profesores-->
+                            {% if session.get('rol') == 'PROFESOR' %}
+                            <li>
+                                <a href="/profesor/"
+                                    class="py-2.5 px-3 {% if request.path.startswith('/profesor') %}menu-item-active{% endif %}">
+                                    <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Asistencia y seguimiento
+                                </a>
+                            </li>
+                            {% endif %}
                             <!-- Navegación para clientes (solo si son clientes) -->
-                            {% if session.get('user_role') == 'cliente' %}
+                            {% if session.get('rol') == 'CLIENTE' %}
                                 <li>
-                                    <a href="/reservas"
-                                        class="py-2.5 px-3 {% if current_path == '/reservas/' %}has-text-primary{% endif %}">
+                                    <a href="{{ url_for('reservas.calendario_cliente') }}"
+                                        class="py-2.5 px-3 {% if request.path.startswith('/reservas') and not request.path.startswith('/reservas/mis-clases') %}menu-item-active{% endif %}">
                                         <span class="icon mr-2"><i class="far fa-calendar-check"></i></span>Reservas
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="/mis-clases"
-                                        class="py-2.5 px-3 {% if current_path == '/mis-clases/' %}has-text-primary{% endif %}">
+                                    <a href="{{ url_for('reservas.mis_clases') }}"
+                                        class="py-2.5 px-3 {% if request.path.startswith('/mis-clases') %}menu-item-active{% endif %}">
                                         <span class="icon mr-2"><i class="fas fa-chalkboard-user"></i></span>Mis Clases
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{{ url_for('pagos.historial_pagos') }}"
+                                        class="py-2.5 px-3 {% if request.path.startswith('/pagos/historial') %}menu-item-active{% endif %}">
+                                        <span class="icon mr-2"><i class="fas fa-receipt"></i></span>Historial de Pagos
                                     </a>
                                 </li>
                             {% endif %}
@@ -136,8 +250,9 @@
                         </ul>
                     </div>
                 </aside>
+                {% endif %}
 
-                <div class="column is-9-desktop is-12-tablet">
+                <div class="column {% if session.get('usuario_id') %}is-9-desktop is-12-tablet{% else %}is-12{% endif %}">
                     <div class="block is-flex is-flex-direction-column is-flex-grow-1">
                         {% block content %}
                         {% endblock %}
@@ -188,13 +303,20 @@
                         btn.classList.add('has-text-grey');
                     }
                 });
+                // Alternar estilo del botón Cerrar Sesión
+                const btnLogout = document.getElementById('btn-logout');
+                if (btnLogout) {
+                    if (theme === 'dark') {
+                        btnLogout.classList.replace('is-light', 'is-dark');
+                    } else {
+                        btnLogout.classList.replace('is-dark', 'is-light');
+                    }
+                }
             };
 
-            const initialTheme = localStorage.getItem('theme') || 
-                (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-            
-            htmlTag.setAttribute('data-theme', initialTheme);
-            updateToggleIcons(initialTheme);
+            // Leemos el tema que se aplicó instantáneamente en el <head>
+            const currentTheme = htmlTag.getAttribute('data-theme');
+            updateToggleIcons(currentTheme);
 
             themeToggles.forEach(toggle => {
                 toggle.addEventListener('click', () => {
@@ -205,7 +327,51 @@
                     updateToggleIcons(next);
                 });
             });
+
+            // Ocultar notificaciones automáticamente después de 5 segundos
+            const flashMessages = document.querySelectorAll('.auto-dismiss');
+            flashMessages.forEach(msg => {
+                setTimeout(() => {
+                    msg.style.transition = 'opacity 0.5s ease';
+                    msg.style.opacity = '0';
+                    // Esperar a que termine la transición (300ms) para eliminar el elemento del DOM
+                    setTimeout(() => msg.remove(), 300); 
+                }, 5000);
+            });
         });
+    </script>
+
+    <script>
+        // ==========================================
+        // LÓGICA DEL MENÚ DESPLEGABLE DE USUARIOS
+        // ==========================================
+        const btnToggleUsuarios = document.getElementById('btn-toggle-usuarios');
+        const submenuUsuarios = document.getElementById('submenu-usuarios');
+        const iconoFlecha = document.getElementById('icono-flecha-usuarios');
+
+        if (btnToggleUsuarios && submenuUsuarios) {
+            
+            // Función para abrir/cerrar
+            btnToggleUsuarios.addEventListener('click', (e) => {
+                e.preventDefault();
+                submenuUsuarios.classList.toggle('is-hidden');
+                
+                // Girar la flechita
+                if (submenuUsuarios.classList.contains('is-hidden')) {
+                    iconoFlecha.classList.replace('fa-angle-up', 'fa-angle-down');
+                } else {
+                    iconoFlecha.classList.replace('fa-angle-down', 'fa-angle-up');
+                }
+            });
+
+            // UX Inteligente: Si la URL actual ya es una pantalla de usuarios, 
+            // dejamos el menú abierto automáticamente para que el Admin no se pierda.
+            const pathActual = window.location.pathname;
+            if (pathActual.includes('/usuarios/lista') || pathActual.includes('/usuarios/crear') || pathActual.includes('/usuarios/detalle')) {
+                submenuUsuarios.classList.remove('is-hidden');
+                iconoFlecha.classList.replace('fa-angle-down', 'fa-angle-up');
+            }
+        }
     </script>
     {% block scripts %}{% endblock %}
 </body>

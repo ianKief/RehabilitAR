@@ -1,0 +1,118 @@
+{% extends "layout.html" %}
+
+{% block title %}Mis Clases | RehabilitAR{% endblock %}
+
+{% block content %}
+<div class="box p-4 mx-auto mt-5" style="border-radius: 1.25rem; width: 100%; max-width: 900px; min-width: 0; overflow-x: hidden; border: 1px solid var(--bulma-border-weak); box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+    <div class="has-text-centered mb-5">
+        <span class="icon is-large has-text-primary mb-2">
+            <i class="fas fa-chalkboard-user fa-3x"></i>
+        </span>
+        <h1 class="title is-3 is-size-4-mobile">Mis Clases</h1>
+        <p class="subtitle is-6 mt-2">Acá podés ver el historial de tus sesiones de rehabilitación.</p>
+    </div>
+
+    {% if reservas_futuras or reservas_pasadas or colas_futuras%}
+        <div class="table-container">
+            <table class="table is-fullwidth is-hoverable is-striped" style="white-space: nowrap;">
+                <thead>
+                    <tr>
+                        <th>Clase</th>
+                        <th>Fecha</th>
+                        <th>Horario</th>
+                        <th>Tipo</th>
+                        <th>Estado</th>
+                        <th class="has-text-centered">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- PRÓXIMAS CLASES -->
+                    {% for reserva in reservas_futuras %}
+                        <tr>
+                            <td class="has-text-weight-bold">{{ reserva.clase.nombre }}</td>
+                            <td>{{ reserva.clase.fecha_clase.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ reserva.clase.horario.strftime('%H:%M') }}</td>
+                            <td>
+                                {% if reserva.clase.tipo == 'Fija' %}
+                                    <span class="tag is-warning is-light">{{ reserva.clase.tipo }}</span>
+                                {% else %}
+                                    <span class="tag is-info is-light">{{ reserva.clase.tipo }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="tag is-success is-light">Confirmado</span>
+                            </td>
+                            <td class="has-text-centered">
+                                <a href="{{ url_for('reservas.detalle_clase', id_clase=reserva.clase.id, next=request.url) }}" class="button is-small is-primary is-light is-rounded has-text-weight-semibold">
+                                    <span class="icon is-small"><i class="fas fa-info-circle"></i></span>
+                                    <span>Ver detalles</span>
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+
+                    <!-- ESPERANDO EN COLA LAS SIGUIENTES CLASES -->
+                    {% for cola in colas_futuras %}
+                        <tr>
+                            <td class="has-text-weight-bold">{{ cola.clase.nombre }}</td>
+                            <td>{{ cola.clase.fecha_clase.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ cola.clase.horario.strftime('%H:%M') }}</td>
+                            <td>
+                                {% if cola.clase.tipo == 'Fija' %} <!--No sé si este escenario es posible-->
+                                    <span class="tag is-warning is-light">{{ cola.clase.tipo }}</span>
+                                {% else %}
+                                    <span class="tag is-info is-light">{{ cola.clase.tipo }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="tag is-warning is-light">Esperando</span>
+                            </td>
+                            <td class="has-text-centered">
+                                <a href="{{ url_for('reservas.detalle_clase', id_clase=cola.clase.id, next=request.url) }}" class="button is-small is-primary is-light is-rounded has-text-weight-semibold">
+                                    <span class="icon is-small"><i class="fas fa-info-circle"></i></span>
+                                    <span>Ver detalles</span>
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+
+                    <!-- HISTORIAL (FINALIZADAS) -->
+                    {% for reserva in reservas_pasadas %}
+                            <tr style="opacity: 0.6;">
+                                <td class="has-text-weight-bold">{{ reserva.clase.nombre }}</td>
+                                <td>{{ reserva.clase.fecha_clase.strftime('%d/%m/%Y') }}</td>
+                                <td>{{ reserva.clase.horario.strftime('%H:%M') }}</td>
+                                <td>
+                                    {% if reserva.clase.tipo == 'Fija' %}
+                                        <span class="tag is-warning is-light">{{ reserva.clase.tipo }}</span>
+                                    {% else %}
+                                        <span class="tag is-info is-light">{{ reserva.clase.tipo }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if reserva.asiste.name == 'PRESENTE' %}
+                                        <span class="tag is-success is-light">Asistió</span>
+                                    {% else %}
+                                        <span class="tag is-light">Ausente / Finalizada</span>
+                                    {% endif %}
+                                </td>
+                                <td class="has-text-centered">
+                                    <a href="{{ url_for('reservas.detalle_clase', id_clase=reserva.clase.id, next=request.url) }}" class="button is-small is-light is-rounded has-text-grey-dark">
+                                        <span class="icon is-small"><i class="fas fa-info-circle"></i></span>
+                                        <span>Ver detalles</span>
+                                    </a>
+                                </td>
+                            </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+    <div class="notification is-info is-light has-text-centered py-5">
+        <span class="icon is-large mb-2"><i class="fas fa-calendar-times fa-2x"></i></span>
+        <p class="is-size-5">No tienes clases programadas. ¡Explora el calendario para reservar!</p>
+        <a href="{{ url_for('reservas.calendario_cliente') }}" class="button is-primary is-rounded mt-4">Ir al Calendario</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

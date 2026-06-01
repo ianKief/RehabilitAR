@@ -1,0 +1,69 @@
+{% extends "layout.html" %}
+
+{% block title %}Agregar Sala | RehabilitAR{% endblock %}
+
+{% block content %}
+<div class="columns is-centered">
+    <div class="column is-8">
+        <div class="box">
+            <div class="block mb-5">
+                <h1 class="title is-3">
+                    <span class="icon has-text-primary mr-2"><i class="fas fa-plus-circle"></i></span>
+                    Agregar Nueva Sala
+                </h1>
+                <p class="subtitle is-6 has-text-grey">Completa el formulario para registrar una nueva sala en el sistema.</p>
+            </div>
+
+            <form method="POST">
+                <div class="columns is-multiline">
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Número de Puerta</label>
+                            <div class="control">
+                                <input class="input {% if datos is not none and not datos.numero_puerta %}is-danger{% endif %}" 
+                                       type="text" name="numero_puerta" placeholder="Ej: 101"
+                                       value="{{ datos.numero_puerta if datos else '' }}" required>
+                            </div>
+                            {% if datos is not none and not datos.numero_puerta %}
+                            <p class="help is-danger">Este campo es obligatorio.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Capacidad</label>
+                            <div class="control">
+                                <input class="input {% if datos is not none and not datos.capacidad %}is-danger{% endif %}" 
+                                       type="number" name="capacidad" placeholder="Cantidad de personas"
+                                       value="{{ datos.capacidad if datos else '' }}" required>
+                            </div>
+                            {% if datos is not none and not datos.capacidad %}
+                            <p class="help is-danger">Este campo es obligatorio.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="column is-full">
+                        <div class="field">
+                            <label class="label">Descripción</label>
+                            <div class="control">
+                                <textarea class="textarea {% if datos is not none and not datos.descripcion %}is-danger{% endif %}" 
+                                          name="descripcion" rows="4" placeholder="Detalles de la sala..." required>{{ datos.descripcion if datos else '' }}</textarea>
+                            </div>
+                            {% if datos is not none and not datos.descripcion %}
+                            <p class="help is-danger">Este campo es obligatorio.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="buttons is-right mt-5">
+                    <a href="/salas" class="button is-light">Cancelar</a>
+                    <button type="submit" class="button is-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

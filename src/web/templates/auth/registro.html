@@ -1,0 +1,241 @@
+{% extends "layout.html" %}
+
+{% block title %}Registro de Cliente | RehabilitAR{% endblock %}
+
+{% block content %}
+<div class="columns is-centered">
+    <div class="column is-8">
+        <div class="box mt-5">
+            
+            <div class="block mb-5 has-text-centered">
+                <h1 class="title is-3">
+                    <span class="icon has-text-primary mr-2"><i class="fas fa-user-plus"></i></span>
+                    Crear mi cuenta
+                </h1>
+                <p class="subtitle is-6 has-text-grey">Completá tus datos para registrarte como cliente en RehabilitAR.</p>
+            </div>
+
+            {% if error %}
+            <div class="notification is-danger is-light">
+                <button class="delete"></button>
+                <span class="icon"><i class="fas fa-exclamation-triangle"></i></span>
+                <strong>Error:</strong> {{ error }}
+            </div>
+            {% endif %}
+
+            <form action="{{ url_for('auth.registrar_cliente') }}" method="POST" enctype="multipart/form-data">
+                
+                <div class="columns is-multiline">
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Nombre</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="text" id="nombre" name="nombre" placeholder="Ej: María" required>
+                                <span class="icon is-small is-left"><i class="fas fa-user"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Apellido</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="text" id="apellido" name="apellido" placeholder="Ej: Gómez" required>
+                                <span class="icon is-small is-left"><i class="fas fa-user-tag"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">DNI</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="text" id="dni" name="dni" inputmode="numeric" minlength="7" maxlength="8" pattern="[0-9]{7,8}" placeholder="Sin puntos ni espacios" required>
+                                <span class="icon is-small is-left"><i class="fas fa-id-card"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Teléfono</label>
+                            <div class="field has-addons">
+                                <p class="control">
+                                    <input class="input" type="text" id="cod_area" name="cod_area" inputmode="numeric" minlength="2" maxlength="4" pattern="[0-9]{2,4}" placeholder="Código de área (Ej: 221)" required style="width: 120px">
+                                </p>
+                                <p class="control is-expanded">
+                                    <input class="input" type="text" id="num" name="num" inputmode="numeric" minlength="6" maxlength="8" pattern="[0-9]{7,8}" placeholder="Número de teléfono (Ej: 5554444)" required>
+                                </p>
+                            </div>
+                            <p class="help" id="telefono-help">Ej: Área 221 + Número 5554444</p>
+                        </div>
+                    </div>
+
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Fecha de Nacimiento</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="date" id="fecha_nacimiento" name="fecha_nacimiento" min="1900-01-01" required>
+                                <span class="icon is-small is-left"><i class="fas fa-calendar-alt"></i></span>
+                            </div>
+                            <p class="help is-danger is-hidden" id="error-fecha"></p>
+                        </div>
+                    </div>
+
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Dirección</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="text" id="direccion" name="direccion" placeholder="Calle y número" required>
+                                <span class="icon is-small is-left"><i class="fas fa-map-marker-alt"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Correo Electrónico</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="email" id="email" name="email" placeholder="tucorreo@ejemplo.com" required>
+                                <span class="icon is-small is-left"><i class="fas fa-envelope"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Contraseña</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="password" id="password" name="password" minlength="6" placeholder="Mínimo 6 caracteres" required>
+                                <span class="icon is-small is-left"><i class="fas fa-lock"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="column is-full">
+                        <div class="field">
+                            <label class="label">Apto Físico (Opcional)</label>
+                            <div class="file has-name is-fullwidth is-primary is-light">
+                                <label class="file-label">
+                                    <input class="file-input" type="file" id="apto_fisico" name="apto_fisico" accept=".pdf, .jpeg, .png">
+                                    <span class="file-cta">
+                                        <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                        <span class="file-label">Subir certificado...</span>
+                                    </span>
+                                    <span class="file-name" id="file-name-display">
+                                        Ningún archivo seleccionado
+                                    </span>
+                                </label>
+                            </div>
+                            <p class="help">Formatos aceptados: PDF, JPEG, PNG.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="buttons is-centered mt-5">
+                    <a href="/" class="button is-light">Volver al inicio</a>
+                    <button type="submit" class="button is-primary is-medium">Registrarme</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        // ==========================================
+        // 1. NOMBRE DEL ARCHIVO APTO FÍSICO
+        // ==========================================
+        const fileInput = document.querySelector('#apto_fisico');
+        const fileNameDisplay = document.querySelector('#file-name-display');
+
+        if (fileInput) {
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) {
+                    fileNameDisplay.textContent = fileInput.files[0].name;
+                } else {
+                    fileNameDisplay.textContent = 'Ningún archivo seleccionado';
+                }
+            });
+        }
+
+        // ==========================================
+        // 2. FECHA DE NACIMIENTO (Calendario nativo, +18 y >1900)
+        // ==========================================
+        const fechaInput = document.getElementById('fecha_nacimiento');
+        const errorFecha = document.getElementById('error-fecha');
+
+        if (fechaInput) {
+            // A. Restringir el calendario visualmente
+            const hoy = new Date();
+            const hace18Anios = new Date(hoy.getFullYear() - 18, hoy.getMonth(), hoy.getDate());
+            
+            // Establecemos el atributo 'max' (hasta hoy hace 18 años)
+            const maxDate = hace18Anios.toISOString().split('T')[0];
+            fechaInput.setAttribute('max', maxDate);
+
+            // B. Validación extra por si el usuario tipea directamente en vez de usar el calendario
+            fechaInput.addEventListener('change', function(e) {
+                if (!e.target.value) return;
+
+                const selectedDate = new Date(e.target.value);
+                
+                if (selectedDate.getFullYear() < 1900) {
+                    if (errorFecha) {
+                        errorFecha.textContent = "El año de nacimiento debe ser 1900 o posterior.";
+                        errorFecha.classList.remove('is-hidden');
+                    }
+                    fechaInput.classList.add('is-danger');
+                } else if (selectedDate > hace18Anios) {
+                    if (errorFecha) {
+                        errorFecha.textContent = "Debes ser mayor de 18 años para registrarte.";
+                        errorFecha.classList.remove('is-hidden');
+                    }
+                    fechaInput.classList.add('is-danger');
+                } else {
+                    if (errorFecha) errorFecha.classList.add('is-hidden');
+                    fechaInput.classList.remove('is-danger');
+                }
+            });
+        }
+
+        // ==========================================
+        // 3. TELÉFONO INTELIGENTE (Adapta los dígitos)
+        // ==========================================
+        const codAreaInput = document.getElementById('cod_area');
+        const numLocalInput = document.getElementById('num_local');
+        const telHelp = document.getElementById('telefono-help');
+
+        function actualizarTelefono() {
+            codAreaInput.value = codAreaInput.value.replace(/\D/g, '');
+            numLocalInput.value = numLocalInput.value.replace(/\D/g, '');
+
+            const codLen = codAreaInput.value.length;
+            
+            if (codLen >= 2) {
+                const maxLocal = 10 - codLen;
+                numLocalInput.setAttribute('maxlength', maxLocal);
+                
+                const total = codLen + numLocalInput.value.length;
+                if (total === 10) {
+                    telHelp.className = 'help is-success';
+                    telHelp.textContent = '¡Formato válido! (10 dígitos)';
+                } else {
+                    telHelp.className = 'help is-warning';
+                    telHelp.textContent = `Faltan ${10 - total} dígitos para completar los 10 requeridos.`;
+                }
+            } else {
+                numLocalInput.setAttribute('maxlength', 8); 
+                telHelp.className = 'help';
+                telHelp.textContent = 'Ingrese su código de área primero.';
+            }
+        }
+
+        if (codAreaInput && numLocalInput) {
+            codAreaInput.addEventListener('input', actualizarTelefono);
+            numLocalInput.addEventListener('input', actualizarTelefono);
+        }
+    });
+</script>
+{% endblock %}

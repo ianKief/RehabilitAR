@@ -1,3 +1,4 @@
+from src.core.reservas.reservas import Cola, Reserva
 from src.core.salas.salas import Sala
 from src.core.usuarios.usuarios import Usuario
 from src.core.database import Base
@@ -17,7 +18,7 @@ class Clase(Base):
     duracion: Mapped[int] = mapped_column(Integer, nullable=False) # duracion en minutos
     capacidad_maxima: Mapped[int] = mapped_column(Integer, nullable=False)
     descripcion: Mapped[str] = mapped_column(String(255), nullable=True)
-    suspendida: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    suspendida: Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
     fecha_clase: Mapped[date] = mapped_column(Date, nullable=False)
     horario: Mapped[time] = mapped_column(Time, nullable=False)
     aprobada:Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -25,6 +26,12 @@ class Clase(Base):
     sala_id: Mapped[int] = mapped_column(ForeignKey("salas.id"), nullable=False)
     # RELACIÓN: Esto te permite hacer "clase.sala.capacidad_maxima" o "clase.sala.numero_puerta" directo en Python
     sala: Mapped["Sala"] = relationship("Sala")
+    aviso_alta_demanda:Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
+
+
+    # Relaciones
+    reservas: Mapped[list["Reserva"]] = relationship(back_populates="clase", cascade="all, delete-orphan")
+    colas: Mapped[list["Cola"]] = relationship(back_populates="clase", cascade="all, delete-orphan")
 
     # Campos de auditoría
     fecha_creacion: Mapped[datetime] = mapped_column(

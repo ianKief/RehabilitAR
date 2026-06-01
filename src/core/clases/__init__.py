@@ -1,5 +1,16 @@
 import calendar
 from datetime import date, datetime, time, timedelta
+from sqlalchemy import select, text, func, case
+from sqlalchemy.orm import aliased
+
+from src.core.database import db
+
+from src.core.clases.clases import Clase, ProfesorDictaClase
+from src.core.reservas.reservas import Reserva, AsistenciaReserva
+from src.core.usuarios.usuarios import Usuario, RolUsuario
+from src.core.reservas import devolver_cantidad_esperando_en_cola
+
+from src.core.functions import filtro_clase_actual
 
 from sqlalchemy import and_, extract, func, select
 from src.core.usuarios.usuarios import Especialidad, Profesor, Usuario
@@ -486,3 +497,71 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
         db.session.rollback()
         print(f"Error transaccional al resolver postulación con bloque: {e}")
         return False
+
+def conseguir_clase_actual (id_profesor):
+    """Retorna la clase actual del profesor o None. profesor/index.html maneja None de manera adaptativa"""
+
+    Profesor = aliased(Usuario)
+    
+    query = (
+        db.session.query(Clase, func.count(
+            Reserva.id
+        ).label("reservas_totales"), func.coalesce(
+            func.sum(case(
+                (Reserva.asiste == AsistenciaReserva.PRESENTE, 1),
+                else_=0
+            )), 0
+        ).label("asistencias_actuales"))
+
+        .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
+        .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
+        # Las reglas de negocio no permiten que se de una clase sin alumnos, pero, dado el caso, outerjoin prepara el escenario
+        .outerjoin(Reserva, Reserva.id_clase == Clase.id)
+
+        .filter(Profesor.id == id_profesor)
+        .filter(Profesor.rol == RolUsuario.PROFESOR)
+        .filter(*filtro_clase_actual())
+
+        .group_by(Clase.id)
+    )
+
+    return db.session.execute(query).one_or_none()
+
+def profesor_está_en_clase (id_profesor):
+    """Retorna un valor booleano que representa si el profesor está en clase"""
+
+    Profesor = aliased(Usuario)
+
+    query = (
+        db.session.query(Clase)
+        .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
+        .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
+        .filter(Profesor.id == id_profesor)
+        .filter(Profesor.rol == RolUsuario.PROFESOR)
+        .filter(*filtro_clase_actual())
+    )
+
+    return db.session.query(
+        query.exists()
+    ).scalar()
+
+def clase_tiene_lugar(clase):
+
+    cantidad_lugares_ocupados = (
+        db.session.query(func.count(Reserva.id))
+        .filter(Reserva.id_clase == clase.id)
+        .filter(Reserva.asiste != AsistenciaReserva.CANCELADA)
+    )
+
+    ocupados = (db.session.scalar(cantidad_lugares_ocupados) or 0)
+
+    return ocupados < clase.capacidad_maxima
+
+def comprobar_alta_demanda (clase):
+    """Devuelve true si hay que informar alta demanda, False si no hay que hacerlo o si ya se comprobó previamente"""
+    
+    if (not clase.aviso_alta_demanda) and (devolver_cantidad_esperando_en_cola (clase) == 10):
+        clase.aviso_alta_demanda = True
+        db.session.commit()
+        return True
+    return False

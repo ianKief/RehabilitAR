@@ -1,0 +1,176 @@
+{% extends "layout.html" %}
+
+{% block title %}Calendario de Clases | RehabilitAR{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/calendario.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="box p-5">
+    <div class="has-text-centered mb-6 mt-3">
+        <h1 class="title is-3">Calendario de Actividades</h1>
+        <p class="subtitle is-6 has-text-grey">Seleccioná un día en el calendario para ver las clases disponibles y realizar tu reserva.</p>
+    </div>
+
+    <div class="columns is-multiline is-centered">
+        <!-- SECCIÓN SUPERIOR: CALENDARIO Y FILTROS -->
+        <div class="column is-8-desktop is-10-tablet is-12-mobile">
+            <div class="box is-shadowless" style="border: 1px solid var(--bulma-border-weak);">
+            <form id="filtro-form" method="GET" action="{{ url_for('reservas.calendario_cliente') }}">
+                <!-- Contenedor del Calendario JS -->
+                <div class="field mb-5 is-flex is-justify-content-center">
+                    <input type="hidden" id="fecha-hidden" name="fecha" value="{{ fecha_seleccionada }}">
+                    <div id="calendario-interactivo"></div>
+                </div>
+                
+                <!-- Filtros Secundarios de la HU de filtrado -->
+                <div class="columns is-mobile">
+                    <div class="column">
+                        <div class="field">
+                            <label class="label is-small">Tipo de Clase</label>
+                            <div class="control">
+                                <div class="select is-fullwidth is-small">
+                                    <select name="tipo" onchange="document.getElementById('filtro-form').submit();">
+                                        <option value="">Todas</option>
+                                        <option value="Fija" {% if tipo_seleccionado == 'Fija' %}selected{% endif %}>Fija</option>
+                                        <option value="Individual" {% if tipo_seleccionado == 'Individual' %}selected{% endif %}>Individual</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="field">
+                            <label class="label is-small">Especialidad</label>
+                            <div class="control">
+                                <div class="select is-fullwidth is-small">
+                                    <select name="especialidad" onchange="document.getElementById('filtro-form').submit();">
+                                        <option value="">Todas</option>
+                                        <option value="Tren Superior" {% if especialidad_seleccionada == 'Tren Superior' %}selected{% endif %}>Tren Superior</option>
+                                        <option value="Tren Medio" {% if especialidad_seleccionada == 'Tren Medio' %}selected{% endif %}>Tren Medio</option>
+                                        <option value="Tren Inferior" {% if especialidad_seleccionada == 'Tren Inferior' %}selected{% endif %}>Tren Inferior</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                    
+                    <!-- Botón para Limpiar Filtros (Visible solo si hay filtros activos) -->
+                    {% if tipo_seleccionado or especialidad_seleccionada %}
+                    <div class="is-flex is-justify-content-flex-end mt-2">
+                        <a href="{{ url_for('reservas.calendario_cliente', fecha=fecha_seleccionada) }}" class="button is-small is-text p-0" style="text-decoration: none;">
+                            <span class="icon"><i class="fas fa-times"></i></span>
+                            <span>Limpiar filtros</span>
+                        </a>
+                    </div>
+                    {% endif %}
+            </form>
+        </div>
+    </div>
+
+        <!-- SECCIÓN INFERIOR: LISTADO DE CLASES DEL DÍA -->
+        <div class="column is-12">
+            <h2 class="title is-4 mb-4 mt-2 has-text-centered">Clases del <span class="has-text-primary">{{ fecha_formateada }}</span></h2>
+        
+        {% if clases %}
+            {% for clase in clases %}
+            <div class="box mb-3">
+                <div class="columns is-vcentered">
+                    <div class="column">
+                        <h3 class="title is-5 mb-1">{{ clase.nombre }}</h3>
+                        <p class="subtitle is-6 mb-2 has-text-grey">
+                            <span class="icon is-small"><i class="fas fa-clock"></i></span> {{ clase.horario.strftime('%H:%M') }} 
+                            <span class="mx-2">|</span> {{ clase.duracion }} min
+                        </p>
+                        <div class="tags mb-1">
+                            <span class="tag is-info is-light">{{ clase.especialidad }}</span>
+                            <span class="tag is-warning is-light">{{ clase.tipo }}</span>
+                        </div>
+                    </div>
+                    <div class="column is-12-mobile is-narrow-tablet">
+                        <div class="is-flex is-flex-wrap-wrap is-justify-content-flex-end" style="gap: 0.5rem;">
+                            {% if clase.id in ids_clases_llenas_donde_el_cliente_no_tiene_reserva %}
+                                {% if clase.id in ids_clases_encoladas %}
+                                    <button class="button is-small is-warning is-light is-rounded has-text-weight-bold" disabled title="Te avisaremos cuando se libere un espacio">
+                                        <span class="icon"><i class="fas fa-check"></i></span>
+                                        <span>Esperando</span>
+                                    </button>
+                                {% else %}
+                                    <form action="{{ url_for('reservas.reservar_clase', id_clase=clase.id) }}" method="POST" style="margin: 0;">
+                                        <button type="submit" class="button is-small is-primary is-warning is-rounded has-text-weight-bold shadow-button">Esperar</button>
+                                    </form>
+                                {% endif %}
+                            {% elif clase.id in ids_clases_reservadas%}
+                                <button class="button is-small is-success is-light is-rounded has-text-weight-bold" disabled title="Ya estás inscripto en esta clase">
+                                    <span class="icon"><i class="fas fa-check"></i></span>
+                                    <span>Reservada</span>
+                                </button>
+                            {% else %}
+                                <form action="{{ url_for('reservas.reservar_clase', id_clase=clase.id) }}" method="POST" style="margin: 0;">
+                                    <button type="submit" class="button is-small is-primary is-rounded has-text-weight-bold shadow-button">Reservar</button>
+                                </form>
+                                {% if clase.tipo == 'Fija' and es_abonado %}
+                                <a href="{{ url_for('reservas.reservar_mensual', id_clase=clase.id) }}" class="button is-small is-info is-light is-rounded has-text-weight-bold shadow-button">Reservar Mes</a>
+                                {% endif %}
+                            {% endif %}
+                            <a href="{{ url_for('reservas.detalle_clase', id_clase=clase.id, next=request.url) }}" class="button is-small is-primary is-light is-rounded has-text-weight-semibold">
+                                <span class="icon is-small"><i class="fas fa-info-circle"></i></span>
+                                <span>Detalles</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="notification is-light is-info mt-4">
+                <span class="icon"><i class="fas fa-calendar-times"></i></span> No hay clases disponibles para la fecha y/o filtros seleccionados.
+            </div>
+        {% endif %}
+    </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Flatpickr JS y Localización a Español -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
+
+<script id="feriados-data" type="application/json">{{ feriados | default([]) | tojson | safe }}</script>
+<script id="fechas-clases-data" type="application/json">{{ fechas_con_clases | default([]) | tojson | safe }}</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const feriados = JSON.parse(document.getElementById('feriados-data').textContent) || [];
+        const fechasConClases = JSON.parse(document.getElementById('fechas-clases-data').textContent) || [];
+        
+        flatpickr("#calendario-interactivo", {
+            locale: "es",
+            inline: true, 
+            minDate: "today", 
+            enable: fechasConClases,
+            defaultDate: "{{ fecha_seleccionada }}",
+            onChange: function(selectedDates, dateStr, instance) {
+                document.getElementById('fecha-hidden').value = dateStr;
+                document.getElementById('filtro-form').submit();
+            },
+            onDayCreate: function(dObj, dStr, fp, dayElem) {
+                const dateObj = dayElem.dateObj;
+                const formattedDate = dateObj.getFullYear() + "-" + 
+                    String(dateObj.getMonth() + 1).padStart(2, '0') + "-" + 
+                    String(dateObj.getDate()).padStart(2, '0');
+                
+                if (feriados.includes(formattedDate)) {
+                    dayElem.style.color = "#f14668"; 
+                    dayElem.style.fontWeight = "bold";
+                    dayElem.title = "Feriado";
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

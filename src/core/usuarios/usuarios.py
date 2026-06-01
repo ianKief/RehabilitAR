@@ -1,11 +1,15 @@
 from typing import List
 
+from src.core.reservas.reservas import Cola, Reserva
 from src.core.database import Base
 from sqlalchemy import ForeignKey, Integer, String, DateTime, Enum
+from src.core.database import Base
+from sqlalchemy import Integer, String, DateTime, Enum, ForeignKey, Boolean,Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import enum
+from typing import List
 
 class EstadoUsuario(enum.Enum):
     PENDIENTE = "pendiente"
@@ -25,6 +29,34 @@ class EstadoAptoFisico(enum.Enum):
     EN_REVISION = "EN_REVISION"
     ACEPTADO = "ACEPTADO"
     RECHAZADO = "RECHAZADO"
+
+class AptoFisico(Base):
+    __tablename__ = "aptos_fisicos"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id_cliente: Mapped[int] = mapped_column(Integer, ForeignKey("clientes.id"), unique=True)
+    ruta_archivo: Mapped[str] = mapped_column(String(255), nullable=True)
+    estado: Mapped[EstadoAptoFisico] = mapped_column(Enum(EstadoAptoFisico), default=EstadoAptoFisico.SIN_CARGAR)
+    fecha_carga: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None), nullable=True)
+    comentario: Mapped[str] = mapped_column(String(500), nullable=True)
+
+    cliente: Mapped["Cliente"] = relationship(back_populates="apto_fisico")
+
+class TipoEspecialidad(enum.Enum):
+    SUPERIOR = "TREN SUPERIOR"
+    MEDIO = "TREN MEDIO"
+    INFERIOR = "TREN INFERIOR"
+
+class Especialidad(Base):
+    __tablename__ = "especialidades"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    nombre: Mapped[TipoEspecialidad] = mapped_column(Enum(TipoEspecialidad), unique=True, nullable=False)
+    profesores: Mapped[List["Profesor"]] = relationship(back_populates="especialidad")
+
+# ==========================================
+# 1. CLASE PADRE 
+# ==========================================
 
 class Usuario(Base):
     __tablename__ = "usuarios"
@@ -77,6 +109,33 @@ class Especialidad(Base):
     nombre: Mapped[TipoEspecialidad] = mapped_column(Enum(TipoEspecialidad), unique=True, nullable=False)
     profesores: Mapped[List["Profesor"]] = relationship(back_populates="especialidad")
     
+    __mapper_args__ = {
+        "polymorphic_on": "rol",
+        "polymorphic_identity": "usuario_base"
+    }
+
+    def __repr__(self):
+        return f"<Usuario(id={self.id}, nombre='{self.nombre}', email='{self.email}', rol='{self.rol.value}', estado='{self.estado.value}')>"
+
+# ==========================================
+# 2. CLASES HIJAS
+# ==========================================
+
+class Cliente(Usuario):
+    __tablename__ = "clientes"
+    id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), primary_key=True)
+    es_abonado: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    descuento_acumulado: Mapped[float] = mapped_column(Float, default=0)
+
+    # Relaciones
+    apto_fisico: Mapped["AptoFisico"] = relationship(back_populates="cliente", uselist=False)
+    reservas: Mapped[List["Reserva"]] = relationship(back_populates="cliente", cascade="all, delete-orphan")
+    colas: Mapped[list["Cola"]] = relationship(back_populates="cliente", cascade="all, delete-orphan")
+
+    __mapper_args__ = {
+        "polymorphic_identity": RolUsuario.CLIENTE
+    }
+
 class Profesor(Usuario):
     __tablename__ = "profesores"
     id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), primary_key=True)
@@ -85,4 +144,20 @@ class Profesor(Usuario):
 
     __mapper_args__ = {
         "polymorphic_identity": RolUsuario.PROFESOR
+    }
+
+class Recepcionista(Usuario):
+    __tablename__ = "recepcionistas"
+    id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), primary_key=True)
+
+    __mapper_args__ = {
+        "polymorphic_identity": RolUsuario.RECEPCIONISTA
+    }
+
+class Administrador(Usuario):
+    __tablename__ = "administradores"
+    id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), primary_key=True)
+
+    __mapper_args__ = {
+        "polymorphic_identity": RolUsuario.ADMINISTRADOR
     }
