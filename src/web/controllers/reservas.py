@@ -347,7 +347,8 @@ def detalle_clase(id_clase):
         
     profesor = obtener_profesor_de_clase(id_clase)
     cupos_ocupados = obtener_cupos_ocupados(id_clase)
-    cupos_restantes = max(0, clase.capacidad_maxima - cupos_ocupados)
+    capacidad_total = clase.sala.capacidad if clase.sala else 0
+    cupos_restantes = max(0, capacidad_total - cupos_ocupados)
     
     reserva = obtener_reserva(usuario_id, id_clase)
     cola = obtener_cola(usuario_id, id_clase)

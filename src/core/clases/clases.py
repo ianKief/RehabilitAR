@@ -1,8 +1,9 @@
 from src.core.database import Base
-from sqlalchemy import Boolean, Date, DateTime, String, Integer, Time
+from sqlalchemy import Boolean, Date, DateTime, String, Integer, Time, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
+from src.core.salas.salas import Sala
 
 tz_arg = ZoneInfo("America/Argentina/Buenos_Aires")
 
@@ -13,7 +14,6 @@ class Clase(Base):
     nombre: Mapped[str] = mapped_column(String(100), nullable=False)
     especialidad: Mapped[str] = mapped_column(String(20), nullable=False)
     duracion: Mapped[int] = mapped_column(Integer, nullable=False) # duracion en minutos
-    capacidad_maxima: Mapped[int] = mapped_column(Integer, nullable=False)
     descripcion: Mapped[str] = mapped_column(String(255), nullable=True)
     suspendida: Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
     fecha_clase: Mapped[date] = mapped_column(Date, nullable=False)
@@ -21,9 +21,11 @@ class Clase(Base):
     aprobada:Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     tipo: Mapped[str] = mapped_column(String(20), nullable=False)
     aviso_alta_demanda:Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
+    id_sala: Mapped[int] = mapped_column(Integer, ForeignKey("salas.id"), nullable=True)
 
 
     # Relaciones
+    sala: Mapped["Sala"] = relationship("Sala")
     reservas: Mapped[list["Reserva"]] = relationship(back_populates="clase", cascade="all, delete-orphan")
     colas: Mapped[list["Cola"]] = relationship(back_populates="clase", cascade="all, delete-orphan")
 
@@ -37,6 +39,11 @@ class Clase(Base):
         onupdate=lambda: datetime.now(tz_arg).replace(tzinfo=None),
         nullable=False
     )
+
+    @property
+    def capacidad_maxima(self) -> int:
+        """Propiedad dinámica para retrocompatibilidad con las vistas (Jinja)"""
+        return self.sala.capacidad if self.sala else 0
 
 
     def __repr__(self):

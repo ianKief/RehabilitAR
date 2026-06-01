@@ -6,6 +6,7 @@ from src.core.usuarios.usuarios import Usuario, Cliente
 from src.core.reservas.reservas import Reserva, AsistenciaReserva, Cola, Cancelacion
 from datetime import date, timedelta
 import calendar
+from src.core.salas.salas import Sala
 
 from flask_mail import Message
 from src.core.mail import send_mail
@@ -264,14 +265,15 @@ def obtener_ids_clases_llenas_donde_el_cliente_no_tiene_reserva (id_cliente):
 
     query = (db.session.query(Clase.id)
     .join(Reserva, Reserva.id_clase == Clase.id)
-    .group_by(Clase.id)
+    .join(Sala, Clase.id_sala == Sala.id)
+    .group_by(Clase.id, Sala.capacidad)
     .having(
         func.sum(
             case(
                 (Reserva.asiste != AsistenciaReserva.CANCELADA, 1),
                 else_=0
             )
-        ) >= Clase.capacidad_maxima
+        ) >= Sala.capacidad
     )
     .filter(~Clase.id.in_(clases_donde_participa))
     )
