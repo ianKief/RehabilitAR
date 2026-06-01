@@ -2,11 +2,13 @@ from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 
 from sqlalchemy import select
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import selectinload
 
-from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago,Abono
+from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago,Abono, Beneficio, TipoBeneficio
 from src.core.usuarios.usuarios import Usuario, Cliente, EstadoUsuario
 from src.core.database import db
+
+from src.core.functions import filtro_cliente_abonado
 
 from datetime import timedelta
 
@@ -57,7 +59,8 @@ def estado_abono_usuario(user_id):
 
     abono = (
         db.session.query(Abono)
-        .filter(Abono.id_cliente == user_id)
+        .join (Pago)
+        .filter(Pago.id_cliente == user_id)
         .order_by(Abono.fecha_fin.desc())
         .first()
     )
@@ -83,35 +86,6 @@ def estado_abono(abono):
     return "activo"
 
 
-def obtener_info_descuento(abono):
-    
-    usuario = db.session.get(Usuario, abono.id_cliente)
-
-    dias = contar_dias_semana(
-        abono.dia_fijo,
-        abono.fecha_inicio,
-        abono.fecha_fin
-    )
-
-    descuento_auto = calcular_descuento_automatico(dias)
-
-    maximo_por_regla = 0.30 - descuento_auto
-
-    if maximo_por_regla < 0:
-        maximo_por_regla = 0.0
-
-    descuento_disponible_usuario = usuario.descuento_acumulado
-
-    maximo_usuario = min(
-        descuento_disponible_usuario,
-        maximo_por_regla
-    )
-
-    return {
-        "tiene_descuento": maximo_usuario > 0,
-        "max_usuario": maximo_usuario
-    }
-
 "consultas de abono y precio"
 
 def obtener_precio_clase_actual():
@@ -130,24 +104,23 @@ def obtener_precio_clase_actual():
 
 
 def obtener_ultimo_abono(user_id):
+
     stmt = (
         select(Abono)
-        .where(Abono.id_cliente == user_id)
+        .join(Pago)
+        .where(Pago.id_cliente == user_id)
         .order_by(Abono.fecha_fin.desc())
     )
 
     return db.session.execute(stmt).scalars().first()
 
 
-
-
-def registrar_abono(id_cliente, id_pago, dia_fijo):
+def registrar_abono(id_pago, dia_fijo):
     fecha_inicio = datetime.today()
 
     fecha_fin = fecha_inicio + relativedelta(months=1)
 
     nuevo_abono = Abono(
-        id_cliente=id_cliente,
         id_pago=id_pago,
         dia_fijo=dia_fijo,
         fecha_inicio=fecha_inicio,
@@ -172,7 +145,8 @@ def registrar_pago_abono_mensual(payment_id,id_cliente,monto):
         payment_id=str(payment_id),
         id_cliente = id_cliente,
         monto_total=monto,
-        estado_pago=EstadoPago.COMPLETADO
+        estado_pago=EstadoPago.COMPLETADO,
+        concepto_pago= ConceptoPago.ABONO
     )
 
     db.session.add(pago)
@@ -183,7 +157,6 @@ def registrar_pago_abono_mensual(payment_id,id_cliente,monto):
         cantidad=1,
         precio_unitario=monto,
         subtotal=monto,
-        concepto_pago=ConceptoPago.RESERVA_MENSUAL
     )
 
     db.session.add(detalle_pago)
@@ -191,23 +164,53 @@ def registrar_pago_abono_mensual(payment_id,id_cliente,monto):
 
     return pago
 
+def consumir_descuentos(id_cliente, pago, limite):
+
+    descuentos = devolver_beneficios_activos(id_cliente,tipo=TipoBeneficio.DESCUENTO)
+    restante = limite
+    for beneficio in descuentos:
+        if restante <= 0:
+            break
+        disponible = beneficio.porcentaje_descuento
+
+        # el beneficio original se consume
+        beneficio.usado = True
+        beneficio.id_pago = pago.id
+
+        # se consume completo
+        if disponible <= restante:
+            restante -= disponible
+
+        # se consume parcialmente
+        else:
+            sobrante = disponible - restante
+            nuevo_beneficio = Beneficio(
+                id_cliente=id_cliente,
+                tipo=TipoBeneficio.DESCUENTO,
+                descripcion="Descuento restante",
+                porcentaje_descuento=sobrante,
+                usado=False
+            )
+            db.session.add(nuevo_beneficio)
+            restante = 0
+
 def registrar_pago_desde_payment(payment_id,payment):
     monto = payment.get("transaction_amount")
     estado = payment.get("status")
 
     metadata = payment.get("metadata") or {}
     dia_fijo = metadata.get("dia_fijo")
+    print ("El día fijo es:", dia_fijo)
     
     tipo = metadata.get("tipo") 
+    print ("TIPO EXISTE????", tipo)
 
-    descuento_usuario = float(metadata.get("descuento_usuario", 0.0))
-    
     # si no está aprobado, no hacer nada
     if estado != "approved" :
         print("Pago no aprobado:", estado)
         return
     
-    # evitar duplicados
+    # evitar duplicado
     if pago_ya_procesado(payment_id):
         print("Pago duplicado")
         return
@@ -217,23 +220,15 @@ def registrar_pago_desde_payment(payment_id,payment):
         return
     user_id = int(external_ref)
 
-    usuario = db.session.get(Usuario, user_id)
+    descuento = float(metadata.get("descuento_usuario", 0))
+    print ("ESTE DATO DICE SI TIENE DESCUENTO :O", descuento)
 
-    usuario.descuento_acumulado -= descuento_usuario
+    pago = registrar_pago_abono_mensual(payment_id, user_id, monto)
 
-    if usuario.descuento_acumulado < 0:
-        usuario.descuento_acumulado = 0
-    
-    pago=registrar_pago_abono_mensual(payment_id,user_id,monto)
+    if descuento>0:
+        consumir_descuentos(user_id, pago, descuento)
 
-
-    if tipo == "renovacion":
-       # renovar_abono(user_id,dia_fijo)
-       print ("renovar")
-    else:
-        registrar_abono(user_id,pago.id,dia_fijo)
-
-    usuario.es_abonado = True
+    registrar_abono (pago.id, dia_fijo)
 
     db.session.commit()
 
@@ -282,6 +277,8 @@ def actualizar_precio(nuevo_precio):
     db.session.commit()
 
 
+
+
 def bloquear_morosos_abono():
     """
     Bloquea a los clientes abonados cuyo abono esté vencido.
@@ -296,7 +293,7 @@ def bloquear_morosos_abono():
     # Buscamos a todos los clientes activos que sean abonados
     stmt = (
         select(Cliente)
-        .filter(Cliente.es_abonado == True)
+        .filter(*filtro_cliente_abonado(Cliente.id))
         .filter(Cliente.estado == EstadoUsuario.ACTIVO)
     )
     clientes_abonados = db.session.execute(stmt).scalars().all()
@@ -309,17 +306,93 @@ def bloquear_morosos_abono():
         # Si su último abono ya venció o no tiene, se lo bloquea
         if estado_actual in ["vencido", "sin_abono"]:
             cliente.estado = EstadoUsuario.BLOQUEADO
-            cliente.es_abonado = False
             bloqueados += 1
             
     db.session.commit()
     return bloqueados
 
+def devolver_abonos_de_usuarios (id_usuario):
+    stmt = (
+        select(Pago)
+        .where(Pago.concepto_pago == ConceptoPago.ABONO)
+        .options(selectinload(Pago.abono))
+        .where(Pago.id_cliente == id_usuario)
+        .order_by(Pago.fecha_creacion.desc())
+    )
 
+    return db.session.execute(stmt).scalars().all()
 
+def devolver_pagos_de_reservas_de_usuarios (id_usuario):
+    stmt = (
+        select(Pago)
+        .where(Pago.concepto_pago == ConceptoPago.RESERVA)
+        .options(selectinload(Pago.detalle_pago))
+        .where(Pago.id_cliente == id_usuario)
+        .order_by(Pago.fecha_creacion.desc())
+    )
 
+    return db.session.execute(stmt).scalars().all()
 
+def tiene_beneficios (id_cliente, tipo = TipoBeneficio.CREDITO):
+    """Dado el DNI de un cliente, devuelve si tiene créditos o no (Boolean).
+    tipo acepta un objeto tipo TipoBeneficio. Entradas posibles: CREDITO o DESCUENTO"""
+    query = (db.session.query(Beneficio)
+        .join(Cliente, Cliente.id == Beneficio.id_cliente)
+        .filter (Cliente.id == id_cliente)
+        .filter (Beneficio.tipo == tipo)
+        .filter (Beneficio.usado.is_(False))
+    )
 
+    return db.session.query(
+        query.exists()
+    ).scalar()
+
+def devolver_beneficios_activos (id_cliente, tipo=TipoBeneficio.CREDITO):
+
+    query = (db.session.query(Beneficio)
+        .join(Cliente, Cliente.id == Beneficio.id_cliente)
+        .filter (Cliente.id == id_cliente)
+        .filter (Beneficio.usado.is_(False))
+        .filter (Beneficio.tipo == tipo)
+    )
+
+    return db.session.scalars(query).all()
+
+def registrar_beneficio (id_cliente, descripcion = None, tipo = TipoBeneficio.CREDITO, session=None, porcentaje_descuento=0):
+    """Registra un nuevo beneficio para el cliente
+    tipo es un objeto TipoBeneficio. Sus entradas posibles son CREDITO o DESCUENTO
+    Puede ingresársele un session en caso de contemplar rollback"""
+    if (session == None):
+        session = db.session
+
+    nuevo_credito = Beneficio (
+        id_cliente = id_cliente,
+        tipo = tipo,
+        descripcion = descripcion,
+    )
+    session.add(nuevo_credito)
+    session.flush()
+
+def conseguir_precio_actual ():
+    return (
+        db.session.query(PrecioClase)
+        .order_by(PrecioClase.fecha_creacion.desc())
+        .first()
+    )
+
+def calcular_descuento_maximo(id_cliente, dia_semana):
+    fecha = date.today()
+    dias = contar_dias_semana(dia_semana,fecha,duracion_abono_mensual(fecha))
+    descuento_automatico = calcular_descuento_automatico(dias)
+    maximo_usuario = 0.30 - descuento_automatico
+    if maximo_usuario < 0:
+        maximo_usuario = 0
+    descuentos = devolver_beneficios_activos(id_cliente,tipo=TipoBeneficio.DESCUENTO)
+    total = 0
+    for descuento in descuentos:
+        total += descuento.porcentaje_descuento
+    total = min(total, 0.30)
+    return min(total, maximo_usuario)
 
 
 #cosas que implementare mas adelante
