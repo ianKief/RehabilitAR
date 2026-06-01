@@ -11,58 +11,75 @@
     <table class="table is-fullwidth is-striped">
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Monto</th>
+                <th>Fecha</th>
+                <th>Concepto</th>
                 <th>Estado</th>
-                <th>Fecha</th> 
-                <th>Motivo</th>
+                <th>Total</th>
             </tr>
         </thead>
 
         <tbody>
+
             {% for pago in pagos %}
             <tr>
-                <td>#{{ pago.id }}</td>
-                <td>${{ pago.monto_total }}</td>
+
+                <td>
+                    {{ pago.fecha_creacion.strftime('%d/%m/%Y') }}
+                </td>
+
+                <td>
+                    {{ pago.concepto_pago.value.replace('_', ' ').capitalize() }}
+                </td>
+
                 <td>
                     {% if pago.estado_pago.name == "COMPLETADO" %}
-                        <span class="tag is-success">Completado</span>
+                        <span class="tag is-success">
+                            Completado
+                        </span>
                     {% else %}
-                        <span class="tag is-warning">Pendiente</span>
+                        <span class="tag is-warning">
+                            Pendiente
+                        </span>
                     {% endif %}
                 </td>
-                <td>{{ pago.fecha_creacion.strftime('%d/%m/%Y') }}</td>
+
                 <td>
-                    {% if pago.detalle_pago and pago.detalle_pago|length > 0 %} <!--¿Comprueba algo?-->
-                        {{ pago.concepto_pago.value.replace('_', ' ').capitalize() }}
-                    {% else %}
-                        Sin detalle
-                    {% endif %}
+                    ${{ pago.monto_total }}
                 </td>
+
             </tr>
             {% endfor %}
-<!--Sugiero hacer dos tablas porque los abonos y los pagos tienen características distintas. Sugiero usar JS para cambiar de "sección"-->
+
             {% for abono in abonos %}
             <tr>
-                <td>#{{ abono.id }}</td>
-                <td>${{ abono.monto_total }}</td>
+
+                <td>
+                    {{ abono.fecha_creacion.strftime('%d/%m/%Y') }}
+                </td>
+
+                <td>
+                    {{ abono.concepto_pago.value.replace('_', ' ').capitalize() }}
+                </td>
+
                 <td>
                     {% if abono.estado_pago.name == "COMPLETADO" %}
-                        <span class="tag is-success">Completado</span>
+                        <span class="tag is-success">
+                            Completado
+                        </span>
                     {% else %}
-                        <span class="tag is-warning">Pendiente</span>
+                        <span class="tag is-warning">
+                            Pendiente
+                        </span>
                     {% endif %}
                 </td>
-                <td>{{ abono.fecha_creacion.strftime('%d/%m/%Y') }}</td>
+
                 <td>
-                    {% if abono.abono and abono.abono|length > 0 %}
-                        {{ abono.concepto_pago.value.replace('_', ' ').capitalize() }}
-                    {% else %}
-                        Sin detalle
-                    {% endif %}
+                    ${{ abono.monto_total }}
                 </td>
+
             </tr>
             {% endfor %}
+
         </tbody>
     </table>
 

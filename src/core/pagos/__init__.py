@@ -166,20 +166,33 @@ def registrar_pago_abono_mensual(payment_id,id_cliente,monto):
 
 def consumir_descuentos(id_cliente, pago, limite):
 
-    descuentos = devolver_beneficios_activos(id_cliente,tipo=TipoBeneficio.DESCUENTO   )
+    descuentos = devolver_beneficios_activos(id_cliente,tipo=TipoBeneficio.DESCUENTO)
     restante = limite
     for beneficio in descuentos:
         if restante <= 0:
             break
         disponible = beneficio.porcentaje_descuento
+
+        # el beneficio original se consume
+        beneficio.usado = True
+        beneficio.id_pago = pago.id
+
+        # se consume completo
         if disponible <= restante:
             restante -= disponible
-            beneficio.porcentaje_descuento = 0
-            beneficio.usado = True
+
+        # se consume parcialmente
         else:
-            beneficio.porcentaje_descuento -= restante
+            sobrante = disponible - restante
+            nuevo_beneficio = Beneficio(
+                id_cliente=id_cliente,
+                tipo=TipoBeneficio.DESCUENTO,
+                descripcion="Descuento restante",
+                porcentaje_descuento=sobrante,
+                usado=False
+            )
+            db.session.add(nuevo_beneficio)
             restante = 0
-        beneficio.id_pago = pago.id
 
 def registrar_pago_desde_payment(payment_id,payment):
     monto = payment.get("transaction_amount")

@@ -1,7 +1,7 @@
 #importo herramientas
 from flask import Blueprint, jsonify, current_app
 from flask import request,render_template, redirect,url_for, flash
-from src.core.pagos import procesar_mercado_pago_webhook,calcular_valor_abono
+from src.core.pagos import estado_abono_usuario, procesar_mercado_pago_webhook,calcular_valor_abono
 from flask import session
 from src.web.helpers.decorator import requiere_rol
 from src.core.database import db
@@ -32,11 +32,14 @@ def suscripcion():
     
     tiene_descuento = tiene_beneficios(id_cliente,tipo=TipoBeneficio.DESCUENTO)
 
+    estado_actual = estado_abono_usuario(id_cliente)
+
     return render_template(
         "pagos/suscripcion.html",
         precios=precios,
         descuentos_por_dia=descuentos_por_dia,
-        tiene_descuento=tiene_descuento
+        tiene_descuento=tiene_descuento,
+        estado_abono=estado_actual
     )
 
 #pantalla mostrada cuando el pago fue exitoso

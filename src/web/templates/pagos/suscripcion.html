@@ -76,24 +76,6 @@
 
 <script>
 
-/* Lo que había antes
-    const precios = JSON.parse('{{ precios | tojson | safe }}');
-    const selectDia = document.querySelector('select[name="dia_fijo"]');
-    const precioSpan = document.getElementById('precio');
-
-    function actualizarPrecio() {
-
-        const dia = selectDia.value;
-
-        precioSpan.innerText = precios[dia];
-
-    }
-
-    selectDia.addEventListener('change', actualizarPrecio);
-
-    actualizarPrecio();
-*/
-
     const precios = JSON.parse('{{ precios | tojson | safe }}');
     const selectDia = document.querySelector('select[name="dia_fijo"]');
     const checkboxDescuento = document.getElementById("descuento");
