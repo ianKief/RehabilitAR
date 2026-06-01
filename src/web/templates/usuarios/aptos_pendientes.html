@@ -1,0 +1,157 @@
+{% extends "layout.html" %}
+
+{% block title %}Revisión de Aptos Físicos - RehabilitAR{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="title is-3 mb-5">
+        <span class="icon mr-2 has-text-link"><i class="fas fa-file-medical"></i></span>
+        Validación de Aptos Físicos
+    </h1>
+
+    <div class="columns mb-4">
+        <div class="column is-4">
+            <div class="box p-4" style="border-left: 4px solid #ffdd57;">
+                <div class="media is-vcentered">
+                    <div class="media-left">
+                        <span class="icon is-medium has-text-warning"><i class="fas fa-exclamation-circle fa-lg"></i></span>
+                    </div>
+                    <div class="media-content">
+                        <p class="heading has-text-grey">En Revisión Pendiente</p>
+                        <p class="title is-4">{{ aptos|length }} documentos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="box p-0" style="overflow: hidden;">
+        <div class="table-container m-0">
+            <table class="table is-fullwidth is-hoverable is-striped">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>DNI</th>
+                        <th>Fecha de Carga</th>
+                        <th>Estado Actual</th>
+                        <th class="has-text-centered">Documento</th>
+                        <th class="has-text-right pr-5">Acciones de Validación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for apto in aptos %}
+                    <tr>
+                        <td class="is-vcentered has-text-weight-semibold">
+                            {{ apto.cliente.nombre }} {{ apto.cliente.apellido }}
+                        </td>
+                        <td class="is-vcentered">{{ apto.cliente.dni }}</td>
+                        <td class="is-vcentered">
+                            {{ apto.fecha_carga.strftime('%d/%m/%Y %H:%M') if apto.fecha_carga else 'N/A' }}
+                        </td>
+                        <td class="is-vcentered">
+                            <span class="tag is-warning is-light">
+                                <span class="icon is-small mr-1"><i class="fas fa-clock"></i></span>
+                                {{ apto.estado.name }}
+                            </span>
+                        </td>
+                        <td class="is-vcentered has-text-centered">
+                            {% if apto.ruta_archivo %}
+                                <a href="{{ url_for('static', filename=apto.ruta_archivo) }}" target="_blank" class="button is-small is-info is-outlined">
+                                    <span class="icon"><i class="fas fa-eye"></i></span>
+                                    <span>Ver Adjunto</span>
+                                </a>
+                            {% else %}
+                                <span class="has-text-grey-light is-size-7">Sin archivo adjunto</span>
+                            {% endif %}
+                        </td>
+                        <td class="is-vcentered">
+                            <div class="field is-grouped is-grouped-right pr-2">
+                                <div class="control">
+                                    <form action="{{ url_for('admin_aptos.aprobar', id_apto=apto.id) }}" method="POST" style="display: inline;">
+                                        <button type="submit" class="button is-small is-success">
+                                            <span class="icon"><i class="fas fa-check"></i></span>
+                                            <span>Aprobar</span>
+                                        </button>
+                                    </form>
+                                </div>
+                                
+                                <div class="control">
+                                    <button type="button" class="button is-small is-danger" onclick="abrirModalRechazo('{{ apto.id }}', '{{ apto.cliente.nombre }} {{ apto.cliente.apellido }}')">
+                                        <span class="icon"><i class="fas fa-times"></i></span>
+                                        <span>Rechazar</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="has-text-centered py-5 has-text-grey">
+                            <span class="icon is-large mb-2 has-text-grey-light"><i class="fas fa-clipboard-check fa-2x"></i></span>
+                            <p class="is-size-5 has-text-weight-medium">¡Al día!</p>
+                            <p>No quedan aptos físicos pendientes de revisión en este momento.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="modal-rechazo">
+    <div class="modal-background" onclick="cerrarModalRechazo()"></div>
+    <div class="modal-card">
+        <header class="modal-card-head has-background-danger-dark">
+            <p class="modal-card-title has-text-white is-size-5">
+                <span class="icon mr-2"><i class="fas fa-exclamation-triangle"></i></span>
+                Rechazar Apto Físico
+            </p>
+            <button class="delete" aria-label="close" onclick="cerrarModalRechazo()"></button>
+        </header>
+        
+        <form id="form-rechazo" method="POST" action="">
+            <section class="modal-card-body">
+                <div class="notification is-danger is-light">
+                    Se rechazará el documento del cliente: <strong id="modal-cliente-nombre"></strong>. El sistema le solicitará volver a subir un certificado válido.
+                </div>
+                
+                <div class="field">
+                    <label class="label">Motivo o Comentario del Rechazo <span class="has-text-danger">*</span></label>
+                    <div class="control">
+                        <textarea class="textarea" name="comentario" rows="4" placeholder="Ej: El certificado médico se encuentra vencido o la firma digital no es legible." required></textarea>
+                    </div>
+                    <p class="help is-danger">Este comentario es obligatorio y será visto por el cliente en su perfil.</p>
+                </div>
+            </section>
+            
+            <footer class="modal-card-foot is-justify-content-flex-end">
+                <button type="button" class="button is-light" onclick="cerrarModalRechazo()">Cancelar</button>
+                <button type="submit" class="button is-danger">Confirmar Rechazo</button>
+            </footer>
+        </form>
+    </div>
+</div>
+
+<script>
+    function abrirModalRechazo(idApto, nombreCliente) {
+        const modal = document.getElementById('modal-rechazo');
+        const form = document.getElementById('form-rechazo');
+        const txtCliente = document.getElementById('modal-cliente-nombre');
+        
+        // Seteamos el texto dinámico del cliente en cuestión
+        txtCliente.textContent = nombreCliente;
+        
+        // Inyectamos dinámicamente la URL con el ID correcto al Action del Formulario
+        form.action = `/admin/aptos/${idApto}/rechazar`;
+        
+        // Bulma activa los modales agregándoles la clase 'is-active'
+        modal.classList.add('is-active');
+    }
+
+    function cerrarModalRechazo() {
+        const modal = document.getElementById('modal-rechazo');
+        modal.classList.remove('is-active');
+    }
+</script>
+{% endblock %}

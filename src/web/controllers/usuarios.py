@@ -1,6 +1,6 @@
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, request
-from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_usuario_por_id_core, actualizar_rol_usuario, bloquear_usuario, habilitar_usuario, eliminar_usuario
+from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_aptos_en_revision, obtener_usuario_por_id_core, actualizar_rol_usuario, bloquear_usuario, habilitar_usuario, eliminar_usuario, revisar_y_aprobar_apto, revisar_y_rechazar_apto
 from src.core.usuarios.usuarios import EstadoAptoFisico
 from src.web.helpers.decorator import requiere_rol
 from datetime import datetime, timedelta
@@ -244,3 +244,57 @@ El equipo de RehabilitAR."""
         
     # 5. Redirigimos al listado porque el detalle del usuario ya no existe
     return redirect(url_for('usuarios.listar_usuarios'))
+
+@users_bp.route("/aptos", methods=["GET"])
+@requiere_rol(['ADMINISTRADOR'])
+def listar_pendientes():
+    """
+    Renderiza el panel con la lista de aptos físicos que requieren revisión.
+    """
+    # Pasamos la sesión actual al core
+    aptos_pendientes = obtener_aptos_en_revision(db.session)
+    
+    return render_template(
+        "usuarios/aptos_pendientes.html", 
+        aptos=aptos_pendientes
+    )
+
+
+@users_bp.route("/aptos/<int:id_apto>/aprobar", methods=["POST"])
+@requiere_rol(['ADMINISTRADOR'])
+def aprobar(id_apto):
+    """
+    Ruta que se ejecuta al presionar 'Aceptar' en el panel del administrador.
+    """
+    try:
+        revisar_y_aprobar_apto(db.session, id_apto)
+        flash("El apto físico ha sido aprobado con éxito.", "success")
+    except ValueError as e:
+        # Capturamos las validaciones del Core (ej: si ya estaba procesado)
+        flash(str(e), "danger")
+    except Exception as e:
+        # Fallos inesperados de base de datos
+        flash("Ocurrió un error inesperado al procesar la aprobación.", "danger")
+        
+    return redirect(url_for("admin_aptos.listar_pendientes"))
+
+
+@users_bp.route("/aptos/<int:id_apto>/rechazar", methods=["POST"])
+@requiere_rol(['ADMINISTRADOR'])
+def rechazar(id_apto):
+    """
+    Ruta que se ejecuta al enviar el formulario de rechazo con su respectivo motivo.
+    """
+    # Capturamos el motivo del rechazo enviado desde el cuadro de texto (textarea)
+    motivo = request.form.get("comentario")
+    
+    try:
+        revisar_y_rechazar_apto(db.session, id_apto, motivo)
+        flash("El apto físico ha sido rechazado y se notificará al cliente.", "info")
+    except ValueError as e:
+        # Si el administrador no escribió el comentario obligatorio, frena acá
+        flash(str(e), "warning")
+    except Exception as e:
+        flash("Ocurrió un error inesperado al procesar el rechazo.", "danger")
+        
+    return redirect(url_for("admin_aptos.listar_pendientes"))
