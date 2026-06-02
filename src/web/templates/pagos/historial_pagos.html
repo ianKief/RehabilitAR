@@ -6,12 +6,12 @@
 
 <h1 class="title is-4 mb-4">Historial de pagos</h1>
 
-{% if pagos or abonos %}
+{% if historial %}
 
     <table class="table is-fullwidth is-striped">
         <thead>
             <tr>
-                <th>Fecha</th>
+                <th>Fecha y hora</th>
                 <th>Concepto</th>
                 <th>Estado</th>
                 <th>Total</th>
@@ -20,11 +20,17 @@
 
         <tbody>
 
-            {% for pago in pagos %}
+            {% for pago in historial %}
             <tr>
 
                 <td>
-                    {{ pago.fecha_creacion.strftime('%d/%m/%Y') }}
+                    <div>
+                        {{ pago.fecha_creacion.strftime('%d/%m/%Y') }}
+                    </div>
+
+                    <small class="has-text-grey">
+                        {{ pago.fecha_creacion.strftime('%H:%M hs') }}
+                    </small>
                 </td>
 
                 <td>
@@ -45,36 +51,6 @@
 
                 <td>
                     ${{ pago.monto_total }}
-                </td>
-
-            </tr>
-            {% endfor %}
-
-            {% for abono in abonos %}
-            <tr>
-
-                <td>
-                    {{ abono.fecha_creacion.strftime('%d/%m/%Y') }}
-                </td>
-
-                <td>
-                    {{ abono.concepto_pago.value.replace('_', ' ').capitalize() }}
-                </td>
-
-                <td>
-                    {% if abono.estado_pago.name == "COMPLETADO" %}
-                        <span class="tag is-success">
-                            Completado
-                        </span>
-                    {% else %}
-                        <span class="tag is-warning">
-                            Pendiente
-                        </span>
-                    {% endif %}
-                </td>
-
-                <td>
-                    ${{ abono.monto_total }}
                 </td>
 
             </tr>

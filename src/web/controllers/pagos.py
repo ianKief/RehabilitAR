@@ -126,11 +126,17 @@ def historial_pagos():
 
     user_id = session.get("usuario_id")
 
-    renderizar_lista = False
-    abonos = devolver_abonos_de_usuarios (user_id)
-    pagos = devolver_pagos_de_reservas_de_usuarios (user_id)
+    abonos = devolver_abonos_de_usuarios(user_id)
+    pagos = devolver_pagos_de_reservas_de_usuarios(user_id)
+
+    historial = pagos + abonos
+
+    historial.sort(
+        key=lambda pago: pago.fecha_creacion,
+        reverse=True
+    )
 
     return render_template(
         "pagos/historial_pagos.html",
-        pagos = pagos, abonos = abonos
+        historial=historial
     )
