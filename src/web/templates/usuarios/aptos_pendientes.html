@@ -56,7 +56,7 @@
                         </td>
                         <td class="is-vcentered has-text-centered">
                             {% if apto.ruta_archivo %}
-                                <a href="{{ url_for('static', filename=apto.ruta_archivo) }}" target="_blank" class="button is-small is-info is-outlined">
+                                <a href="{{ url_for('static', filename='uploads/aptos_fisicos/' ~ apto.ruta_archivo) }}" target="_blank" class="button is-small is-info is-outlined">
                                     <span class="icon"><i class="fas fa-eye"></i></span>
                                     <span>Ver Adjunto</span>
                                 </a>
@@ -67,7 +67,7 @@
                         <td class="is-vcentered">
                             <div class="field is-grouped is-grouped-right pr-2">
                                 <div class="control">
-                                    <form action="{{ url_for('admin_aptos.aprobar', id_apto=apto.id) }}" method="POST" style="display: inline;">
+                                    <form action="{{ url_for('usuarios.aprobar_apto', id_apto=apto.id) }}" method="POST" style="display: inline;">
                                         <button type="submit" class="button is-small is-success">
                                             <span class="icon"><i class="fas fa-check"></i></span>
                                             <span>Aprobar</span>
@@ -143,7 +143,7 @@
         txtCliente.textContent = nombreCliente;
         
         // Inyectamos dinámicamente la URL con el ID correcto al Action del Formulario
-        form.action = `/admin/aptos/${idApto}/rechazar`;
+        form.action = `/usuarios/aptos/${idApto}/rechazar`;
         
         // Bulma activa los modales agregándoles la clase 'is-active'
         modal.classList.add('is-active');

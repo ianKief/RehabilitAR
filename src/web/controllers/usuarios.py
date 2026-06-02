@@ -265,7 +265,7 @@ El equipo de RehabilitAR."""
 
 @users_bp.route("/aptos", methods=["GET"])
 @requiere_rol(['ADMINISTRADOR'])
-def listar_pendientes():
+def listar_aptos_pendientes():
     """
     Renderiza el panel con la lista de aptos físicos que requieren revisión.
     """
@@ -280,7 +280,7 @@ def listar_pendientes():
 
 @users_bp.route("/aptos/<int:id_apto>/aprobar", methods=["POST"])
 @requiere_rol(['ADMINISTRADOR'])
-def aprobar(id_apto):
+def aprobar_apto(id_apto):
     """
     Ruta que se ejecuta al presionar 'Aceptar' en el panel del administrador.
     """
@@ -294,12 +294,12 @@ def aprobar(id_apto):
         # Fallos inesperados de base de datos
         flash("Ocurrió un error inesperado al procesar la aprobación.", "danger")
         
-    return redirect(url_for("admin_aptos.listar_pendientes"))
+    return redirect(url_for("usuarios.listar_aptos_pendientes"))
 
 
 @users_bp.route("/aptos/<int:id_apto>/rechazar", methods=["POST"])
 @requiere_rol(['ADMINISTRADOR'])
-def rechazar(id_apto):
+def rechazar_apto(id_apto):
     """
     Ruta que se ejecuta al enviar el formulario de rechazo con su respectivo motivo.
     """
@@ -315,4 +315,56 @@ def rechazar(id_apto):
     except Exception as e:
         flash("Ocurrió un error inesperado al procesar el rechazo.", "danger")
         
-    return redirect(url_for("admin_aptos.listar_pendientes"))
+    return redirect(url_for("usuarios.listar_aptos_pendientes"))
+
+@users_bp.route('/perfil/editar', methods=['GET', 'POST'])
+def editar_perfil():
+    user_id = session.get('usuario_id')
+    if not user_id:
+        flash("Debes iniciar sesión para editar tu perfil.", "warning")
+        return redirect(url_for('auth.login'))
+    
+    # Obtenemos el usuario de la base de datos
+    usuario = db.session.get(Cliente, user_id)
+    if not usuario:
+        session.clear()
+        return redirect(url_for('auth.login'))
+    
+    if request.method == 'POST':
+        # 1. Capturamos los datos del formulario eliminando espacios extras
+        nuevo_telefono = request.form.get('telefono', '').strip()
+        nueva_direccion = request.form.get('direccion', '').strip()
+        
+        # 2. Actualizamos el modelo permitiendo que queden vacíos (Guardamos None si es un string vacío)
+        usuario.telefono = nuevo_telefono if nuevo_telefono else None
+        usuario.direccion = nueva_direccion if nueva_direccion else None
+        
+        # 3. Impactamos la Base de Datos
+        try:
+            db.session.commit()
+            flash("Perfil actualizado con éxito.", "success")
+            return redirect(url_for('usuarios.perfil'))
+        except Exception as e:
+            db.session.rollback()
+            flash("Ocurrió un error al guardar los cambios. Inténtalo de nuevo.", "danger")
+            
+            # En caso de error de base de datos, recalculamos días para evitar fallos en el render
+            dias_restantes = 0
+            if usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
+                # Si manejas la fecha en una tabla intermedia o en el usuario directamente, adáptalo aquí:
+                if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
+                    fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
+                    dias_restantes = (fecha_vencimiento - datetime.now()).days
+                    
+            return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes, editando=True)
+    
+    # 4. Si entra por GET, calculamos los días del apto para el renderizado del formulario
+    dias_restantes = 0
+    # NOTA: Ajusté esto según la estructura del HTML original que enviaste previamente (usuario.estado_apto_fisico)
+    if usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
+        if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
+            fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
+            dias_restantes = (fecha_vencimiento - datetime.now()).days
+
+    # Reutilizamos tu HTML pasándole el flag 'editando=True'
+    return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes, editando=True)

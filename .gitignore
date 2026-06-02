@@ -76,3 +76,6 @@ dmypy.json
 
 # VS Code
 .vscode/
+
+# Archivos subidos por los usuarios (Aptos físicos, comprobantes, etc.)
+src/web/static/uploads/
