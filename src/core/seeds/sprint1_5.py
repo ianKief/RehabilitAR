@@ -20,7 +20,7 @@ class SeedPagosSprint1 ():
             apellido="Pagos",
             dni="50000001",
             email="clientecondescuento1@gmail.com",
-            password="contraseña",
+            password="123456",
             estado = EstadoUsuario.ACTIVO
         )
         self.db.session.add(cliente_con_descuento_acumulado)

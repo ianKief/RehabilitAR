@@ -22,7 +22,7 @@ class SeedListaDeEspera ():
             apellido="Clase Llena",
             dni="90000001", 
             email="profesorespera@gmail.com",
-            password="contraseña",
+            password="123456",
             estado = EstadoUsuario.ACTIVO
         )
         self.db.session.add(profesor)
@@ -32,7 +32,7 @@ class SeedListaDeEspera ():
             apellido="Casi Vence",
             dni="90000002",
             email="clienteespera1@gmail.com",
-            password="contraseña",
+            password="123456",
             estado = EstadoUsuario.ACTIVO
         )
         self.db.session.add(cliente_apto_fisico_viejo)
