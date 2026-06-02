@@ -202,24 +202,25 @@ def abonar_clase_fija(id_clase):
     precio = obtener_precio_clase_actual()
 
     if request.method == "POST":
-        # 1. Aseguramos la reserva en el sistema inmediatamente para no perder el cupo
-        crear_reserva(usuario_id, id_clase)
+        estado_abono = estado_abono_usuario(usuario_id)
+
+    # si tiene abono activo no paga
+        if estado_abono == "activo":
+
+            crear_reserva(usuario_id, id_clase)
+
+            flash(
+                "Reserva realizada correctamente usando tu abono activo.",
+                "success"
+            )
+
+            return redirect(
+                url_for("reservas.calendario_cliente")
+            )
         
         # --- TODO: IMPLEMENTACIÓN DE MERCADO PAGO ---
         # 2. Conectamos con Mercado Pago
 
-        # Creamos el pago pendiente
-        pago = Pago(
-            id_cliente=usuario_id,
-            payment_id=f"pendiente_{usuario_id}_{id_clase}_{datetime.now().timestamp()}",                monto_total=int(precio),
-            estado_pago=EstadoPago.PENDIENTE,
-            concepto_pago=ConceptoPago.RESERVA
-        )
-
-        db.session.add(pago)
-        db.session.commit()
-
-        # 2. Conectamos con Mercado Pago
         sdk = current_app.mp_sdk
 
         URL = _obtener_url_base()
@@ -232,7 +233,7 @@ def abonar_clase_fija(id_clase):
                 "unit_price": float(precio)
             }],
 
-            "external_reference": str(pago.id),
+            "external_reference": f"{usuario_id}:{id_clase}",
 
             "notification_url": (
                 f"{URL}{url_for('pagos.webhook')}"
@@ -246,13 +247,13 @@ def abonar_clase_fija(id_clase):
 
             "back_urls": {
                 "success": (
-                    f"{URL}{url_for('pagos.pago_exitoso')}"
+                    f"{URL}{url_for('pagos.pago_exitoso', tipo='reserva_fija')}"
                 ),
                 "failure": (
-                    f"{URL}{url_for('pagos.pago_fallido')}"
+                    f"{URL}{url_for('pagos.pago_fallido', tipo='reserva_fija', id_clase=id_clase)}"
                 ),
                 "pending": (
-                    f"{URL}{url_for('pagos.pago_pendiente')}"
+                    f"{URL}{url_for('pagos.pago_pendiente', tipo='reserva_fija')}"
                 )
             },
 

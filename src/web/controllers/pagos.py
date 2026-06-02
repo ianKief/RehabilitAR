@@ -49,9 +49,33 @@ def pago_exitoso():
 
 #pantalla mostrada cuando el pago falló
 @bp.route("/contratar_abono/pago_fallido")
+# pantalla mostrada cuando el pago falló
+@bp.route("/contratar_abono/pago_fallido")
 def pago_fallido():
-    return render_template("pagos/pago_fallido.html")
 
+    tipo = request.args.get("tipo")
+
+    datos = {
+        "mensaje": "No se pudo completar el pago del abono mensual.",
+        "url_reintento": url_for("pagos.suscripcion")
+    }
+
+    if tipo == "reserva_fija":
+
+        id_clase = request.args.get("id_clase")
+
+        datos = {
+            "mensaje": "No se pudo completar el pago de la reserva.",
+            "url_reintento": url_for(
+                "reservas.abonar_clase_fija",
+                id_clase=id_clase
+            )
+        }
+
+    return render_template(
+        "pagos/pago_fallido.html",
+        **datos
+    )
 #pantalla mostrada cuando el pago queda pendiente
 @bp.route("/contratar_abono/pago_pendiente")
 def pago_pendiente():

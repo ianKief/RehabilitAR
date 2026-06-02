@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago,Abono, Beneficio, TipoBeneficio
 from src.core.usuarios.usuarios import Usuario, Cliente, EstadoUsuario
 from src.core.database import db
-
+from src.core.reservas import crear_reserva
 from src.core.functions import filtro_cliente_abonado
 
 from datetime import timedelta
@@ -215,22 +215,33 @@ def registrar_pago_desde_payment(payment_id,payment):
         external_ref = payment.get("external_reference")
 
         if not external_ref:
-            print("No hay external_reference")
             return
 
-        pago = db.session.get(Pago, int(external_ref))
+        usuario_id, id_clase = external_ref.split(":")
 
-        if not pago:
-            print("No se encontró el pago")
+        usuario_id = int(usuario_id)
+        id_clase = int(id_clase)
+
+        # evitar duplicados
+        if pago_ya_procesado(payment_id):
             return
 
-        # actualizar pago pendiente
-        pago.payment_id = str(payment_id)
-        pago.estado_pago = EstadoPago.COMPLETADO
+        monto = payment.get("transaction_amount")
+
+        pago = Pago(
+            payment_id=str(payment_id),
+            id_cliente=usuario_id,
+            monto_total=monto,
+            estado_pago=EstadoPago.COMPLETADO,
+            concepto_pago=ConceptoPago.RESERVA
+        )
+
+        db.session.add(pago)
+
+        crear_reserva(usuario_id, id_clase)
 
         db.session.commit()
 
-        print("Pago de reserva actualizado correctamente")
         return
 
     
