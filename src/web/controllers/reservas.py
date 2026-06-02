@@ -3,7 +3,8 @@ from datetime import datetime, date, timedelta
 import json
 import urllib.request
 import os
-
+from src.core.pagos.pagos import ConceptoPago,EstadoPago,Pago
+from src.core.database import db
 from src.web.helpers.decorator import requiere_rol
 from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido, informar_alta_demanda
 from src.core.pagos import estado_abono_usuario, obtener_precio_clase_actual
@@ -67,10 +68,7 @@ def _obtener_feriados(year: int) -> list:
     return feriados
 
 def _obtener_url_base() -> str:
-    """Obtiene la URL base desde donde el usuario está accediendo a la aplicación."""
-    URL = request.url_root.rstrip('/')
-    # Reemplazamos localhost por 127.0.0.1 ya que Mercado Pago rechaza el string "localhost"
-    return URL.replace("localhost", "127.0.0.1")
+    return os.getenv("URL_NGROK")
 
 @reservas_bp.get("/")
 @requiere_rol(["CLIENTE"])
@@ -209,35 +207,66 @@ def abonar_clase_fija(id_clase):
         
         # --- TODO: IMPLEMENTACIÓN DE MERCADO PAGO ---
         # 2. Conectamos con Mercado Pago
-        # sdk = current_app.mp_sdk
-        # URL = _obtener_url_base()
 
-        # preference_data = {
-        #     "items": [{
-        #         "title": f"Reserva Clase Fija: {clase.nombre}",
-        #         "quantity": 1,
-        #         "unit_price": float(precio)
-        #     }],
-        #     "external_reference": str(usuario_id),
-        #     "metadata": {
-        #         "id_clase": id_clase,
-        #         "tipo": "reserva_fija"
-        #     },
-        #     "back_urls": {
-        #         "success": f"{URL}{url_for('pagos.pago_exitoso')}",
-        #         "failure": f"{URL}{url_for('pagos.pago_fallido')}",
-        #         "pending": f"{URL}{url_for('pagos.pago_pendiente')}"
-        #     },
-        #     "auto_return": "approved"
-        # }
-        # 
-        # preference_response = sdk.preference().create(preference_data)
-        # return redirect(preference_response["response"]["init_point"])
-        # ---------------------------------------------
+        # Creamos el pago pendiente
+        pago = Pago(
+            id_cliente=usuario_id,
+            payment_id=f"pendiente_{usuario_id}_{id_clase}_{datetime.now().timestamp()}",                monto_total=int(precio),
+            estado_pago=EstadoPago.PENDIENTE,
+            concepto_pago=ConceptoPago.RESERVA
+        )
 
-        flash("¡Pago exitoso! Tu reserva puntual para la clase fija ha sido confirmada. (Modo pruebas)", "success")
-        return redirect(url_for("reservas.calendario_cliente"))
-        
+        db.session.add(pago)
+        db.session.commit()
+
+        # 2. Conectamos con Mercado Pago
+        sdk = current_app.mp_sdk
+
+        URL = _obtener_url_base()
+        print(URL)
+
+        preference_data = {
+            "items": [{
+                "title": f"Reserva Clase Fija: {clase.nombre}",
+                "quantity": 1,
+                "unit_price": float(precio)
+            }],
+
+            "external_reference": str(pago.id),
+
+            "notification_url": (
+                f"{URL}{url_for('pagos.webhook')}"
+            ),
+
+            "metadata": {
+                "id_clase": id_clase,
+                "tipo": "reserva_fija",
+                "usuario_id": usuario_id
+            },
+
+            "back_urls": {
+                "success": (
+                    f"{URL}{url_for('pagos.pago_exitoso')}"
+                ),
+                "failure": (
+                    f"{URL}{url_for('pagos.pago_fallido')}"
+                ),
+                "pending": (
+                    f"{URL}{url_for('pagos.pago_pendiente')}"
+                )
+            },
+
+            "auto_return": "approved"
+        }
+
+        preference_response = sdk.preference().create(
+            preference_data
+        )
+        print(preference_response)
+
+        return redirect(
+            preference_response["response"]["init_point"]
+        ) 
     return render_template("pagos/pago_clase_fija.html", clase=clase, precio=precio)
 
 @reservas_bp.route("/<int:id_clase>/abonar_individual", methods=["GET", "POST"])
