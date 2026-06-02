@@ -277,8 +277,6 @@ def actualizar_precio(nuevo_precio):
     db.session.commit()
 
 
-
-
 def bloquear_morosos_abono():
     """
     Bloquea a los clientes abonados cuyo abono esté vencido.
@@ -310,6 +308,59 @@ def bloquear_morosos_abono():
             
     db.session.commit()
     return bloqueados
+
+
+def notificar_ultimo_dia_de_pago():
+    """
+    Notifica a los clientes abonados que su abono esta proximo a vencer. 
+    Diseñado para ejecutarse el dia 10 de cada mes.
+    """
+
+    hoy = date.today()
+
+    if hoy.day != 10:
+        return 0
+    
+    from src.web import mail
+    from flask_mail import Message
+
+    stmt = (
+        select(Cliente)
+        .filter(Cliente.es_abonado == True)
+        .filter(Cliente.estado == EstadoUsuario.ACTIVO)
+    )
+    clientes_abonados = db.session.execute(stmt).scalars().all()
+
+    correos_enviados = 0
+
+    for cliente in clientes_abonados:
+        estado_actual = estado_abono_usuario(cliente.id)
+
+        if estado_actual == "vencido":
+            msg = Message(
+                subject="RehabilitAR - Tu abono vence hoy",
+                recipients=[cliente.email]
+            )
+            msg.body = f"""Hola {cliente.nombre},
+
+                    Te recordamos que tu abono mensual vence hoy. 
+                    
+                    Si el pago no se registra para el día de mañana, tu cuenta será bloqueada automáticamente por el sistema.
+
+                    Si tienes alguna pregunta o necesitas ayuda, no dudes en contactarnos.
+
+                    Si ya realizaste el pago, por favor desestimá este mensaje.
+
+                    ¡Gracias por ser parte de RehabilitAR!"""
+            
+            try:
+                mail.send(msg)
+                correos_enviados += 1
+            except Exception as e:
+                print(f"Error al enviar correo a {cliente.email}: {e}")
+    
+    return correos_enviados
+
 
 def devolver_abonos_de_usuarios (id_usuario):
     stmt = (
