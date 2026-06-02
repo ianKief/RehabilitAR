@@ -240,17 +240,3 @@ def informar_alta_demanda (clase):
     except:
         clase.aviso_alta_demanda = False
         print ("Hubo un intento de informar alta demanda, pero falló")
-
-def es_abonado (id_cliente):
-    query = (db.session.query(exists().where(
-        and_(
-            Pago.id_cliente == id_cliente,
-            Pago.concepto_pago == ConceptoPago.ABONO,
-            devolver_fecha_hora_actual() <= (
-                Pago.fecha_creacion +
-                text("INTERVAL '1 month'")
-            )
-        )
-    )))
-
-    return query.scalar()
