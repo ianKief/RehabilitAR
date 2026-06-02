@@ -30,9 +30,10 @@ def seed_db():
     from src.core.database import db
     from src.core.seeds.salas_seeds import SalaSeeder
 
-    from src.core.seeds.profesores_seeds import ProfesorSeeder
-    from src.core.seeds.postulacionSeeder import PostulacionSeeder    
-    from src.core.seeds.clases_seeds import ClaseSeeder
+    #from src.core.seeds.profesores_seeds import ProfesorSeeder
+    #from src.core.seeds.postulacionSeeder import PostulacionSeeder
+    #from src.core.seeds.clases_seeds2 import ClaseSeeder2
+    from src.core.seeds.clases_seeds import ClaseSeeder, ProfesorDictaClaseSeeder
     from src.core.seeds.usuarios_seeds import UsuarioSeeder
     from src.core.seeds.sprint1_5 import SeedPagosSprint1
     from src.core.seeds.sprint1_8 import SeedAsistenciaYSeguimientoSprint1
@@ -42,10 +43,10 @@ def seed_db():
     seeders = [
         SalaSeeder(db),
         UsuarioSeeder(db),
-        ProfesorSeeder(db),
+        #ProfesorSeeder(db),
         ClaseSeeder(db),
-        PostulacionSeeder(db),
-        #ProfesorDictaClaseSeeder(db),
+        #PostulacionSeeder(db),
+        ProfesorDictaClaseSeeder(db),
         SeedPagosSprint1(db),
         SeedAsistenciaYSeguimientoSprint1(db),
         SeedListaDeEspera (db),
