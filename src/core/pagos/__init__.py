@@ -74,14 +74,14 @@ def estado_abono(abono):
         return "sin_abono"
 
     hoy = datetime.today()
+    
+    #opcional futuro (si lo usás más adelante)
+    if abono.fecha_fin < hoy - timedelta(days=10):
+        return "suspendido"
 
     # vencido
     if abono.fecha_fin < hoy:
         return "vencido"
-
-    # opcional futuro (si lo usás más adelante)
-    if abono.fecha_fin < hoy - timedelta(days=10):
-        return "suspendido"
 
     return "activo"
 
