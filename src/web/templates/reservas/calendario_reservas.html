@@ -99,9 +99,23 @@
                                         <span>Esperando</span>
                                     </button>
                                 {% else %}
-                                    <form action="{{ url_for('reservas.reservar_clase', id_clase=clase.id) }}" method="POST" style="margin: 0;">
-                                        <button type="submit" class="button is-small is-primary is-warning is-rounded has-text-weight-bold shadow-button">Esperar</button>
-                                    </form>
+                                    {% if clase.tipo == 'Fija' and not es_abonado %}
+                                        <a href="{{ url_for('reservas.abonar_clase_fija', id_clase=clase.id) }}"
+                                        class="button is-small is-primary is-rounded has-text-weight-bold shadow-button">
+                                            Reservar
+                                        </a>
+
+                                        {% else %}
+
+                                        <form action="{{ url_for('reservas.reservar_clase', id_clase=clase.id) }}"
+                                            method="POST"
+                                            style="margin: 0;">
+                                            <button type="submit"
+                                                    class="button is-small is-primary is-rounded has-text-weight-bold shadow-button">
+                                                Reservar
+                                            </button>
+                                        </form>
+                                    {% endif %}
                                 {% endif %}
                             {% elif clase.id in ids_clases_reservadas%}
                                 <button class="button is-small is-success is-light is-rounded has-text-weight-bold" disabled title="Ya estás inscripto en esta clase">
@@ -109,9 +123,23 @@
                                     <span>Reservada</span>
                                 </button>
                             {% else %}
-                                <form action="{{ url_for('reservas.reservar_clase', id_clase=clase.id) }}" method="POST" style="margin: 0;">
-                                    <button type="submit" class="button is-small is-primary is-rounded has-text-weight-bold shadow-button">Reservar</button>
-                                </form>
+                               {% if clase.tipo == 'Fija' and not es_abonado %}
+                                    <a href="{{ url_for('reservas.abonar_clase_fija', id_clase=clase.id) }}"
+                                    class="button is-small is-primary is-rounded has-text-weight-bold shadow-button">
+                                        Reservar
+                                    </a>
+
+                                    {% else %}
+
+                                    <form action="{{ url_for('reservas.reservar_clase', id_clase=clase.id) }}"
+                                        method="POST"
+                                        style="margin: 0;">
+                                        <button type="submit"
+                                                class="button is-small is-primary is-rounded has-text-weight-bold shadow-button">
+                                            Reservar
+                                        </button>
+                                    </form>
+                                {% endif %}
                                 {% if clase.tipo == 'Fija' and es_abonado %}
                                 <a href="{{ url_for('reservas.reservar_mensual', id_clase=clase.id) }}" class="button is-small is-info is-light is-rounded has-text-weight-bold shadow-button">Reservar Mes</a>
                                 {% endif %}

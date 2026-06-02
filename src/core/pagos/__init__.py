@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago,Abono, Beneficio, TipoBeneficio
 from src.core.usuarios.usuarios import Usuario, Cliente, EstadoUsuario
 from src.core.database import db
-
+from src.core.reservas import crear_reserva
 from src.core.functions import filtro_cliente_abonado
 
 from datetime import timedelta
@@ -74,14 +74,14 @@ def estado_abono(abono):
         return "sin_abono"
 
     hoy = datetime.today()
+    
+    #opcional futuro (si lo usás más adelante)
+    if abono.fecha_fin < hoy - timedelta(days=10):
+        return "suspendido"
 
     # vencido
     if abono.fecha_fin < hoy:
         return "vencido"
-
-    # opcional futuro (si lo usás más adelante)
-    if abono.fecha_fin < hoy - timedelta(days=10):
-        return "suspendido"
 
     return "activo"
 
@@ -209,6 +209,41 @@ def registrar_pago_desde_payment(payment_id,payment):
     if estado != "approved" :
         print("Pago no aprobado:", estado)
         return
+    
+    if tipo == "reserva_fija":
+
+        external_ref = payment.get("external_reference")
+
+        if not external_ref:
+            return
+
+        usuario_id, id_clase = external_ref.split(":")
+
+        usuario_id = int(usuario_id)
+        id_clase = int(id_clase)
+
+        # evitar duplicados
+        if pago_ya_procesado(payment_id):
+            return
+
+        monto = payment.get("transaction_amount")
+
+        pago = Pago(
+            payment_id=str(payment_id),
+            id_cliente=usuario_id,
+            monto_total=monto,
+            estado_pago=EstadoPago.COMPLETADO,
+            concepto_pago=ConceptoPago.RESERVA
+        )
+
+        db.session.add(pago)
+
+        crear_reserva(usuario_id, id_clase)
+
+        db.session.commit()
+
+        return
+
     
     # evitar duplicado
     if pago_ya_procesado(payment_id):
@@ -444,139 +479,3 @@ def calcular_descuento_maximo(id_cliente, dia_semana):
         total += descuento.porcentaje_descuento
     total = min(total, 0.30)
     return min(total, maximo_usuario)
-
-
-#cosas que implementare mas adelante
-
-
-
-# def abono_esta_activo(abono):
-#     if not abono:
-#         return False
-
-#     return abono.activo and abono.fecha_fin >= datetime.today()
-
-# def usuario_tiene_abono_activo(user_id):
-
-#     stmt = (
-#         select(Abono)
-#         .where(Abono.id_cliente == user_id)
-#         .order_by(Abono.fecha_fin.desc())
-#     )
-
-#     abono = db.session.execute(stmt).scalars().first()
-
-#     if not abono or estado_abono(abono) == "suspendido":
-#         return False
-
-#     return estado_abono(abono) == "activo"
-
-# def calcular_monto_renovacion(abono,dia_fijo,descuento_usuario=0.0):
-#     valor_clase = obtener_precio_clase_actual()
-
-#     fecha_actual = date.today()
-
-#     fecha_fin = duracion_abono_mensual(
-#         fecha_actual
-#     )
-
-#     dias = contar_dias_semana(
-#         dia_fijo,
-#         fecha_actual,
-#         fecha_fin
-#     )
-    
-#     descuento_base=calcular_descuento_automatico(dias)
-
-#     descuento_total=calcular_descuento_total(descuento_base,descuento_usuario)
-
-#     valor_total = valor_abono_mensual(dias,valor_clase)*(1-descuento_total)
-
-#     return valor_total
-
-# def validar_descuento_usuario(descuento_usuario):
-#     if descuento_usuario < 0:
-#         return 0.0
-#     if descuento_usuario > 0.30:
-#         return 0.30
-#     return descuento_usuario
-
-
-# def calcular_descuento_total(descuento_auto, descuento_usuario):
-#     descuento_usuario = validar_descuento_usuario(descuento_usuario)
-
-#     total = descuento_auto + descuento_usuario
-
-#     if total > 0.30:
-#         total = 0.30
-
-#     return total
-
-
-
-# def renovar_abono(id_cliente,dia_fijo):
-    
-#     # busca el ultimo abono del usuario
-#     abono = db.session.execute(
-#         select(Abono)
-#         .where(Abono.id_cliente == id_cliente)
-#         .order_by(Abono.fecha_fin.desc())
-#     ).scalars().first()
-    
-#     #validar si se puede renovar
-#     if not abono or not puede_renovar(abono):
-#         return False
-
-#     #extiende la fecha
-#     abono.fecha_fin = abono.fecha_fin + relativedelta(months=1)    
-    
-#     abono.dia_fijo=dia_fijo
-
-#     #Reactiva el abono
-#     abono.activo = True
-
-#     #guarda cambios
-#     db.session.commit()
-#     return True
-
-# def iniciar_renovacion_abono(user_id):
-#     abono = obtener_ultimo_abono(user_id)
-
-#     if not abono or not puede_renovar(abono):
-#         return None
-    
-
-#     monto = calcular_monto_renovacion(abono)
-
-#     return {
-#         "user_id": user_id,
-#         "abono_id": abono.id,
-#         "monto": monto
-#     }
-
-# def estado_abono(abono):
-
-#     if not abono:
-#         return "sin_abono"
-
-#     hoy = datetime.today()
-
-#     if not abono.activo:
-#         return "suspendido"
-
-#     if abono.fecha_fin < hoy - timedelta(days=10):
-#         return "suspendido"  
-
-#     if abono.fecha_fin < hoy:
-#         return "vencido"
-
-#     return "activo"
-
-# def puede_renovar(abono):
-
-#     if not abono:
-#         return False
-
-#     hoy = datetime.today()
-
-#     return hoy <= abono.fecha_fin + timedelta(days=10)

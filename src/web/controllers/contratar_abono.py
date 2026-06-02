@@ -84,13 +84,14 @@ def calcular_contratacion_abono(dia_semana_elegido, descuento, sdk, user_id):
         #se recuperan luego desde el webhook
         "metadata": {
             "dia_fijo": dia_semana_elegido,
-            "descuento_usuario": descuento
+            "descuento_usuario": descuento,
+            "tipo": "abono"
         },
 
         "back_urls": {
-            "success": f"{URL}{url_for('pagos.pago_exitoso')}",
-            "failure": f"{URL}{url_for('pagos.pago_fallido')}",
-            "pending": f"{URL}{url_for('pagos.pago_pendiente')}"
+            "success": f"{URL}{url_for('pagos.pago_exitoso', tipo='abono')}",
+            "failure": f"{URL}{url_for('pagos.pago_fallido', tipo='abono')}",
+            "pending": f"{URL}{url_for('pagos.pago_pendiente', tipo='abono')}"
         },
         "notification_url": f"{URL}{url_for('pagos.webhook')}"
     }
