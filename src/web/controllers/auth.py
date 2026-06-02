@@ -153,8 +153,6 @@ def login():
                 session.permanent = True
                 session['usuario_id'] = usuario.id
                 session['rol'] = usuario.rol.name
-                # esto de abajo sirve para que cada vez que inicia sesion verifique que el abono no se haya vencido
-                usuario.es_abonado = estado_abono_usuario(usuario.id) == "activo"
                 flash("¡Bienvenido! (Verificación omitida para pruebas)", "success")
                 return redirect(url_for('home'))
 

@@ -91,63 +91,64 @@
             </div>
 
         </div>
+
+        {% if usuario.rol.value == 'cliente' %}
+            <hr>
+            <div class="mb-5">
+                <h2 class="title is-4 mb-4">
+                    <span class="icon mr-2 has-text-info"><i class="fas fa-notes-medical"></i></span>
+                    Apto Físico
+                </h2>
         
-        <hr>
+                <div class="box">
+                    <div class="columns is-vcentered">
+                        {% if usuario.apto_fisico %}
+                            <div class="column">
+                                <p class="mb-2"><strong>Estado actual:</strong> 
+                                    {% if usuario.apto_fisico.estado.name == 'SIN_CARGAR' %}
+                                        <span class="tag is-light is-medium">Sin Subir</span>
+                                    {% elif usuario.apto_fisico.estado.name in ['PENDIENTE', 'EN_REVISION'] %}
+                                        <span class="tag is-warning is-medium">Pendiente de Revisión</span>
+                                    {% elif usuario.apto_fisico.estado.name == 'ACEPTADO' %}
+                                        <span class="tag is-success is-medium">Aceptado</span>
+                                    {% elif usuario.apto_fisico.estado.name == 'RECHAZADO' %}
+                                        <span class="tag is-danger is-medium">Rechazado</span>
+                                    {% endif %}
+                                </p>
+                                <p class="is-size-7 has-text-grey">
+                                    Última actualización: {{ usuario.apto_fisico.fecha_carga.strftime('%d/%m/%Y') if usuario.apto_fisico.fecha_carga else 'Nunca' }}
+                                </p>
+                            </div>
 
-        <div class="mb-5">
-            <h2 class="title is-4 mb-4">
-                <span class="icon mr-2 has-text-info"><i class="fas fa-notes-medical"></i></span>
-                Apto Físico
-            </h2>
-    
-            <div class="box">
-                <div class="columns is-vcentered">
-                    {% if usuario.apto_fisico %}
-                        <div class="column">
-                            <p class="mb-2"><strong>Estado actual:</strong> 
-                                {% if usuario.apto_fisico.estado.name == 'SIN_CARGAR' %}
-                                    <span class="tag is-light is-medium">Sin Subir</span>
-                                {% elif usuario.apto_fisico.estado.name in ['PENDIENTE', 'EN_REVISION'] %}
-                                    <span class="tag is-warning is-medium">Pendiente de Revisión</span>
-                                {% elif usuario.apto_fisico.estado.name == 'ACEPTADO' %}
-                                    <span class="tag is-success is-medium">Aceptado</span>
-                                {% elif usuario.apto_fisico.estado.name == 'RECHAZADO' %}
-                                    <span class="tag is-danger is-medium">Rechazado</span>
+                            <div class="column is-narrow">
+                                {% if usuario.apto_fisico.ruta_archivo %}
+                                    <a href="{{ url_for('static', filename=usuario.apto_fisico.ruta_archivo) }}" target="_blank" class="button is-info is-outlined">
+                                        <span class="icon"><i class="fas fa-file-medical"></i></span>
+                                        <span>Ver Archivo</span>
+                                    </a>
+                                {% else %}
+                                    <button class="button is-light" disabled>Sin archivo</button>
                                 {% endif %}
-                            </p>
-                            <p class="is-size-7 has-text-grey">
-                                Última actualización: {{ usuario.apto_fisico.fecha_carga.strftime('%d/%m/%Y') if usuario.apto_fisico.fecha_carga else 'Nunca' }}
-                            </p>
-                        </div>
+                            </div>
+                            
+                        {% else %}
+                            <div class="column">
+                                <p class="mb-2"><strong>Estado actual:</strong> 
+                                    <span class="tag is-light is-medium">Sin Subir</span>
+                                </p>
+                                <p class="is-size-7 has-text-grey">
+                                    Última actualización: Nunca
+                                </p>
+                            </div>
 
-                        <div class="column is-narrow">
-                            {% if usuario.apto_fisico.ruta_archivo %}
-                                <a href="{{ url_for('static', filename=usuario.apto_fisico.ruta_archivo) }}" target="_blank" class="button is-info is-outlined">
-                                    <span class="icon"><i class="fas fa-file-medical"></i></span>
-                                    <span>Ver Archivo</span>
-                                </a>
-                            {% else %}
+                            <div class="column is-narrow">
                                 <button class="button is-light" disabled>Sin archivo</button>
-                            {% endif %}
-                        </div>
-                        
-                    {% else %}
-                        <div class="column">
-                            <p class="mb-2"><strong>Estado actual:</strong> 
-                                <span class="tag is-light is-medium">Sin Subir</span>
-                            </p>
-                            <p class="is-size-7 has-text-grey">
-                                Última actualización: Nunca
-                            </p>
-                        </div>
-
-                        <div class="column is-narrow">
-                            <button class="button is-light" disabled>Sin archivo</button>
-                        </div>
-                    {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-        </div>
+        {% endif %}
 
         <hr>
 

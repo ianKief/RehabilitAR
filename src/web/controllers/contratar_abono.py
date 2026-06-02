@@ -1,5 +1,5 @@
 from datetime import date
-from src.web.controllers.pagos import crear_preferencia_mp
+from src.web.controllers.pagos import crear_preferencia_mp,calcular_descuento_maximo
 from flask import Blueprint, request, current_app, redirect,flash,url_for
 from flask import session
 from src.core.pagos import estado_abono,obtener_ultimo_abono,calcular_valor_abono
@@ -18,9 +18,14 @@ def contratar_abono_route():
     
     #obtiene el ID del usuario logueado desde la sesión
     user_id = session.get("usuario_id")
-    
     print("USER_ID EN SESSION:", session.get("usuario_id"))
 
+
+    descuento = 0
+
+    if request.form.get("descuento"):
+        descuento = calcular_descuento_maximo(user_id,dia_semana_elegido)
+    
     abono = obtener_ultimo_abono(user_id)
 
     if abono and estado_abono(abono) == "activo":
@@ -28,7 +33,7 @@ def contratar_abono_route():
         return redirect(url_for("home"))
     
     #crea la preferencia de pago en Mercado Pago
-    resultado = calcular_contratacion_abono(dia_semana_elegido, 0.0, sdk, user_id)
+    resultado = calcular_contratacion_abono(dia_semana_elegido, descuento, sdk,user_id)
     print(resultado)
     #redirige al usuario a Mercado Pago
     return redirect(resultado["response"]["init_point"])
@@ -78,7 +83,8 @@ def calcular_contratacion_abono(dia_semana_elegido, descuento, sdk, user_id):
         #datos personalizados enviados a Mercado Pago
         #se recuperan luego desde el webhook
         "metadata": {
-            "dia_fijo": dia_semana_elegido
+            "dia_fijo": dia_semana_elegido,
+            "descuento_usuario": descuento
         },
 
         "back_urls": {
@@ -88,6 +94,12 @@ def calcular_contratacion_abono(dia_semana_elegido, descuento, sdk, user_id):
         },
         "notification_url": f"{URL}{url_for('pagos.webhook')}"
     }
+
+    print("URL:", repr(URL))
+    print("VALOR:", repr(valor))
+    print("PAYLOAD:")
+    from pprint import pprint
+    pprint(preference_data)
     
     #crea la preferencia de pago utilizando el SDK de Mercado Pago
     return crear_preferencia_mp(sdk, preference_data)

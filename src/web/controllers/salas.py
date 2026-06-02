@@ -39,9 +39,8 @@ def ver_sala(id):
         flash("La sala solicitada no existe.", "danger")
         return redirect(url_for("salas.lista_salas"))
     
-    # Preparamos la estructura para el Escenario 2 (Cronograma)
-    # Por ahora pasamos una lista vacía hasta integrar el modelo de Clases.
-    clases_asignadas = []
+    # Obtenemos las clases asignadas a la sala para mostrar su cronograma (Escenario 2)
+    clases_asignadas = obtener_clases_por_sala(id)
     
     return render_template("salas/ver_sala.html", sala=sala, clases=clases_asignadas)
 

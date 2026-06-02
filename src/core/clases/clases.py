@@ -2,10 +2,11 @@ from src.core.reservas.reservas import Cola, Reserva
 from src.core.salas.salas import Sala
 
 from src.core.database import Base
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, Integer, Time
+from sqlalchemy import Boolean, Date, DateTime, String, Integer, Time, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
+from src.core.salas.salas import Sala
 
 tz_arg = ZoneInfo("America/Argentina/Buenos_Aires")
 
@@ -16,7 +17,6 @@ class Clase(Base):
     nombre: Mapped[str] = mapped_column(String(100), nullable=False)
     especialidad: Mapped[str] = mapped_column(String(20), nullable=False)
     duracion: Mapped[int] = mapped_column(Integer, nullable=False) # duracion en minutos
-    capacidad_maxima: Mapped[int] = mapped_column(Integer, nullable=False)
     descripcion: Mapped[str] = mapped_column(String(255), nullable=True)
     suspendida: Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
     fecha_clase: Mapped[date] = mapped_column(Date, nullable=False)
@@ -27,9 +27,11 @@ class Clase(Base):
     # RELACIÓN: Esto te permite hacer "clase.sala.capacidad_maxima" o "clase.sala.numero_puerta" directo en Python
     sala: Mapped["Sala"] = relationship("Sala")
     aviso_alta_demanda:Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
+    id_sala: Mapped[int] = mapped_column(Integer, ForeignKey("salas.id"), nullable=True)
 
 
     # Relaciones
+    sala: Mapped["Sala"] = relationship("Sala")
     reservas: Mapped[list["Reserva"]] = relationship(back_populates="clase", cascade="all, delete-orphan")
     colas: Mapped[list["Cola"]] = relationship(back_populates="clase", cascade="all, delete-orphan")
 
@@ -44,7 +46,13 @@ class Clase(Base):
         nullable=False
     )
 
-def __repr__(self):
+    @property
+    def capacidad_maxima(self) -> int:
+        """Propiedad dinámica para retrocompatibilidad con las vistas (Jinja)"""
+        return self.sala.capacidad if self.sala else 0
+
+
+    def __repr__(self):
         return (f"<ClaseRehabilitacion(id={self.id}, nombre='{self.nombre}', "
                 f"especialidad='{self.especialidad}', fecha='{self.fecha_clase}', "
                 f"horario='{self.horario}', suspendida={self.suspendida})>")

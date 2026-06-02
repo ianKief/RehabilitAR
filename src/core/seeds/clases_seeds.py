@@ -2,10 +2,11 @@ import calendar
 import random
 from datetime import date, time, timedelta
 from sqlalchemy import select
+from src.core.usuarios.usuarios import RolUsuario, Usuario
 from src.core.salas.salas import Sala, EstadoSala  # Asegurá estas rutas
 from src.core.clases.clases import Clase, ClaseBloque              # Asegurá esta ruta
 
-class ClaseSeeder:
+class ClaseSeeder1:
     def __init__(self, db):
         self.db = db
         # Especialidades
@@ -35,6 +36,10 @@ class ClaseSeeder:
         if not salas_disponibles:
             print("⚠️ Error: No se encontraron salas habilitadas en la BD. Ejecutá primero el seeder de salas.")
             return
+
+        # Optimizamos consultas: traemos solo los IDs en lugar de cargar todos los objetos pesados a la memoria
+        ids_salas = list(self.db.session.scalars(select(Sala.id).filter_by(eliminada=False)))
+        ids_profesores = list(self.db.session.scalars(select(Usuario.id).filter_by(rol=RolUsuario.PROFESOR)))
 
         hoy = date.today()
         

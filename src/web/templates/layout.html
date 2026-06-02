@@ -19,7 +19,7 @@
     <nav class="navbar has-shadow" role="navigation" aria-label="main navigation">
         <div class="container py-3">
             <div class="navbar-brand">
-                <a class="navbar-item px-3 py-2" href="/">
+                <a class="navbar-item px-3 py-2" href="{{ url_for('home') }}">
                     <div class="image mr-3"
                         style="width: 48px; height: 48px; min-width: 48px; flex-shrink: 0; border-radius: 50%; padding: 2px; display: flex; align-items: center; justify-content: center;">
                         <img src="{{ url_for('static', filename='logo_RehabilitAR.png') }}" alt="Logo" class="is-rounded"
@@ -52,21 +52,30 @@
             </div>
             <div id="navbarMain" class="navbar-menu">
                 <div class="navbar-start is-hidden-desktop">
-                    <a class="navbar-item py-3 px-4" href="/">
+                    <a class="navbar-item py-3 px-4" href="{{ url_for('home') }}">
                         <span class="icon mr-2"><i class="fas fa-home"></i></span>Inicio
                     </a>
                     {% if session.get('rol') == 'ADMINISTRADOR' %}
                     <!-- Navegación para personal (ocultar según rol) -->
-                    <a class="navbar-item py-3 px-4" href="/salas">
+                    <a class="navbar-item py-3 px-4" href="{{ url_for('usuarios.listar_usuarios') }}">
+                        <span class="icon mr-2"><i class="fas fa-list"></i></span>Listado de Usuarios
+                    </a>
+                    <a class="navbar-item py-3 px-4" href="{{ url_for('usuarios.crear_usuario') }}">
+                        <span class="icon mr-2"><i class="fas fa-user-plus"></i></span>Crear Usuario
+                    </a>
+                    <a class="navbar-item py-3 px-4" href="{{ url_for('salas.lista_salas') }}">
                         <span class="icon mr-2"><i class="far fa-hospital"></i></span>Salas
                     </a>
-                    <a class="navbar-item py-3 px-4" href="/clases/admin">
+                    <a class="navbar-item py-3 px-4" href="{{ url_for('clases.listar_clases_admin') }}">
                         <span class="icon mr-2"><i class="far fa-calendar-alt"></i></span>Clases
+                    </a>
+                    <a class="navbar-item py-3 px-4" href="{{ url_for('pagos.precio_clase') }}">
+                        <span class="icon mr-2"><i class="fas fa-dollar-sign"></i></span>Precio de Clases
                     </a>
                     {% endif %}
                     {% if session.get('rol') == 'PROFESOR' %}
                     <!-- Navegación para profesores -->
-                    <a class="navbar-item py-3 px-4" href="/profesor">
+                    <a class="navbar-item py-3 px-4" href="{{ url_for('profesor.index_profesor') }}">
                         <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Asistencia y seguimiento
                     </a>
                     {% endif %}
@@ -77,6 +86,9 @@
                         </a>
                         <a class="navbar-item py-3 px-4" href="{{ url_for('reservas.mis_clases') }}">
                             <span class="icon mr-2"><i class="fas fa-chalkboard-user"></i></span>Mis Clases
+                        </a>
+                        <a class="navbar-item py-3 px-4" href="{{ url_for('pagos.historial_pagos') }}">
+                            <span class="icon mr-2"><i class="fas fa-receipt"></i></span>Historial de Pagos
                         </a>
                     {% endif %}
                     
@@ -165,7 +177,7 @@
                         </p>
                         <ul class="menu-list">
                             <li>
-                                <a href="/"
+                                <a href="{{ url_for('home') }}"
                                     class="py-2.5 px-3 {% if request.path == '/' %}menu-item-active{% endif %}">
                                     <span class="icon mr-2"><i class="fas fa-house"></i></span>Inicio
                                 </a>
@@ -203,13 +215,13 @@
                                 </ul>
                             </li>
                             <li>
-                                <a href="/salas"
+                                <a href="{{ url_for('salas.lista_salas') }}"
                                     class="py-2.5 px-3 {% if request.path.startswith('/salas') %}menu-item-active{% endif %}">
                                     <span class="icon mr-2"><i class="far fa-hospital"></i></span>Salas
                                 </a>
                             </li>
                             <li>
-                                <a href="/clases/admin"
+                                <a href="{{ url_for('clases.listar_clases_admin') }}"
                                     class="py-2.5 px-3 {% if request.path.startswith('/clases/admin') %}menu-item-active{% endif %}">
                                     <span class="icon mr-2"><i class="far fa-calendar-alt"></i></span>Clases
                                 </a>
@@ -225,7 +237,7 @@
                             <!-- Navegación para profesores-->
                             {% if session.get('rol') == 'PROFESOR' %}
                             <li>
-                                <a href="/profesor/"
+                                <a href="{{ url_for('profesor.index_profesor') }}"
                                     class="py-2.5 px-3 {% if request.path.startswith('/profesor') %}menu-item-active{% endif %}">
                                     <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Asistencia y seguimiento
                                 </a>

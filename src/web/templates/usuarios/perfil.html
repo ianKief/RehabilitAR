@@ -117,6 +117,7 @@
         
         <hr>
 
+<<<<<<< HEAD
         <div class="box">
             <div class="columns is-vcentered">
                 
@@ -173,6 +174,114 @@
                         {% endif %}
 
                     {% endif %}
+=======
+        {% if usuario.rol.value == 'cliente' %}
+            <!-- ========================================== -->
+            <!-- SECCIÓN: APTO FÍSICO                       -->
+            <!-- ========================================== -->
+            <div class="mb-4">
+                <h2 class="title is-4 mb-4">
+                    <span class="icon mr-2 has-text-info"><i class="fas fa-notes-medical"></i></span>
+                    Apto Físico
+                </h2>
+                
+                <div class="box has-background-light">
+                    <div class="columns is-vcentered">
+                        
+                        <!-- Información y Estado -->
+                        <div class="column">
+                            <p class="mb-2"><strong>Estado del documento:</strong> 
+                                {% if not usuario.estado_apto_fisico or usuario.estado_apto_fisico.name == 'SIN_CARGAR' %}
+                                    <span class="tag is-light is-medium">Sin Subir</span>
+                                {% elif usuario.estado_apto_fisico.name == 'PENDIENTE' %}
+                                    <span class="tag is-warning is-medium">Pendiente de Revisión</span>
+                                {% elif usuario.estado_apto_fisico.name == 'ACEPTADO' %}
+                                    <span class="tag is-success is-medium">Aceptado</span>
+                                {% elif usuario.estado_apto_fisico.name == 'RECHAZADO' %}
+                                    <span class="tag is-danger is-medium">Rechazado</span>
+                                {% endif %}
+                            </p>
+
+                            <!-- Mensajes de Validez o Ayuda -->
+                            {% if usuario.estado_apto_fisico and usuario.estado_apto_fisico.name == 'ACEPTADO' %}
+                                {% if dias_restantes > 0 %}
+                                    <p class="is-size-7 has-text-success">
+                                        <i class="fas fa-check-circle"></i> Válido por <strong>{{ dias_restantes }}</strong> días más.
+                                    </p>
+                                {% else %}
+                                    <p class="is-size-7 has-text-danger">
+                                        <i class="fas fa-exclamation-triangle"></i> Tu apto físico ha vencido. Por favor, subí uno nuevo.
+                                    </p>
+                                {% endif %}
+                            {% elif usuario.estado_apto_fisico and usuario.estado_apto_fisico.name == 'RECHAZADO' %}
+                                <p class="is-size-7 has-text-danger">El documento subido no es válido o no se lee correctamente. Subí un nuevo archivo.</p>
+                            {% else %}
+                                <p class="is-size-7 has-text-grey">Subí tu certificado médico para poder acceder a las salas y clases.</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Botón de Subida de Archivo -->
+                        <div class="column is-narrow">
+                            
+                            <!-- LÓGICA UX: Solo mostramos el botón si NO tiene un apto aceptado vigente -->
+                            {% if not (usuario.estado_apto_fisico and usuario.estado_apto_fisico.name == 'ACEPTADO' and dias_restantes > 0) %}
+                                
+                                <form action="{{ url_for('usuarios.subir_apto') }}" method="POST" enctype="multipart/form-data">
+                                    <div class="field has-addons">
+                                        
+                                        <!-- Input del Archivo -->
+                                        <div class="control is-expanded">
+                                            <div class="file is-info has-name is-fullwidth">
+                                                <label class="file-label">
+                                                    <!-- Sacamos el onchange y agregamos un ID para mostrar el nombre del archivo -->
+                                                    <input class="file-input" type="file" name="apto_fisico" accept=".pdf,.jpg,.jpeg,.png" required id="input-apto">
+                                                    
+                                                    <span class="file-cta">
+                                                        <span class="file-icon">
+                                                            <i class="fas fa-file-medical"></i>
+                                                        </span>
+                                                        <span class="file-label">
+                                                            Elegir archivo
+                                                        </span>
+                                                    </span>
+                                                    <!-- Acá se va a mostrar el nombre del archivo seleccionado -->
+                                                    <span class="file-name" id="nombre-archivo">
+                                                        Ningún archivo seleccionado
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <!-- Botón de Envío Real -->
+                                        <div class="control">
+                                            <button type="submit" class="button is-primary">
+                                                <span class="icon mr-2"><i class="fas fa-upload"></i></span>
+                                                Subir
+                                            </button>
+                                        </div>
+
+                                    </div>
+                                </form>
+
+                                <!-- Pequeño script para que Bulma muestre el nombre del archivo cuando lo elegís -->
+                                <script>
+                                    const fileInput = document.querySelector('#input-apto');
+                                    const fileName = document.querySelector('#nombre-archivo');
+                                    if (fileInput) {
+                                        fileInput.addEventListener('change', () => {
+                                            if (fileInput.files.length > 0) {
+                                                fileName.textContent = fileInput.files[0].name;
+                                            }
+                                        });
+                                    }
+                                </script>
+
+                            {% endif %}
+
+                        </div>
+                        
+                    </div>
+>>>>>>> 07b412be9547d1101b5255f4b1afa6cdba3fecdb
                 </div>
 
                 <div class="column is-narrow">
@@ -229,7 +338,7 @@
                 </div>
                 
             </div>
-        </div>
+        {% endif %}
 
         {% if usuario.apto_fisico and usuario.apto_fisico.estado.name == 'RECHAZADO' %}
         <div class="modal" id="modal-motivo-rechazo">

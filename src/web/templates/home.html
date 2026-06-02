@@ -18,6 +18,7 @@
         <!-- DASHBOARD CLIENTE                          -->
         <!-- ========================================== -->
         {% if estado_abono == "activo" %}
+
         <div class="box mb-5">
             <div class="columns is-vcentered">
                 <div class="column">
@@ -25,10 +26,12 @@
                         <i class="fas fa-check-circle has-text-success"></i>
                         Abono activo
                     </h2>
+
                     <p class="has-text-grey">
                         Tenés todos los beneficios activos.
                     </p>
                 </div>
+
                 <div class="column is-narrow">
                     <button class="button is-success is-medium" disabled>
                         Activo
@@ -36,25 +39,97 @@
                 </div>
             </div>
         </div>
+
+        {% elif estado_abono == "vencido" %}
+
+        <div class="box mb-5 has-background-warning-light">
+            <div class="columns is-vcentered">
+                <div class="column">
+
+                    <span class="tag is-warning mb-3">
+                        Renovación disponible
+                    </span>
+
+                    <h2 class="title is-5 mb-2">
+                        <i class="fas fa-rotate-right has-text-warning"></i>
+                        Tu abono venció
+                    </h2>
+
+                    <p class="has-text-grey">
+                        Renová tu suscripción para recuperar tus beneficios y continuar con tus clases.
+                    </p>
+
+                </div>
+
+                <div class="column is-narrow">
+                    <a href="/contratar_abono/suscripcion"
+                    class="button is-warning is-medium">
+                        Renovar Abono
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {% elif estado_abono == "suspendido" %}
+
+        <div class="box mb-5 has-background-danger-light">
+            <div class="columns is-vcentered">
+                <div class="column">
+
+                    <span class="tag is-danger mb-3">
+                        Abono suspendido
+                    </span>
+
+                    <h2 class="title is-5 mb-2">
+                        <i class="fas fa-circle-exclamation has-text-danger"></i>
+                        Tu suscripción fue suspendida
+                    </h2>
+
+                    <p class="has-text-grey">
+                        Pasaron más de 10 días desde el vencimiento del abono.
+                    </p>
+
+                </div>
+
+                <div class="column is-narrow">
+                    <a href="/contratar_abono/suscripcion"
+                    class="button is-danger is-medium">
+                        Contratar nuevamente
+                    </a>
+                </div>
+            </div>
+        </div>
+
         {% else %}
+
         <div class="box mb-5">
             <div class="columns is-vcentered">
                 <div class="column">
+
+                    <span class="tag is-primary mb-3">
+                        Nuevo
+                    </span>
+
                     <h2 class="title is-5 mb-2">
                         <i class="fas fa-credit-card has-text-primary"></i>
                         Abono mensual
                     </h2>
+
                     <p class="has-text-grey">
-                        Contratá tu suscripción y accedé a beneficios.
+                        Contratá tu suscripción y accedé a beneficios exclusivos.
                     </p>
+
                 </div>
+
                 <div class="column is-narrow">
-                    <a href="/contratar_abono/suscripcion" class="button is-primary is-medium">
+                    <a href="/contratar_abono/suscripcion"
+                    class="button is-primary is-medium">
                         Contratar Abono
                     </a>
                 </div>
             </div>
         </div>
+
         {% endif %}
 
         <div class="columns is-multiline">
@@ -162,7 +237,7 @@
                     <span class="icon is-large has-text-primary mb-3"><i class="far fa-bookmark fa-3x"></i></span>
                     <h3 class="title is-4">Panel de Profesor</h3>
                     <p class="subtitle is-6 has-text-grey mb-5">Bienvenido. Desde aquí podés gestionar la asistencia de tus alumnos y realizar el seguimiento de su evolución.</p>
-                    <a href="/profesor" class="button is-primary is-medium is-rounded shadow-button">
+                    <a href="{{ url_for('profesor.index_profesor') }}" class="button is-primary is-medium is-rounded shadow-button">
                         <span class="icon"><i class="fas fa-clipboard-list"></i></span>
                         <span>Ir a Asistencia y Seguimiento</span>
                     </a>

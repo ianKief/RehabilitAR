@@ -33,7 +33,6 @@ class UsuarioSeeder:
                 email="clienteprueba@gmail.com",
                 password="123456",
                 estado=Estado.ACTIVO,
-                es_abonado=True
             )
             self.db.session.add(cliente)
             self.db.session.flush() # Flush para obtener el ID sin cerrar la transacción
@@ -90,7 +89,7 @@ class UsuarioSeeder:
             )
 
             if rol == RolUsuario.CLIENTE:
-                usuario = Cliente(**datos_usuario, es_abonado=random.choice([True, False]))
+                usuario = Cliente(**datos_usuario)
             elif rol == RolUsuario.PROFESOR:
                 usuario = Profesor(**datos_usuario)
             else:

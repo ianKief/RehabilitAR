@@ -102,8 +102,6 @@ class Usuario(Base):
 class Cliente(Usuario):
     __tablename__ = "clientes"
     id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), primary_key=True)
-    es_abonado: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    descuento_acumulado: Mapped[float] = mapped_column(Float, default=0)
 
     # Relaciones
     apto_fisico: Mapped["AptoFisico"] = relationship(back_populates="cliente", uselist=False)

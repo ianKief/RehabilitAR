@@ -1,4 +1,4 @@
-from sqlalchemy import func, text, or_, select, cast, Integer, and_, case
+from sqlalchemy import func, text, or_, select, and_, case, exists
 from sqlalchemy.orm import aliased
 
 from flask_mail import Message
@@ -9,8 +9,10 @@ from src.core.usuarios.usuarios import AptoFisico, EstadoAptoFisico, Usuario, Ro
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reservas.reservas import Reserva, AsistenciaReserva
 from src.core.usuarios.usuarios import Usuario, Cliente, Profesor, Administrador, Recepcionista, RolUsuario
+from src.core.pagos import Pago, ConceptoPago
 
-from src.core.functions import filtro_clase_actual
+from src.core.functions import filtro_clase_actual, devolver_fecha_hora_actual
+
 from datetime import datetime
 
 def alumno_pertenece_a_clase_actual_profesor (id_profesor, dni_alumno):
@@ -207,10 +209,10 @@ def eliminar_usuario(usuario_id):
     db.session.commit()
     return True
 
-def tiene_apto_fisico_valido(cliente):
+def tiene_apto_fisico_valido(cliente, fecha_clase = datetime.now()):
     """Valida si el cliente tiene un apto físico aceptado y menor a 1 año de antigüedad."""
     if cliente and getattr(cliente, 'apto_fisico', None) and cliente.apto_fisico.estado.name == 'ACEPTADO':
-        if cliente.apto_fisico.fecha_carga and (datetime.now() - cliente.apto_fisico.fecha_carga).days <= 365:
+        if cliente.apto_fisico.fecha_carga and (fecha_clase - cliente.apto_fisico.fecha_carga).days <= 365:
             return True
     return False
 
@@ -220,8 +222,11 @@ def conseguir_administrativos ():
 def informar_alta_demanda (clase):
     from src.web import mail
     try:
+        print ("Entré al try :P")
+        print ("Datos de la clase:", clase.nombre, clase.especialidad)
         administrativos = conseguir_administrativos ()
         for admin in administrativos:
+            print ("Acabo de informar a", admin.nombre)
             body = f"""Hola {admin.nombre},
 
                     Se le informa que la clase {clase.nombre} de la especialidad {clase.especialidad} está teniendo picos de demanda, habiendo superado recientemente las 10 esperas en cola.
@@ -232,8 +237,9 @@ def informar_alta_demanda (clase):
                     )
             msg.body = body
             mail.send(msg)
-    except ValueError as e:
+    except:
         clase.aviso_alta_demanda = False
+<<<<<<< HEAD
 # Tampoco voy a informar al cliente del problema, mejor guardar el aviso para una próxima ocasión
 
 #Parte de aptos
@@ -291,3 +297,6 @@ def revisar_y_rechazar_apto(db_session, id_apto, comentario_motivo):
     
     db_session.commit()
     return apto
+=======
+        print ("Hubo un intento de informar alta demanda, pero falló")
+>>>>>>> 07b412be9547d1101b5255f4b1afa6cdba3fecdb
