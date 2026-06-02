@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+
+{% block title %}Abonar Clase Fija{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="columns is-centered">
+        <div class="column is-6">
+            <div class="box">
+                <h1 class="title is-4 has-text-centered has-text-primary mb-5">
+                    Abonar Reserva Puntual
+                </h1>
+                <p class="subtitle is-6 mb-4">
+                    Estás a punto de confirmar y abonar tu reserva puntual para la siguiente clase fija:
+                </p>
+                <div class="content">
+                    <ul>
+                        <li><strong>Clase:</strong> {{ clase.nombre }}</li>
+                        <li><strong>Especialidad:</strong> {{ clase.especialidad }}</li>
+                        <li><strong>Fecha:</strong> {{ clase.fecha_clase.strftime('%d/%m/%Y') }}</li>
+                        <li><strong>Horario:</strong> {{ clase.horario.strftime('%H:%M') }} hs</li>
+                        <li><strong>Precio a abonar:</strong> ${{ precio }}</li>
+                    </ul>
+                </div>
+                
+                <form method="POST" action="{{ url_for('reservas.abonar_clase_fija', id_clase=clase.id) }}">
+                    <div class="buttons is-centered mt-5">
+                        <button type="submit" class="button is-success is-medium">Continuar a Mercado Pago</button>
+                        <a href="{{ url_for('reservas.calendario_cliente') }}" class="button is-light is-medium">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

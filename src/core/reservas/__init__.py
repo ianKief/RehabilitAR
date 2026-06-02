@@ -1,18 +1,22 @@
-from sqlalchemy import select, func, case
+from sqlalchemy import select, func, case, or_, and_
 from sqlalchemy.orm import contains_eager
 from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.usuarios.usuarios import Usuario, Cliente
 from src.core.reservas.reservas import Reserva, AsistenciaReserva, Cola, Cancelacion
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 import calendar
 from src.core.salas.salas import Sala
-
 from src.core.functions import filtro_cliente_abonado
-
 from flask_mail import Message
 from src.core.mail import send_mail
-#from src.web import mail
+
+def _filtro_clase_futura():
+    ahora = datetime.now()
+    return or_(
+        Clase.fecha_clase > ahora.date(),
+        and_(Clase.fecha_clase == ahora.date(), Clase.horario > ahora.time())
+    )
 
 def listar_clases_disponibles_para_cliente(fecha=None, tipo=None, especialidad=None):
     """
@@ -22,7 +26,7 @@ def listar_clases_disponibles_para_cliente(fecha=None, tipo=None, especialidad=N
     query = select(Clase).filter(
         Clase.suspendida == False,
         Clase.aprobada == True,
-        Clase.fecha_clase >= date.today()
+        _filtro_clase_futura()
     )
     
     if fecha:
@@ -40,7 +44,7 @@ def obtener_fechas_con_clases(tipo=None, especialidad=None):
     query = select(Clase.fecha_clase).filter(
         Clase.suspendida == False,
         Clase.aprobada == True,
-        Clase.fecha_clase >= date.today()
+        _filtro_clase_futura()
     )
     
     if tipo:
@@ -136,6 +140,38 @@ def verificar_reserva_semanal_existente(id_cliente, fecha_clase):
     )
     return db.session.scalars(query).first()
 
+def verificar_limite_reservas_mensuales(id_cliente, clase_base):
+    """Verifica si el cliente ya tiene una clase fija reservada en el mes que no coincida con el bloque actual."""
+    if not clase_base:
+        return False
+        
+    año = clase_base.fecha_clase.year
+    mes = clase_base.fecha_clase.month
+    
+    fecha_inicio = date(año, mes, 1)
+    _, dias_en_mes = calendar.monthrange(año, mes)
+    fecha_fin = date(año, mes, dias_en_mes)
+
+    query = select(Clase).join(Reserva).filter(
+        Reserva.id_cliente == id_cliente,
+        Clase.tipo == "Fija",
+        Clase.fecha_clase >= fecha_inicio,
+        Clase.fecha_clase <= fecha_fin,
+        Reserva.asiste != AsistenciaReserva.CANCELADA
+    )
+    clases = db.session.scalars(query).all()
+    
+    bloque_actual = (clase_base.fecha_clase.weekday(), clase_base.horario, clase_base.nombre)
+    
+    for c in clases:
+        b = (c.fecha_clase.weekday(), c.horario, c.nombre)
+        # Si tiene una clase fija en el mes que no coincide con el bloque que intenta reservar,
+        # chocaría con la regla de 1 clase fija por semana al hacer la reserva mensual completa.
+        if b != bloque_actual:
+            return True
+            
+    return False
+
 def obtener_alternativas_semana_para_clase(clase_base):
     """Busca clases de la misma especialidad/nombre en la misma semana para reprogramar."""
     start_of_week = clase_base.fecha_clase - timedelta(days=clase_base.fecha_clase.weekday())
@@ -148,7 +184,8 @@ def obtener_alternativas_semana_para_clase(clase_base):
         Clase.fecha_clase <= end_of_week,
         Clase.id != clase_base.id,
         Clase.suspendida == False,
-        Clase.aprobada == True
+        Clase.aprobada == True,
+        _filtro_clase_futura()
     ).order_by(Clase.fecha_clase.asc(), Clase.horario.asc())
     
     return db.session.scalars(query).all()
@@ -189,7 +226,8 @@ def obtener_clases_mensuales(id_clase_base):
         Clase.fecha_clase <= fecha_fin,
         Clase.tipo == "Fija",
         Clase.suspendida == False,
-        Clase.aprobada == True
+        Clase.aprobada == True,
+        _filtro_clase_futura()
     )
     clases_mes = db.session.scalars(query).all()
     clases_mensuales = [c for c in clases_mes if c.fecha_clase.weekday() == dia_semana]
@@ -214,17 +252,8 @@ def procesar_reservas_mensuales_automatica(id_cliente, clases_a_reservar):
 
 def cancelar_cola (id_cliente, id_clase):
     """Cancela la cola, primero obteniéndola vía id_cliente y id_clase. Fuera de operación actualmente"""
-    query = (db.session.query(Cola)
-        .join (Cliente, Cliente.id == Cola.id_cliente)
-        .join (Clase, Clase.id == Cola.id_clase)
-        .filter (Cliente.id == id_cliente)
-        .filter (Clase.id == id_clase)
-        .filter (Cola.cancelada == False)
-        .order_by(Cola.fecha_modificacion.desc())
-    )
-
-    cola = db.session.scalars(query).first()
-    if cola == None:
+    cola = obtener_cola(id_cliente, id_clase)
+    if not cola:
         raise ValueError("No se ha podido encontrar la cola")
     
     cola.cancelada = True
@@ -293,65 +322,65 @@ def hay_cola (clase):
     return devolver_cantidad_esperando_en_cola(clase) > 0
 
 def dar_acceso_segun_orden_cola (id_clase):
+    clase = obtener_clase_por_id(id_clase)
+    if not clase:
+        raise ValueError("La clase no existe")
+        
     try:
-        conseguir_clase = (db.session.query(Clase).filter(id_clase==Clase.id))
-        clase=db.session.scalars(conseguir_clase).first()
-
-        query = (db.session.query(Cliente, Cola)
-        .join (Cola, Cola.id_cliente == Cliente.id)
-        .filter(*filtro_cliente_abonado(Cliente.id))
-        .filter(Cola.cancelada == False)
-        .filter(Cola.id_clase == id_clase)
-        .order_by(Cola.fecha_modificacion.asc())
+        query_base = (db.session.query(Cliente, Cola)
+            .join(Cola, Cola.id_cliente == Cliente.id)
+            .filter(Cola.cancelada == False, Cola.id_clase == id_clase)
+            .order_by(Cola.fecha_modificacion.asc())
         )
 
-        existe_abonado = query.first()
-        if not existe_abonado:
-            query = (db.session.query(Cliente, Cola)
-                .join (Cola, Cola.id_cliente == Cliente.id)
-                .filter(*filtro_cliente_abonado(Cliente.id))
-                .filter(Cola.cancelada == False)
-                .filter(Cola.id_clase == id_clase)
-                .order_by(Cola.fecha_modificacion.asc())
-            )
-            existe_abonado = query.first()
-
-            if not existe_abonado:
-                raise ValueError ("Ha habido un problema en el servidor. Prueba nuevamente")
+        # Prioridad 1: Clientes abonados
+        filtro_abonado = filtro_cliente_abonado(Cliente.id)
+        if isinstance(filtro_abonado, (list, tuple)):
+            datos = query_base.filter(*filtro_abonado).first()
+        else:
+            datos = query_base.filter(filtro_abonado).first()
         
-        datos = db.session.execute(query).first()
-        if datos is None:
+        # Prioridad 2: Si no hay abonados, el primero en la cola general
+        if not datos:
+            datos = query_base.first()
+            
+        if not datos:
             raise ValueError("No hay clientes en cola")
         
-        proximo = datos[0]
-        cola = datos[1]
+        proximo, cola = datos
         cola.cancelada = True
         cola.en_reserva = True
 
-        nueva_reserva = Reserva (
-            id_cliente = proximo.id,
-            id_clase = id_clase,
-            asiste = AsistenciaReserva.AUSENTE
-        )
-        db.session.add(nueva_reserva)
+        reserva_existente = obtener_reserva(proximo.id, id_clase)
+        if reserva_existente:
+            reserva_existente.asiste = AsistenciaReserva.AUSENTE
+        else:
+            nueva_reserva = Reserva(
+                id_cliente=proximo.id,
+                id_clase=id_clase,
+                asiste=AsistenciaReserva.AUSENTE
+            )
+            db.session.add(nueva_reserva)
         db.session.commit()
-    except ValueError:
-        raise ValueError("Ha habido un error con la base de datos")
+    except ValueError as e:
+        db.session.rollback()
+        raise e
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        traceback.print_exc()
+        raise ValueError("Ha habido un error con la base de datos") from e
 
     # Sección de enviado de mail
-
     try:
-
-        body = f"""Hola {proximo.nombre},
-
-            Se le informa que la clase {clase.nombre} de la especialidad {clase.especialidad} ha generado una reserva para usted. En caso de no asistir informe su baja, caso contrario se le harán cargos."""
+        body = f"Hola {proximo.nombre},\n\nSe le informa que la clase {clase.nombre} de la especialidad {clase.especialidad} ha generado una reserva para usted. En caso de no asistir informe su baja, caso contrario se le harán cargos."
         msg = Message(
             subject="RehabilitAR - Aviso de alta demanda",
             recipients=[proximo.email]
         )
         msg.body = body
         send_mail(msg)
-        return proximo
-    except:
-        print ("No mandé el mail che")
+    except Exception as e:
+        print(f"No mandé el mail che: {e}")
+        
     return proximo
