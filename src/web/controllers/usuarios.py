@@ -126,6 +126,8 @@ def perfil():
         if apto.estado.name == 'ACEPTADO' and apto.fecha_carga:
             fecha_vencimiento = apto.fecha_carga + timedelta(days=365)
             dias_restantes = (fecha_vencimiento - datetime.now()).days
+
+    print (usuario)
     
     return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes)
 

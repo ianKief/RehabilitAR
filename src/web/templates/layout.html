@@ -66,7 +66,7 @@
                     <a class="navbar-item py-3 px-4" href="{{ url_for('salas.lista_salas') }}">
                         <span class="icon mr-2"><i class="far fa-hospital"></i></span>Salas
                     </a>
-                    <a class="navbar-item py-3 px-4" href="{{ url_for('clases.listar_clases_admin ') }}">
+                    <a class="navbar-item py-3 px-4" href="{{ url_for('clases.listar_clases_admin') }}">
                         <span class="icon mr-2"><i class="far fa-calendar-alt"></i></span>Clases
                     </a>
                     <a class="navbar-item py-3 px-4" href="{{ url_for('pagos.precio_clase') }}">
@@ -75,7 +75,7 @@
                     {% endif %}
                     {% if session.get('rol') == 'PROFESOR' %}
                     <!-- Navegación para profesores -->
-                    <a class="navbar-item py-3 px-4" href="{{ url_for('profesor.index') }}">
+                    <a class="navbar-item py-3 px-4" href="{{ url_for('profesor.index_profesor') }}">
                         <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Asistencia y seguimiento
                     </a>
                     {% endif %}
@@ -215,7 +215,7 @@
                                 </a>
                             </li>
                             <li>
-                                <a href="{{ url_for('clases.listar_clases_admin ') }}"
+                                <a href="{{ url_for('clases.listar_clases_admin') }}"
                                     class="py-2.5 px-3 {% if request.path.startswith('/clases/admin') %}menu-item-active{% endif %}">
                                     <span class="icon mr-2"><i class="far fa-calendar-alt"></i></span>Clases
                                 </a>
@@ -231,7 +231,7 @@
                             <!-- Navegación para profesores-->
                             {% if session.get('rol') == 'PROFESOR' %}
                             <li>
-                                <a href="{{ url_for('profesor.index') }}"
+                                <a href="{{ url_for('profesor.index_profesor') }}"
                                     class="py-2.5 px-3 {% if request.path.startswith('/profesor') %}menu-item-active{% endif %}">
                                     <span class="icon mr-2"><i class="far fa-bookmark"></i></span>Asistencia y seguimiento
                                 </a>
