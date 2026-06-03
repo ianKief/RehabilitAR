@@ -2,7 +2,7 @@ import os
 from flask import Flask, request,render_template,session
 from flask_mail import Mail
 from src.web.config import config
-from src.core.database import init_db, reset_db, seed_db
+from src.core.database import init_db, reset_db, seed_db, seed_db_admin
 import mercadopago
 from src.web.handlers import error
 from src.core.pagos import estado_abono_usuario
@@ -59,6 +59,11 @@ def create_app():
     def seed_db_command():
         """Pobla la base de datos con datos de prueba."""
         seed_db()
+
+    @app.cli.command("seed-db-admin")
+    def seed_db_admin_command():
+        """Pobla la base de datos con unicamente un admin de prueba."""
+        seed_db_admin()
 
     # Registrar manejadores de errores
     app.register_error_handler(404, error.not_found)
