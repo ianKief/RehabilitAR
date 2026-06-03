@@ -3,7 +3,7 @@ from datetime import datetime, date, timedelta
 import json
 import urllib.request
 import os
-from src.core.pagos.pagos import ConceptoPago,EstadoPago,Pago
+from src.core.pagos.pagos import DetallePago, ConceptoPago,EstadoPago,Pago
 from src.core.database import db
 from src.web.helpers.decorator import requiere_rol
 from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido
@@ -362,55 +362,60 @@ def abonar_individual(id_clase):
 
     precio = obtener_precio_clase_actual()
 
-    if request.method == "POST":
-        tipo_pago = request.form.get("tipo_pago")
-        
-        if tipo_pago == "sena":
-            monto_sena = request.form.get("monto_sena", type=float)
-            if not monto_sena or monto_sena < (precio * 0.5):
-                flash("La seña no puede ser menor al 50% del valor de la clase.", "danger")
-                return redirect(url_for("reservas.abonar_individual", id_clase=id_clase))
-            monto_a_pagar = monto_sena
-            titulo_mp = f"Seña Clase Individual: {clase.nombre}"
-        else:
-            monto_a_pagar = precio
-            titulo_mp = f"Reserva Clase Individual: {clase.nombre}"
+    if request.method == "GET":
+        return render_template(
+            "pagos/pago_senia.html",
+            clase=clase,
+            precio=precio
+        )
 
-        # 1. Aseguramos la reserva en el sistema inmediatamente para no perder el cupo
-        crear_reserva(usuario_id, id_clase)
-        
-        # --- TODO: IMPLEMENTACIÓN DE MERCADO PAGO ---
-        # 2. Conectamos con Mercado Pago
-        # sdk = current_app.mp_sdk
-        # URL = _obtener_url_base()
+    # =========================
+    # POST
+    # =========================
+    porcentaje = request.form.get("porcentaje", type=int)
 
-        # preference_data = {
-        #     "items": [{
-        #         "title": titulo_mp,
-        #         "quantity": 1,
-        #         "unit_price": float(monto_a_pagar)
-        #     }],
-        #     "external_reference": str(usuario_id),
-        #     "metadata": {
-        #         "id_clase": id_clase,
-        #         "tipo": "reserva_individual"
-        #     },
-        #     "back_urls": {
-        #         "success": f"{URL}{url_for('pagos.pago_exitoso')}",
-        #         "failure": f"{URL}{url_for('pagos.pago_fallido')}",
-        #         "pending": f"{URL}{url_for('pagos.pago_pendiente')}"
-        #     },
-        #     "auto_return": "approved"
-        # }
-        # 
-        # preference_response = sdk.preference().create(preference_data)
-        # return redirect(preference_response["response"]["init_point"])
-        # ---------------------------------------------
+    porcentajes_validos = [50, 60, 70, 80, 90, 100]
 
-        flash("¡Pago exitoso! Tu reserva para la clase individual ha sido confirmada. (Modo pruebas)", "success")
-        return redirect(url_for("reservas.calendario_cliente"))
-        
-    return render_template("pagos/pago_senia.html", clase=clase, precio=precio)
+    if porcentaje not in porcentajes_validos:
+        flash("Debes seleccionar un porcentaje válido (50% a 100%).", "danger")
+        return redirect(url_for("reservas.abonar_individual", id_clase=id_clase))
+
+    monto = (precio * porcentaje) / 100
+
+    # =========================
+    # MERCADO PAGO
+    # =========================
+    sdk = current_app.mp_sdk
+    URL = _obtener_url_base()
+
+    preference_data = {
+        "items": [{
+            "title": f"Clase Individual {clase.nombre} ({porcentaje}%)",
+            "quantity": 1,
+            "unit_price": float(monto)
+        }],
+
+        "external_reference": f"{usuario_id}:{id_clase}:{porcentaje}",
+
+        "metadata": {
+            "id_clase": id_clase,
+            "tipo": "reserva_individual",
+            "usuario_id": usuario_id,
+            "porcentaje": porcentaje
+        },
+
+        "back_urls": {
+            "success": f"{URL}{url_for('pagos.pago_exitoso')}",
+            "failure": f"{URL}{url_for('pagos.pago_fallido')}",
+            "pending": f"{URL}{url_for('pagos.pago_pendiente')}"
+        },
+
+        "auto_return": "approved"
+    }
+
+    preference_response = sdk.preference().create(preference_data)
+
+    return redirect(preference_response["response"]["init_point"])
 
 @reservas_bp.route("/<int:id_clase>/reservar_mensual", methods=["GET", "POST"])
 @requiere_rol(["CLIENTE"])
