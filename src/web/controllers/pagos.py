@@ -69,6 +69,17 @@ def pago_fallido():
                 id_clase=id_clase
             )
         }
+    
+    if tipo == "reserva_individual":
+        id_clase = request.args.get("id_clase")
+
+        datos = {
+            "mensaje": "No se pudo completar el pago de la clase individual.",
+            "url_reintento": url_for(
+                "reservas.abonar_individual",
+                id_clase=id_clase
+            )
+        }
 
     return render_template(
         "pagos/pago_fallido.html",
