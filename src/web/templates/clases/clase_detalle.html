@@ -93,6 +93,19 @@
                                 <td class="has-text-grey pl-0">Duración:</td>
                                 <td class="has-text-right pr-0 has-text-weight-semibold">{{ clase.duracion }} min</td>
                             </tr>
+                            <tr>
+                                    <td class="has-text-grey pl-0">Sala:</td>
+                                    <td class="has-text-right pr-0 has-text-weight-semibold">
+                                        {% if clase.sala %}
+                                            Sala {{ clase.sala.numero_puerta }}
+                                            {% if clase.sala.descripcion %}
+                                                <span class="is-size-7 has-text-grey has-text-weight-normal">({{ clase.sala.descripcion }})</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="has-text-grey-light is-italic">Sin asignar</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
                         </tbody>
                     </table>
                 </div>
