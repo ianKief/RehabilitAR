@@ -350,10 +350,9 @@ def editar_perfil():
             db.session.rollback()
             flash("Ocurrió un error al guardar los cambios. Inténtalo de nuevo.", "danger")
             
-            # En caso de error de base de datos, recalculamos días para evitar fallos en el render
+            # === Validamos paso a paso que no sea None ===
             dias_restantes = 0
-            if usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
-                # Si manejas la fecha en una tabla intermedia o en el usuario directamente, adáptalo aquí:
+            if usuario.apto_fisico and usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
                 if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
                     fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
                     dias_restantes = (fecha_vencimiento - datetime.now()).days
@@ -362,8 +361,9 @@ def editar_perfil():
     
     # 4. Si entra por GET, calculamos los días del apto para el renderizado del formulario
     dias_restantes = 0
-    # NOTA: Ajusté esto según la estructura del HTML original que enviaste previamente (usuario.estado_apto_fisico)
-    if usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
+    
+    # === 'if usuario.apto_fisico' antes de evaluar sus propiedades ===
+    if usuario.apto_fisico and usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
         if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
             fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
             dias_restantes = (fecha_vencimiento - datetime.now()).days
