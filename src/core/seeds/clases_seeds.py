@@ -72,7 +72,7 @@ class ClaseSeeder:
                         horario=horario,
                         aprobada=True,
                         tipo="Fija",
-                        id_sala=id_sala_asignada
+                        sala_id=id_sala_asignada
                     )
                     self.db.session.add(clase)
                     clases_y_profesores.append((clase, id_profesor_asignado, "Fija"))
@@ -98,7 +98,7 @@ class ClaseSeeder:
                         horario=horario,
                         aprobada=True,
                         tipo="Individual",
-                        id_sala=id_sala_asignada
+                        sala_id=id_sala_asignada
                     )
                     self.db.session.add(clase)
                     clases_y_profesores.append((clase, id_profesor_asignado, "Individual"))
@@ -113,7 +113,7 @@ class ClaseSeeder:
                     id_profesor=id_profesor,
                     id_clase=clase.id
                 ))
-            print(f"Creada: {clase.nombre} | {clase.fecha_clase} {clase.horario} | {tipo} | Sala: {clase.id_sala} | Prof: {id_profesor}")
+            print(f"Creada: {clase.nombre} | {clase.fecha_clase} {clase.horario} | {tipo} | Sala: {clase.sala_id} | Prof: {id_profesor}")
 
         self.db.session.commit()
         print("¡Se han guardado las clases correctamente!")

@@ -25,10 +25,7 @@ class Clase(Base):
     tipo: Mapped[str] = mapped_column(String(20), nullable=False)
     sala_id: Mapped[int] = mapped_column(ForeignKey("salas.id"), nullable=False)
     # RELACIÓN: Esto te permite hacer "clase.sala.capacidad_maxima" o "clase.sala.numero_puerta" directo en Python
-    sala: Mapped["Sala"] = relationship("Sala")
     aviso_alta_demanda:Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
-    id_sala: Mapped[int] = mapped_column(Integer, ForeignKey("salas.id"), nullable=True)
-
 
     # Relaciones
     sala: Mapped["Sala"] = relationship("Sala")

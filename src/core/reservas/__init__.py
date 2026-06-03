@@ -1,6 +1,6 @@
 from sqlalchemy import select, func, case, or_, and_
 from sqlalchemy.orm import contains_eager
-from src.core.usuarios.usuarios import Cliente
+
 from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
 
@@ -300,7 +300,7 @@ def obtener_ids_clases_llenas_donde_el_cliente_no_tiene_reserva (id_cliente):
 
     query = (db.session.query(Clase.id)
     .join(Reserva, Reserva.id_clase == Clase.id)
-    .join(Sala, Clase.id_sala == Sala.id)
+    .join(Sala, Clase.sala_id == Sala.id)
     .group_by(Clase.id, Sala.capacidad)
     .having(
         func.sum(
@@ -326,6 +326,7 @@ def hay_cola (clase):
     return devolver_cantidad_esperando_en_cola(clase) > 0
 
 def dar_acceso_segun_orden_cola (id_clase):
+    from src.core.usuarios.usuarios import Cliente
     clase = obtener_clase_por_id(id_clase)
     if not clase:
         raise ValueError("La clase no existe")

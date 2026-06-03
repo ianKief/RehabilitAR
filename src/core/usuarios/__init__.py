@@ -239,7 +239,7 @@ def informar_alta_demanda (clase):
             mail.send(msg)
     except:
         clase.aviso_alta_demanda = False
-<<<<<<< HEAD
+        print ("Hubo un intento de informar alta demanda, pero falló")
 # Tampoco voy a informar al cliente del problema, mejor guardar el aviso para una próxima ocasión
 
 #Parte de aptos
@@ -297,6 +297,3 @@ def revisar_y_rechazar_apto(db_session, id_apto, comentario_motivo):
     
     db_session.commit()
     return apto
-=======
-        print ("Hubo un intento de informar alta demanda, pero falló")
->>>>>>> 07b412be9547d1101b5255f4b1afa6cdba3fecdb

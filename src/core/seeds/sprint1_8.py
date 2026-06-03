@@ -81,7 +81,7 @@ class SeedAsistenciaYSeguimientoSprint1 ():
             horario = datetime.now(tz_arg).replace(tzinfo=None).time(),
             aprobada = True,
             tipo = "individual",
-            id_sala = sala_sprint1_1.id
+            sala_id = sala_sprint1_1.id
         )
         self.db.session.add(clase1)
 
@@ -94,7 +94,7 @@ class SeedAsistenciaYSeguimientoSprint1 ():
             horario = datetime.now(tz_arg).replace(tzinfo=None).time(),
             aprobada = True,
             tipo = "individual",
-            id_sala = sala_sprint1_2.id
+            sala_id = sala_sprint1_2.id
         )
         self.db.session.add(clase2)
 

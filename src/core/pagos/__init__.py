@@ -4,13 +4,8 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-<<<<<<< HEAD
-from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago,Abono
-
-=======
 from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago,Abono, Beneficio, TipoBeneficio
 from src.core.usuarios.usuarios import Usuario, Cliente, EstadoUsuario
->>>>>>> 07b412be9547d1101b5255f4b1afa6cdba3fecdb
 from src.core.database import db
 
 from src.core.functions import filtro_cliente_abonado
@@ -91,38 +86,6 @@ def estado_abono(abono):
     return "activo"
 
 
-<<<<<<< HEAD
-def obtener_info_descuento(abono):
-    from core.usuarios.usuarios import Usuario
-    usuario = db.session.get(Usuario, abono.id_cliente)
-
-    dias = contar_dias_semana(
-        abono.dia_fijo,
-        abono.fecha_inicio,
-        abono.fecha_fin
-    )
-
-    descuento_auto = calcular_descuento_automatico(dias)
-
-    maximo_por_regla = 0.30 - descuento_auto
-
-    if maximo_por_regla < 0:
-        maximo_por_regla = 0.0
-
-    descuento_disponible_usuario = usuario.descuento_acumulado
-
-    maximo_usuario = min(
-        descuento_disponible_usuario,
-        maximo_por_regla
-    )
-
-    return {
-        "tiene_descuento": maximo_usuario > 0,
-        "max_usuario": maximo_usuario
-    }
-
-=======
->>>>>>> 07b412be9547d1101b5255f4b1afa6cdba3fecdb
 "consultas de abono y precio"
 
 def obtener_precio_clase_actual():
