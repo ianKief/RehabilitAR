@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago,Abono, Beneficio, TipoBeneficio
-from src.core.usuarios.usuarios import Usuario, Cliente, EstadoUsuario
+from src.core.usuarios.usuarios import Cliente, EstadoUsuario
 from src.core.usuarios import informar_alta_demanda
 from src.core.database import db
 from src.core.reservas import crear_reserva, crear_espera_en_cola
@@ -166,7 +166,7 @@ def registrar_pago_abono_mensual(payment_id,id_cliente,monto):
 
     return pago
 
-def consumir_descuentos(id_cliente, pago, limite):
+def consumir_descuentos(id_cliente, pago, limite, session=None):
 
     descuentos = devolver_beneficios_activos(id_cliente,tipo=TipoBeneficio.DESCUENTO)
     restante = limite
@@ -193,20 +193,17 @@ def consumir_descuentos(id_cliente, pago, limite):
                 porcentaje_descuento=sobrante,
                 usado=False
             )
-            db.session.add(nuevo_beneficio)
+            session.add(nuevo_beneficio)
             restante = 0
 
 def registrar_pago_desde_payment(payment_id,payment):
-    from core.usuarios.usuarios import Usuario
     monto = payment.get("transaction_amount")
     estado = payment.get("status")
 
     metadata = payment.get("metadata") or {}
     dia_fijo = metadata.get("dia_fijo")
-    print ("El día fijo es:", dia_fijo)
     
     tipo = metadata.get("tipo") 
-    print ("TIPO EXISTE????", tipo)
 
     # si no está aprobado, no hacer nada
     if estado != "approved" :
@@ -248,7 +245,7 @@ def registrar_pago_desde_payment(payment_id,payment):
         return
     
     if tipo == "reserva_individual":
-
+        print ("PASÉ POR ACÁ")
         external_ref = payment.get("external_reference")
         if not external_ref:
             return
@@ -266,6 +263,7 @@ def registrar_pago_desde_payment(payment_id,payment):
         monto = payment.get("transaction_amount")
         precio_total = obtener_precio_clase_actual()
         porcentaje = (monto / precio_total) * 100
+        print ("Monto:", monto, "Precio total:", precio_total, "Porcentaje:", porcentaje)
         estado_final = (
             EstadoPago.COMPLETADO
             if porcentaje >= 100
@@ -348,14 +346,46 @@ def registrar_pago_desde_payment(payment_id,payment):
 
     pago = registrar_pago_abono_mensual(payment_id, user_id, monto)
 
-    if descuento>0:
-        consumir_descuentos(user_id, pago, descuento)
+    if descuento > 0:
+        consumir_descuentos(user_id, pago, descuento, session=db.session)
 
     registrar_abono (pago.id, dia_fijo)
 
     db.session.commit()
 
+def registrar_pago_con_credito (cliente, clase, precio):
+    pago = Pago (
+        id_cliente = cliente.id,
+        payment_id = "Crédito usado",
+        monto_total = 0,
+        estado_pago = EstadoPago.PENDIENTE,
+        concepto_pago = ConceptoPago.RESERVA,
+    )
+    db.session.add(pago)
+    db.session.flush()
 
+    try:
+        devolver_credito_y_marcar_como_usado (cliente.id, pago.id, db.session)
+    except:
+        raise ValueError("El cliente no tiene un crédito habilitado")
+        db.session.rollback()
+        
+    detalle = DetallePago(
+        id_pago=pago.id,
+        cantidad=1,
+        precio_unitario=precio,
+        subtotal=0
+    )
+    db.session.add(detalle)
+
+    try:
+        crear_reserva(cliente.id, clase.id)
+    except:
+        raise ValueError("Ha habido un problema al crear la reserva")
+        db.session.rollback()
+
+    pago.estado_pago = EstadoPago.COMPLETADO
+    db.session.commit()
 
 "Webhook"
 def procesar_mercado_pago_webhook(data,sdk):
@@ -568,3 +598,14 @@ def calcular_descuento_maximo(id_cliente, dia_semana):
         total += descuento.porcentaje_descuento
     total = min(total, 0.30)
     return min(total, maximo_usuario)
+
+def devolver_credito_y_marcar_como_usado (id_cliente, id_pago, session):
+    credito = db.session.query(Beneficio).filter(Beneficio.tipo == TipoBeneficio.CREDITO).filter(Beneficio.id_cliente == id_cliente).filter(Beneficio.usado == False).first()
+    
+    if credito == None:
+        raise ValueError()
+    
+    credito.usado = True
+    credito.id_pago = id_pago
+
+    return credito

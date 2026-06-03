@@ -54,7 +54,13 @@ class SeedListaDeEspera ():
             numero_puerta = "epica9",
             capacidad = 1
         )
+
+        otra_aula = Sala (
+            numero_puerta = "epica9_2",
+            capacidad = 1
+        )
         self.db.session.add(aula_re_llena)
+        self.db.session.add(otra_aula)
 
         self.db.session.flush()
 
@@ -67,10 +73,34 @@ class SeedListaDeEspera ():
             fecha_clase = datetime.now(tz_arg).replace(tzinfo=None).date() + timedelta(days=2),
             horario = datetime.now(tz_arg).replace(tzinfo=None).time(),
             aprobada = True,
-            tipo = "individual"
+            tipo = "Individual"
         )
         self.db.session.add(clase_re_llena)
 
+        clase_que_se_da_cuando_otra_1 = Clase(
+            nombre= "Clase asíncrona 1",
+            especialidad= "Programación",
+            duracion=180,
+            sala = aula_re_llena,
+            descripcion = "Otorgamos una clase de 3 horas que se da cuando otra clase, para ver qué onda",
+            fecha_clase = datetime.now(tz_arg).replace(tzinfo=None).date() + timedelta(days=1),
+            horario = datetime.now(tz_arg).replace(tzinfo=None).time(),
+            aprobada = True,
+            tipo = "Individual"
+        )
+        self.db.session.add(clase_que_se_da_cuando_otra_1)
+        clase_que_se_da_cuando_otra_2 = Clase(
+            nombre= "Clase asíncrona 2",
+            especialidad= "Programación",
+            duracion=180,
+            sala = otra_aula,
+            descripcion = "Otorgamos otra clase de 3 horas que se da cuando otra clase, para ver qué onda",
+            fecha_clase = datetime.now(tz_arg).replace(tzinfo=None).date() + timedelta(days=1),
+            horario = datetime.now(tz_arg).replace(tzinfo=None).time(),
+            aprobada = True,
+            tipo = "Individual"
+        )
+        self.db.session.add(clase_que_se_da_cuando_otra_2)
         self.db.session.flush()
 
         profesor_dicta_clase = ProfesorDictaClase (

@@ -55,10 +55,18 @@
                 </div>
             </div>
         </div>
+        
+        {% if tiene_credito %}
+            <label class="checkbox">
+                <input type="checkbox" id="credito" name="credito" value="1">
+                    Usar mi crédito
+                <strong>(100% bonificado)</strong>
+            </label>
+        {% endif %}
 
         <div class="field mt-5">
             <button type="submit"
-                    class="button is-primary is-fullwidth is-medium is-rounded has-text-weight-bold">
+                    class="button is-primary is-fullwidth is-medium is-rounded has-text-weight-bold" id=pagar>
                 Pagar con Mercado Pago
             </button>
         </div>
@@ -75,19 +83,39 @@
 </div>
 
 <script>
+    
     const precioBase = parseFloat(document.getElementById("precio-base").textContent);
     const select = document.getElementById("porcentaje");
+    const pagar = document.getElementById("pagar");
+    const checkboxCredito = document.getElementById("credito");
     const montoTexto = document.getElementById("monto-calculado");
 
+    console.log(pagar)
+
     function actualizarMonto() {
-        const porcentaje = parseInt(select.value);
-        const monto = (precioBase * porcentaje) / 100;
+        let porcentaje = parseInt(select.value);
+        let monto = (precioBase * porcentaje) / 100;
+        select.disabled = checkboxCredito && checkboxCredito.checked;
+
+        if (checkboxCredito && checkboxCredito.checked) {
+            porcentaje = 100;
+            select.value = 100;
+            monto = 0;
+            pagar.textContent = "Usar crédito"
+        } else {
+            pagar.textContent = "Pagar con Mercado Pago"
+        }
+
         montoTexto.textContent = monto.toFixed(2);
-    }
+}
 
-    select.addEventListener("change", actualizarMonto);
+select.addEventListener("change", actualizarMonto);
 
-    actualizarMonto();
+if (checkboxCredito) {
+    checkboxCredito.addEventListener("change", actualizarMonto);
+}
+
+actualizarMonto();
 </script>
 
 {% endblock %}

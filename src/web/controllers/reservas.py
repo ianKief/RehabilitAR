@@ -7,7 +7,7 @@ from src.core.pagos.pagos import DetallePago, ConceptoPago,EstadoPago,Pago
 from src.core.database import db
 from src.web.helpers.decorator import requiere_rol
 from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido
-from src.core.pagos import estado_abono_usuario, obtener_precio_clase_actual
+from src.core.pagos import estado_abono_usuario, obtener_precio_clase_actual, tiene_beneficios, TipoBeneficio, registrar_pago_con_credito
 from src.core.clases import clase_tiene_lugar
 from src.core.reservas.reservas import AsistenciaReserva
 from src.core.reservas import (
@@ -362,25 +362,40 @@ def abonar_individual(id_clase):
 
     precio = obtener_precio_clase_actual()
 
+    tiene_credito = tiene_beneficios (usuario_id, tipo=TipoBeneficio.CREDITO)
+
     if request.method == "GET":
         return render_template(
             "pagos/pago_senia.html",
             clase=clase,
-            precio=precio
+            precio=precio,
+            tiene_credito = tiene_credito
         )
 
     # =========================
     # POST
     # =========================
     porcentaje = request.form.get("porcentaje", type=int)
+    credito = request.form.get("credito")
+
+    # Si hay crédito, evitamos hacer pago por MP porque no se pueden hacer pagos de $0
+    if credito != None:
+        try:
+            registrar_pago_con_credito (cliente, clase, precio)
+        except ValueError as e:
+            flash (str(e))
+        flash ("Se ha usado el crédito con éxitos", "success")
+        return redirect(url_for("reservas.calendario_cliente"))
+
 
     porcentajes_validos = [50, 60, 70, 80, 90, 100]
-
-    if porcentaje not in porcentajes_validos:
+    
+    if not credito and porcentaje not in porcentajes_validos:
         flash("Debes seleccionar un porcentaje válido (50% a 100%).", "danger")
         return redirect(url_for("reservas.abonar_individual", id_clase=id_clase))
 
     monto = (precio * porcentaje) / 100
+    print ("El monto que mandé es", monto, "porque el porcenaje es", porcentaje)
 
     # =========================
     # MERCADO PAGO
@@ -397,11 +412,15 @@ def abonar_individual(id_clase):
 
         "external_reference": f"{usuario_id}:{id_clase}:{porcentaje}",
 
+        "notification_url": (
+            f"{URL}{url_for('pagos.webhook')}"
+        ),
+
         "metadata": {
             "id_clase": id_clase,
             "tipo": "reserva_individual",
             "usuario_id": usuario_id,
-            "porcentaje": porcentaje
+            "porcentaje": porcentaje,
         },
 
         "back_urls": {
@@ -414,7 +433,6 @@ def abonar_individual(id_clase):
     }
 
     preference_response = sdk.preference().create(preference_data)
-
     return redirect(preference_response["response"]["init_point"])
 
 @reservas_bp.route("/<int:id_clase>/reservar_mensual", methods=["GET", "POST"])

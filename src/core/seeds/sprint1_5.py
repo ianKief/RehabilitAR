@@ -1,6 +1,7 @@
 from zoneinfo import ZoneInfo
+from datetime import datetime
 
-from src.core.usuarios import Cliente, EstadoUsuario
+from src.core.usuarios import Cliente, EstadoUsuario, AptoFisico, EstadoAptoFisico
 from src.core.reservas.reservas import Comentario
 from src.core.pagos import Beneficio, TipoBeneficio
 
@@ -25,16 +26,29 @@ class SeedPagosSprint1 ():
         )
         self.db.session.add(cliente_con_descuento_acumulado)
 
-        print ("ID del cliente con descuento AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:", cliente_con_descuento_acumulado)
         self.db.session.flush()
 
-        beneficio = Beneficio (
+        descuento = Beneficio (
             id_cliente = cliente_con_descuento_acumulado.id,
             tipo = TipoBeneficio.DESCUENTO,
             descripcion = "Super descuento del 45% totalmente irreal",
             porcentaje_descuento = 0.45
         )
-        self.db.session.add(beneficio)
+        self.db.session.add(descuento)
+
+        credito = Beneficio (
+            id_cliente = cliente_con_descuento_acumulado.id,
+            tipo = TipoBeneficio.CREDITO,
+            descripcion = "Super credito",
+        )
+        self.db.session.add(credito)
+
+        apto_fisico = AptoFisico (
+            id_cliente = cliente_con_descuento_acumulado.id,
+            estado = EstadoAptoFisico.ACEPTADO,
+            fecha_carga = datetime.now(tz_arg).replace(tzinfo=None),
+        )
+        self.db.session.add(apto_fisico)
 
         print ("Enlazando descuento al cliente con descuento")
 
