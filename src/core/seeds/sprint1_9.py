@@ -85,7 +85,6 @@ class SeedListaDeEspera ():
         )
         self.db.session.add(reserva)
 
-
         print ("Generando clientes nuevos por si anteriores generados no son suficientes")
 
         for i in range(10):

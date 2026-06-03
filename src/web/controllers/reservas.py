@@ -6,9 +6,9 @@ import os
 from src.core.pagos.pagos import ConceptoPago,EstadoPago,Pago
 from src.core.database import db
 from src.web.helpers.decorator import requiere_rol
-from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido, informar_alta_demanda
+from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido
 from src.core.pagos import estado_abono_usuario, obtener_precio_clase_actual
-from src.core.clases import clase_tiene_lugar, comprobar_alta_demanda
+from src.core.clases import clase_tiene_lugar
 from src.core.reservas.reservas import AsistenciaReserva
 from src.core.reservas import (
     listar_clases_disponibles_para_cliente, 
@@ -28,24 +28,21 @@ from src.core.reservas import (
     obtener_profesor_de_clase,
     obtener_cupos_ocupados,
     obtener_ids_clases_encoladas,
-    crear_espera_en_cola,
     obtener_ids_clases_llenas_donde_el_cliente_no_tiene_reserva,
     obtener_colas_cliente,
     obtener_cola,
     cancelar_cola_core
 )
 
-#TODO verificar si cuando un cliente se da de baja de una clase se le da acceso a la persona correcta
-
 reservas_bp = Blueprint("reservas", __name__, url_prefix="/reservas")
 
 # Caché en memoria para no saturar la API externa ni enlentecer la carga de la página
 _CACHE_FERIADOS = {}
 
-def _verificar_apto_fisico(cliente, fecha_clase = datetime.now()) -> bool:
+def _verificar_apto_fisico(cliente, fecha_clase = datetime.now(), message="Debe contar con un apto físico aceptado y vigente para reservar.") -> bool:
     """Helper para validar el apto físico del cliente de forma centralizada."""
     if not tiene_apto_fisico_valido(cliente, fecha_clase):
-        flash("Debe contar con un apto físico aceptado y vigente para reservar.", "warning")
+        flash(message, "warning")
         return False
     return True
 
@@ -143,8 +140,12 @@ def reservar_clase(id_clase):
         flash("La clase solicitada no existe.", "danger")
         return redirect(url_for("reservas.calendario_cliente"))  
     
-     # Verifico si el apto físico seguirá habilitado para el momento de la clase
-    if not _verificar_apto_fisico(cliente, fecha_clase=datetime.combine(clase.fecha_clase, datetime.min.time())):
+    # Verifico si el apto físico está habilitado
+    if not _verificar_apto_fisico(cliente):
+        return redirect(url_for("reservas.calendario_cliente"))  
+
+    # Verifico si el apto físico seguirá habilitado para el momento de la clase
+    if not _verificar_apto_fisico(cliente, fecha_clase=datetime.combine(clase.fecha_clase, datetime.min.time()), message="El apto físico vencerá para el momento de la clase"):
         return redirect(url_for("reservas.calendario_cliente"))  
 
     reserva_existente = obtener_reserva(usuario_id, id_clase)
@@ -157,11 +158,7 @@ def reservar_clase(id_clase):
         return redirect(url_for("reservas.calendario_cliente"))
         
     if not clase_tiene_lugar(clase):
-        crear_espera_en_cola (usuario_id, id_clase)
-        flash("No hay lugares disponibles. Se le ha anotado en la lista de espera", "warning")
-        if comprobar_alta_demanda (clase):
-            informar_alta_demanda (clase)
-        return redirect(url_for("reservas.calendario_cliente"))
+        return redirect(url_for("reservas.abonar_cola", id_clase=id_clase))
         
     if clase.tipo == "Fija":
         if verificar_reserva_semanal_existente(usuario_id, clase.fecha_clase):
@@ -274,6 +271,71 @@ def abonar_clase_fija(id_clase):
             preference_response["response"]["init_point"]
         ) 
     return render_template("pagos/pago_clase_fija.html", clase=clase, precio=precio)
+
+@reservas_bp.route("/<int:id_clase>/abonar_cola", methods=["GET", "POST"])
+@requiere_rol(["CLIENTE"])
+def abonar_cola(id_clase):
+    usuario_id = session.get("usuario_id")
+    cliente = obtener_usuario_por_id_core(usuario_id)
+
+    clase = obtener_clase_por_id(id_clase)
+    if not clase:
+        flash("La clase solicitada no existe.", "danger")
+        return redirect(url_for("reservas.calendario_cliente"))
+        
+    # Verificamos si el apto físico seguirá habilitado para el momento de la clase
+    if not _verificar_apto_fisico(cliente, fecha_clase=datetime.combine(clase.fecha_clase, datetime.min.time())):
+        return redirect(url_for("reservas.calendario_cliente"))
+
+    precio = obtener_precio_clase_actual()
+
+    if request.method == "POST":
+        
+        # --- TODO: IMPLEMENTACIÓN DE MERCADO PAGO ---
+        # 2. Conectamos con Mercado Pago
+
+        sdk = current_app.mp_sdk
+
+        URL = _obtener_url_base()
+        print(URL)
+
+        preference_data = {
+            "items": [{
+                "title": f"Espera para clase: {clase.nombre}",
+                "quantity": 1,
+                "unit_price": float(precio)
+            }],
+
+            "external_reference": f"{usuario_id}:{id_clase}",
+
+            "notification_url": (
+                f"{URL}{url_for('pagos.webhook')}"
+            ),
+
+            "metadata": {
+                "id_clase": id_clase,
+                "tipo": "cola",
+                "usuario_id": usuario_id
+            },
+
+            "back_urls": {
+                "success": (f"{URL}{url_for('pagos.pago_exitoso', tipo='reserva_fija')}"),
+                "failure": (f"{URL}{url_for('pagos.pago_fallido', tipo='reserva_fija', id_clase=id_clase)}"),
+                "pending": (f"{URL}{url_for('pagos.pago_pendiente', tipo='reserva_fija')}")
+            },
+
+            "auto_return": "approved"
+        }
+
+        preference_response = sdk.preference().create(
+            preference_data
+        )
+        print(preference_response)
+
+        return redirect(
+            preference_response["response"]["init_point"]
+        ) 
+    return render_template("pagos/pago_esperar_clase.html", clase=clase, precio=precio)
 
 @reservas_bp.route("/<int:id_clase>/abonar_individual", methods=["GET", "POST"])
 @requiere_rol(["CLIENTE"])

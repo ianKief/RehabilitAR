@@ -6,8 +6,10 @@ from sqlalchemy.orm import selectinload
 
 from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago,Abono, Beneficio, TipoBeneficio
 from src.core.usuarios.usuarios import Usuario, Cliente, EstadoUsuario
+from src.core.usuarios import informar_alta_demanda
 from src.core.database import db
-from src.core.reservas import crear_reserva
+from src.core.reservas import crear_reserva, crear_espera_en_cola
+from src.core.clases import comprobar_alta_demanda, Clase
 from src.core.functions import filtro_cliente_abonado
 
 from datetime import timedelta
@@ -244,6 +246,37 @@ def registrar_pago_desde_payment(payment_id,payment):
 
         return
 
+    if tipo == "cola":
+        external_ref = payment.get("external_reference")
+        if not external_ref:
+            return
+        usuario_id, id_clase = external_ref.split(":")
+
+        usuario_id = int(usuario_id)
+        id_clase = int(id_clase)
+
+        # evitar duplicados
+        if pago_ya_procesado(payment_id):
+            return
+
+        monto = payment.get("transaction_amount")
+        pago = Pago(
+            payment_id=str(payment_id),
+            id_cliente=usuario_id,
+            monto_total=monto,
+            estado_pago=EstadoPago.COMPLETADO,
+            concepto_pago=ConceptoPago.RESERVA
+        )
+        db.session.add(pago)
+    
+        crear_espera_en_cola (usuario_id, id_clase)
+        db.session.commit()
+
+        clase = db.session.query(Clase).filter(Clase.id == id_clase).first()
+        if comprobar_alta_demanda (clase):
+            informar_alta_demanda (clase)
+
+        return
     
     # evitar duplicado
     if pago_ya_procesado(payment_id):

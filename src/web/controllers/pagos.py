@@ -47,8 +47,6 @@ def suscripcion():
 def pago_exitoso():
     return render_template("pagos/pago_exitoso.html")
 
-#pantalla mostrada cuando el pago falló
-@bp.route("/contratar_abono/pago_fallido")
 # pantalla mostrada cuando el pago falló
 @bp.route("/contratar_abono/pago_fallido")
 def pago_fallido():

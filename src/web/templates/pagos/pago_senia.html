@@ -17,7 +17,8 @@
         De acuerdo a nuestras políticas, las <strong>Clases Individuales</strong> requieren el pago de una seña obligatoria previa para reservar el cupo de forma efectiva.
     </div>
     
-    <form action="{{ url_for('reservas.abonar_clase', id_clase=clase.id) }}" method="POST">
+    <!--Hice ingeniería inversa porque el form redirigía a reservas.abonar_clase. Puse abonar_individual-->
+    <form action="{{ url_for('reservas.abonar_individual', id_clase=clase.id) }}" method="POST">
         <div class="field mt-5">
             <button type="submit" class="button is-primary is-fullwidth is-medium is-rounded has-text-weight-bold shadow-button">
                 <span class="icon"><i class="fas fa-check"></i></span>
