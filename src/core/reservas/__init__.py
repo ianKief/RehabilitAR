@@ -1,8 +1,9 @@
 from sqlalchemy import select, func, case, or_, and_
 from sqlalchemy.orm import contains_eager
+
 from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
-from src.core.usuarios.usuarios import Usuario, Cliente
+
 from src.core.reservas.reservas import Reserva, AsistenciaReserva, Cola, Cancelacion
 from datetime import date, timedelta, datetime
 import calendar
@@ -66,6 +67,7 @@ def obtener_ids_clases_reservadas(id_cliente):
     return [r.id_clase for r in reservas]
 
 def obtener_ids_clases_encoladas(id_cliente):
+    from src.core.usuarios.usuarios import Cliente
     """Obtiene una lista con los IDs de las clases en las que un cliente tiene una espera en cola activada (no cancelada)."""
     query = (db.session.query(Cola.id_clase)
         .join (Cliente, Cliente.id == Cola.id_cliente)
@@ -191,6 +193,7 @@ def obtener_alternativas_semana_para_clase(clase_base):
     return db.session.scalars(query).all()
 
 def obtener_profesor_de_clase(id_clase):
+    from src.core.usuarios.usuarios import Usuario
     """Devuelve el profesor asignado a una clase."""
     query = select(Usuario).join(
         ProfesorDictaClase, Usuario.id == ProfesorDictaClase.id_profesor
@@ -251,6 +254,7 @@ def procesar_reservas_mensuales_automatica(id_cliente, clases_a_reservar):
     return reservas_creadas
 
 def cancelar_cola (id_cliente, id_clase):
+    from src.core.usuarios.usuarios import Cliente
     """Cancela la cola, primero obteniéndola vía id_cliente y id_clase. Fuera de operación actualmente"""
     cola = obtener_cola(id_cliente, id_clase)
     if not cola:
@@ -296,7 +300,7 @@ def obtener_ids_clases_llenas_donde_el_cliente_no_tiene_reserva (id_cliente):
 
     query = (db.session.query(Clase.id)
     .join(Reserva, Reserva.id_clase == Clase.id)
-    .join(Sala, Clase.id_sala == Sala.id)
+    .join(Sala, Clase.sala_id == Sala.id)
     .group_by(Clase.id, Sala.capacidad)
     .having(
         func.sum(
@@ -322,6 +326,7 @@ def hay_cola (clase):
     return devolver_cantidad_esperando_en_cola(clase) > 0
 
 def dar_acceso_segun_orden_cola (id_clase):
+    from src.core.usuarios.usuarios import Cliente
     clase = obtener_clase_por_id(id_clase)
     if not clase:
         raise ValueError("La clase no existe")

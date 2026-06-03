@@ -1,0 +1,135 @@
+{% extends "layout.html" %}
+
+{% block title %}Mis Clases Asignadas - Panel del Profesor{% endblock %}
+
+{% block head_scripts %}
+<style>
+    /* Estilos personalizados integrados con la paleta de Bulma */
+    .tag.is-outline-info {
+        background-color: rgba(17, 143, 228, 0.08);
+        border: 1.5px solid #0f7bc4;
+        color: #0f7bc4;
+        font-weight: 600;
+    }
+    
+    .tag.is-outline-fixed {
+        background-color: rgba(100, 100, 100, 0.08);
+        border: 1.5px solid #5a5a5a;
+        color: #5a5a5a;
+        font-weight: 600;
+    }
+
+    /* Hilera con tono tenue si la clase fue dada de baja */
+    .row-suspendida {
+        background-color: rgba(241, 70, 104, 0.04) !important;
+    }
+    
+    .table td {
+        vertical-align: middle !important;
+    }
+
+    /* 🌓 FIX MODO OSCURO / CLARO PARA LA SALA: 
+       Asegura fondo gris oscuro y texto blanco impecable en cualquier esquema de color */
+    .tag.is-custom-sala {
+        background-color: #363636 !important;
+        color: #ffffff !important;
+        font-weight: 600;
+        border: 1px solid #4a4a4a;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5 px-3">
+
+    <div class="box mb-5">
+        <div class="columns is-vcentered">
+            <div class="column">
+                <h1 class="title is-2 has-text-dark mb-1">Mis Clases Asignadas</h1>
+                <p class="subtitle is-6 has-text-grey">Cronograma y agenda personal de dictado de clases de rehabilitación</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="box">
+        <h3 class="subtitle is-5 has-text-weight-bold pb-3 mb-4" style="border-bottom: 1px solid #ededed;">
+            <span class="icon mr-2 has-text-info"><i class="fas fa-calendar-alt"></i></span>Mi Agenda de Dictado
+        </h3>
+
+        {% if clases %}
+            <div class="table-container">
+                <table class="table is-hoverable is-fullwidth">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Horario</th>
+                            <th>Clase / Especialidad</th>
+                            <th class="has-text-centered">Tipo</th>
+                            <th class="has-text-centered">Sala Asignada</th>
+                            <th class="has-text-centered">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for clase in clases %}
+                        <tr class="{{ 'row-suspendida' if clase.suspendida else '' }}">
+                            <td class="has-text-weight-semibold">
+                                {{ clase.fecha.strftime('%d/%m/%Y') }}
+                            </td>
+                            
+                            <td class="has-text-weight-medium has-text-grey-dark">
+                                {{ clase.horario.strftime('%H:%M') }} hs
+                            </td>
+                            
+                            <td>
+                                <p class="mb-1 has-text-weight-bold {{ 'has-text-grey-light strikethrough' if clase.suspendida else 'has-text-dark' }}">
+                                    {{ clase.nombre }}
+                                </p>
+                                <span class="tag is-light is-link is-small">{{ clase.especialidad }}</span>
+                            </td>
+                            
+                            <td class="has-text-centered">
+                                {% if clase.tipo == "Individual" %}
+                                    <span class="tag is-outline-info is-small">Individual</span>
+                                {% else %}
+                                    <span class="tag is-outline-fixed is-small">Fija</span>
+                                {% endif %}
+                            </td>
+                            
+                            <td class="has-text-centered">
+                                <span class="tag is-custom-sala">
+                                    <span class="icon is-small mr-1"><i class="fas fa-door-open"></i></span>
+                                    Sala {{ clase.sala_numero }}
+                                </span>
+                            </td>
+                            
+                            <td class="has-text-centered">
+                                {% if clase.suspendida %}
+                                    <span class="tag is-danger is-light font-weight-bold">
+                                        <span class="icon is-small mr-1"><i class="fas fa-exclamation-triangle"></i></span>
+                                        Suspendida
+                                    </span>
+                                {% else %}
+                                    <span class="tag is-success is-light font-weight-bold">
+                                        <span class="icon is-small mr-1"><i class="fas fa-check-circle"></i></span>
+                                        Confirmada
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="has-text-centered py-6">
+                <span class="icon is-large has-text-grey-lighter mb-3">
+                    <i class="fas fa-clipboard-list fa-3x"></i>
+                </span>
+                <p class="has-text-grey-light is-size-5 mb-1">No tenés clases asignadas en este momento.</p>
+                <p class="has-text-grey-light is-size-7">Postulate a las vacantes disponibles desde la cartelera general para poblar tu agenda.</p>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

@@ -4,7 +4,7 @@ from sqlalchemy.orm import aliased
 from flask_mail import Message
 
 from src.core.database import db
-from src.core.usuarios.usuarios import Usuario, RolUsuario, EstadoUsuario
+from src.core.usuarios.usuarios import AptoFisico, EstadoAptoFisico, Usuario, RolUsuario, EstadoUsuario
 
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reservas.reservas import Reserva, AsistenciaReserva
@@ -240,3 +240,60 @@ def informar_alta_demanda (clase):
     except:
         clase.aviso_alta_demanda = False
         print ("Hubo un intento de informar alta demanda, pero falló")
+# Tampoco voy a informar al cliente del problema, mejor guardar el aviso para una próxima ocasión
+
+#Parte de aptos
+def obtener_aptos_en_revision(db_session):
+    """
+    Retorna la lista de todos los aptos físicos que se encuentran
+    en estado 'EN_REVISION', ordenados por fecha de carga más antigua primero.
+    """
+    query = (
+        select(AptoFisico)
+        .filter(AptoFisico.estado == EstadoAptoFisico.EN_REVISION)
+        .order_by(AptoFisico.fecha_carga.asc())
+    )
+    return db_session.scalars(query).all()
+
+
+def revisar_y_aprobar_apto(db_session, id_apto):
+    """
+    Busca un apto físico por su ID, cambia su estado a ACEPTADO 
+    y limpia cualquier comentario de rechazo previo.
+    """
+    apto = db_session.get(AptoFisico, id_apto)
+    
+    if not apto:
+        raise ValueError(f"No se encontró ningún apto físico con el ID {id_apto}")
+        
+    if apto.estado != EstadoAptoFisico.EN_REVISION:
+        raise ValueError("Este apto físico ya fue procesado o no se encuentra en revisión.")
+
+    apto.estado = EstadoAptoFisico.ACEPTADO
+    apto.comentario = None  # Al aceptar, removemos motivos de rechazos viejos
+    
+    db_session.commit()
+    return apto
+
+
+def revisar_y_rechazar_apto(db_session, id_apto, comentario_motivo):
+    """
+    Busca un apto físico por su ID, cambia su estado a RECHAZADO
+    y guarda obligatoriamente el comentario con el motivo del rechazo.
+    """
+    if not comentario_motivo or not comentario_motivo.strip():
+        raise ValueError("Es obligatorio ingresar un comentario o motivo para rechazar el apto físico.")
+
+    apto = db_session.get(AptoFisico, id_apto)
+    
+    if not apto:
+        raise ValueError(f"No se encontró ningún apto físico con el ID {id_apto}")
+        
+    if apto.estado != EstadoAptoFisico.EN_REVISION:
+        raise ValueError("Este apto físico ya fue procesado o no se encuentra en revisión.")
+
+    apto.estado = EstadoAptoFisico.RECHAZADO
+    apto.comentario = comentario_motivo.strip()
+    
+    db_session.commit()
+    return apto

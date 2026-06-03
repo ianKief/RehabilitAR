@@ -1,27 +1,315 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Crear Clase de Rehabilitación</title>
-</head>
-<body>
-    <h1>Crear Nueva Clase de Rehabilitación</h1>
-    
-    <form action="/guardar-clase" method="POST">
+{% extends "layout.html" %}
+
+{% block title %}Nueva Clase - RehabilitAR{% endblock %}
+
+{% block content %}
+<style>
+    /* Fuerza a que todo el recuadro del input sea clickeable para abrir el calendario */
+    input[type="date"] {
+        position: relative;
+    }
+    /* Estira el botón nativo del calendario invisible por encima de todo el input */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: auto;
+        height: auto;
+        color: transparent;
+        background: transparent;
+        cursor: pointer;
+    }
+</style>
+
+<div class="box">
+    <div class="mb-5">
+        <h1 class="title is-3 has-text-dark">
+            <span class="icon-text">
+                <span class="icon has-text-primary mr-2">
+                    <i class="fas fa-calendar-plus"></i>
+                </span>
+                <span>Programar Nueva Clase</span>
+            </span>
+        </h1>
+        <p class="subtitle is-6 has-text-grey">Completá los datos para dar de alta un nuevo espacio de rehabilitación en la agenda</p>
+    </div>
+
+    <hr>
+
+    <form action="{{ url_for('clases.crear_clase_post') }}" method="POST">
         
-        <label for="nombre">Nombre de la Clase (Ej: Kinesiología):</label><br>
-        <input type="text" id="nombre" name="nombre" required><br><br>
+        <div class="columns">
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-dark">Nombre de la Clase</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="text" name="nombre" placeholder="Ej: Estabilidad de Tobillo" required>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-heading"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-dark">Especialidad</label>
+                    <div class="control has-icons-left">
+                        <div class="select is-fullwidth">
+                            <select name="especialidad_id" required>
+                                <option value="" disabled selected>Seleccioná la especialidad...</option>
+                                {% for esp in templates_especialidades %}
+                                    <option value="{{ esp.id }}">
+                                        {% if esp.nombre.value is defined %}
+                                            {{ esp.nombre.value | title }}
+                                        {% else %}
+                                            {{ esp.nombre | title }}
+                                        {% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-briefcase"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        <label for="tipo">Tipo de Clase:</label><br>
-        <select id="tipo" name="tipo_clase">
-            <option value="fija">Fija (Semanal)</option>
-            <option value="individual">Individual (Única vez)</option>
-        </select><br><br>
+        <div class="columns">
+            <div class="column is-3">
+                <div class="field">
+                    <label class="label has-text-dark">Tipo de Clase</label>
+                    <div class="control has-icons-left">
+                        <div class="select is-fullwidth">
+                            <select name="tipo_clase" id="tipo_clase_select" required>
+                                <option value="Fija" selected>Fija (Grupal)</option>
+                                <option value="Individual">Individual</option>
+                            </select>
+                        </div>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-fingerprint"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
 
-        <label for="capacidad">Capacidad Máxima de Pacientes:</label><br>
-        <input type="number" id="capacidad" name="capacidad_maxima" min="1" required><br><br>
+            <div class="column is-3">
+                <div class="field">
+                    <label class="label has-text-dark">Fecha de la Clase</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="date" id="fecha_input" name="fecha_clase" required>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-calendar-alt"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
 
-        <button type="submit">Crear Clase</button>
+            <div class="column is-3">
+                <div class="field">
+                    <label class="label has-text-dark">Sala Asignada</label>
+                    <div class="control has-icons-left">
+                        <div class="select is-fullwidth">
+                            <select name="sala_id" id="sala_select" required>
+                                <option value="" disabled selected>Seleccioná una sala...</option>
+                                {% for sala in puertas_salas %}
+                                    <option value="{{ sala.id }}" data-capacidad="{{ sala.capacidad }}">
+                                        Sala {{ sala.numero_puerta }} (Máx: {{ sala.capacidad }} personas)
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-door-open"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-3">
+                <div class="field">
+                    <label class="label has-text-dark">Duración</label>
+                    <div class="control has-icons-left">
+                        <div class="select is-fullwidth">
+                            <select name="duracion" id="duracion_select" required>
+                                <option value="30">30 minutos</option>
+                                <option value="45" selected>45 minutos</option>
+                                <option value="60">1 hora</option>
+                                <option value="90">1 hora y media</option>
+                            </select>
+                        </div>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-hourglass-half"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="columns">
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-dark">Horario de Inicio</label>
+                    <div class="control has-icons-left">
+                        <div class="select is-fullwidth">
+                            <select name="horario" id="horario_select" disabled required>
+                                <option value="">Seleccione fecha, sala y duración primero...</option>
+                            </select>
+                        </div>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-clock"></i>
+                        </span>
+                    </div>
+                    <p class="help has-text-grey">Solo se listan los bloques libres sin superposiciones en la sala elegida.</p>
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-dark">Capacidad Máxima</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="number" name="capacidad_maxima" id="capacidad_input" min="1" value="20" required>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-users"></i>
+                        </span>
+                    </div>
+                    <p class="help has-text-grey" id="capacidad_help">Cantidad máxima de alumnos permitidos en simultáneo.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="field mt-4">
+            <label class="label has-text-dark">Descripción de la Clase</label>
+            <div class="control">
+                <textarea class="textarea" name="descripcion" placeholder="Escribí acá los detalles sobre la patología a tratar, ejercicios pautados o indicaciones específicas para los profesionales..." rows="4"></textarea>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="field is-grouped is-grouped-right mt-5">
+            <p class="control">
+                <a href="/clases/admin" class="button is-light">Cancelar</a>
+            </p>
+            <p class="control">
+                <button type="submit" class="button is-primary">
+                    <span class="icon">
+                        <i class="fas fa-save"></i>
+                    </span>
+                    <span>Guardar Clase</span>
+                </button>
+            </p>
+        </div>
+
     </form>
-</body>
-</html>
+</div>
+
+<script>
+    const fechaInput = document.getElementById('fecha_input');
+    const duracionSelect = document.getElementById('duracion_select');
+    const horarioSelect = document.getElementById('horario_select');
+    const tipoClaseSelect = document.getElementById('tipo_clase_select');
+    const capacidadInput = document.getElementById('capacidad_input');
+    const capacidadHelp = document.getElementById('capacidad_help');
+    const salaSelect = document.getElementById('sala_select');
+    
+
+    // --- valor de dia minimo para el calendario ---
+    const hoy = new Date();
+    const mañana = new Date(hoy);
+    mañana.setDate(hoy.getDate() + 1); 
+
+    const yyyy = mañana.getFullYear();
+    const mm = String(mañana.getMonth() + 1).padStart(2, '0'); 
+    const dd = String(mañana.getDate()).padStart(2, '0');
+    
+    const fechaMinimaString = `${yyyy}-${mm}-${dd}`;
+    
+    fechaInput.min = fechaMinimaString;
+
+    // Controla el input de capacidad si la clase es Individual
+    tipoClaseSelect.addEventListener('change', function() {
+        if (this.value === 'Individual') {
+            capacidadInput.value = 1;
+            capacidadInput.readOnly = true; 
+            capacidadHelp.textContent = "Las clases individuales están limitadas estrictamente a 1 cupo.";
+        } else {
+            capacidadInput.readOnly = false;
+            ajustarLimiteCapacidad();
+        }
+    });
+
+    // Consulta al controlador los horarios libres mediante Fetch
+    async function actualizarHorariosDisponibles() {
+        const fecha = fechaInput.value;
+        const duracion = duracionSelect.value;
+        const sala = salaSelect.value; 
+        const tipo = tipoClaseSelect.value; 
+
+        if (!fecha || !sala) return; 
+
+        const fechaSeleccionada = new Date(fecha.replace(/-/g, '\/'));
+        const diaSemana = fechaSeleccionada.getDay(); 
+
+        if (diaSemana === 0 || diaSemana === 6) {
+            alert("El centro de rehabilitación solo atiende de lunes a viernes. Por favor, elegí un día hábil.");
+            fechaInput.value = ""; 
+            horarioSelect.disabled = true;
+            horarioSelect.innerHTML = '<option value="">Seleccione primero fecha y duración...</option>';
+            return; 
+        }
+
+        horarioSelect.disabled = true;
+        horarioSelect.innerHTML = '<option value="">Cargando horarios libres...</option>';
+
+        try {
+            const response = await fetch(`{{ url_for('clases.api_horarios_disponibles') }}?fecha=${fecha}&duracion=${duracion}&sala_id=${sala}&tipo=${tipo}`);
+            const horariosLibres = await response.json();
+
+            horarioSelect.innerHTML = ''; 
+
+            if (horariosLibres.length === 0) {
+                horarioSelect.innerHTML = '<option value="">No hay horarios libres en esta fecha</option>';
+            } else {
+                horariosLibres.forEach(hora => {
+                    const option = document.createElement('option');
+                    option.value = hora;
+                    option.textContent = `${hora} hs`;
+                    horarioSelect.appendChild(option);
+                });
+                horarioSelect.disabled = false; 
+            }
+        } catch (error) {
+            console.error("Error crítico de comunicación con la API del Core:", error);
+            horarioSelect.innerHTML = '<option value="">Error al conectar con la agenda</option>';
+        }
+    }
+
+    function ajustarLimiteCapacidad() {
+        const opcionSeleccionada = salaSelect.options[salaSelect.selectedIndex];
+        
+        if (opcionSeleccionada && opcionSeleccionada.value) {
+            const capacidadMaximaSala = parseInt(opcionSeleccionada.getAttribute('data-capacidad'));
+            capacidadInput.max = capacidadMaximaSala;
+            
+            if (tipoClaseSelect.value !== 'Individual' && parseInt(capacidadInput.value) > capacidadMaximaSala) {
+                capacidadInput.value = capacidadMaximaSala;
+            }
+            
+            if (tipoClaseSelect.value !== 'Individual') {
+                capacidadHelp.textContent = `Cantidad máxima permitida en simultáneo (Límite de esta sala: ${capacidadMaximaSala} personas).`;
+            }
+        }
+    }
+
+    salaSelect.addEventListener('change', ajustarLimiteCapacidad);
+    fechaInput.addEventListener('change', actualizarHorariosDisponibles);
+    duracionSelect.addEventListener('change', actualizarHorariosDisponibles);
+    salaSelect.addEventListener('change', actualizarHorariosDisponibles);
+    tipoClaseSelect.addEventListener('change', actualizarHorariosDisponibles);
+</script>
+{% endblock %}

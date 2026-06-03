@@ -37,11 +37,12 @@ class UsuarioSeeder:
             self.db.session.add(cliente)
             self.db.session.flush() # Flush para obtener el ID sin cerrar la transacción
             
-            apto = AptoFisico(
+            """apto = AptoFisico(
                 id_cliente=cliente.id,
                 estado=EstadoAptoFisico.ACEPTADO,
             )
-            self.db.session.add(apto)
+            self.db.session.add(apto)"""
+            
             self.db.session.commit()
             print("Cliente por defecto creado con éxito")
 
@@ -83,7 +84,8 @@ class UsuarioSeeder:
                 password=password, 
                 estado=estado, 
                 direccion=direccion, 
-                telefono=telefono, 
+                telefono=telefono,
+                fecha_nacimiento= fecha_nacimiento
             )
 
             if rol == RolUsuario.CLIENTE:

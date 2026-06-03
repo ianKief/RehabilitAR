@@ -1,3 +1,6 @@
+from src.core.reservas.reservas import Cola, Reserva
+from src.core.salas.salas import Sala
+
 from src.core.database import Base
 from sqlalchemy import Boolean, Date, DateTime, String, Integer, Time, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -20,9 +23,9 @@ class Clase(Base):
     horario: Mapped[time] = mapped_column(Time, nullable=False)
     aprobada:Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     tipo: Mapped[str] = mapped_column(String(20), nullable=False)
+    sala_id: Mapped[int] = mapped_column(ForeignKey("salas.id"), nullable=False)
+    # RELACIÓN: Esto te permite hacer "clase.sala.capacidad_maxima" o "clase.sala.numero_puerta" directo en Python
     aviso_alta_demanda:Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
-    id_sala: Mapped[int] = mapped_column(Integer, ForeignKey("salas.id"), nullable=True)
-
 
     # Relaciones
     sala: Mapped["Sala"] = relationship("Sala")
@@ -62,3 +65,35 @@ class ProfesorDictaClase (Base):
         DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
         nullable=False
     )
+
+class PostulacionClase(Base):
+    __tablename__ = "postulacion_clase"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    clase_id: Mapped[int] = mapped_column(ForeignKey("clases.id"), nullable=False)
+    profesor_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), nullable=False)
+    
+    estado: Mapped[str] = mapped_column(String(20), default="PENDIENTE", nullable=False)
+    fecha_registro: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relaciones para moverte fácil en Python
+    clase = relationship("Clase")
+    profesor = relationship("Usuario")
+
+    from sqlalchemy import ForeignKey
+
+class ClaseBloque(Base):
+    __tablename__ = "clases_bloques"
+
+    # id_bloque forma parte de la PK compuesta. Es un entero asignado lógicamente por vos.
+    id_bloque: Mapped[int] = mapped_column(primary_key=True)
+    
+    # id_clase es la otra parte de la PK compuesta y además es la Foreign Key con borrado en cascada físico.
+    id_clase: Mapped[int] = mapped_column(
+        ForeignKey("clases.id", ondelete="CASCADE"), 
+        primary_key=True
+    )
+
+    # Opcional: Relación bidireccional estilo 2.0 (por si la necesitan para navegar el objeto)
+    # Reemplazá "Clase" por el nombre exacto de tu clase del modelo de clases.
+    clase: Mapped["Clase"] = relationship(backref="bloque_asociado")

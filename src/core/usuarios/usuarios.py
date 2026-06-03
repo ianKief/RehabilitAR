@@ -1,10 +1,11 @@
+from typing import List
+from src.core.reservas.reservas import Cola, Reserva
 from src.core.database import Base
 from sqlalchemy import Integer, String, DateTime, Enum, ForeignKey, Boolean,Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import enum
-from typing import List
 
 class EstadoUsuario(enum.Enum):
     PENDIENTE = "pendiente"
@@ -86,13 +87,13 @@ class Usuario(Base):
         nullable=False
     )
 
+    def __repr__(self):
+        return f"<Usuario(id={self.id}, nombre='{self.nombre}', email='{self.email}', rol='{self.rol.value}', estado='{self.estado.value}')>"
+    
     __mapper_args__ = {
         "polymorphic_on": "rol",
         "polymorphic_identity": "usuario_base"
     }
-
-    def __repr__(self):
-        return f"<Usuario(id={self.id}, nombre='{self.nombre}', email='{self.email}', rol='{self.rol.value}', estado='{self.estado.value}')>"
 
 # ==========================================
 # 2. CLASES HIJAS
@@ -114,8 +115,10 @@ class Cliente(Usuario):
 class Profesor(Usuario):
     __tablename__ = "profesores"
     id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), primary_key=True)
-    especialidad: Mapped["Especialidad"] = relationship(back_populates="profesores")
     id_especialidad: Mapped[int] = mapped_column(ForeignKey("especialidades.id"), nullable=True)
+
+    # Relaciones
+    especialidad: Mapped["Especialidad"] = relationship(back_populates="profesores")
 
     __mapper_args__ = {
         "polymorphic_identity": RolUsuario.PROFESOR

@@ -1,0 +1,222 @@
+{% extends "layout.html" %}
+
+{% block title %}Detalle de Clase - {{ clase.nombre }}{% endblock %}
+
+{% block head_scripts %}
+<style>
+    /* Estilos personalizados integrados con la paleta de Bulma */
+    .tag.is-outline-info {
+        background-color: rgba(17, 143, 228, 0.08);
+        border: 1.5px solid #0f7bc4;
+        color: #0f7bc4;
+        font-weight: 600;
+    }
+    
+    .tag.is-outline-fixed {
+        background-color: rgba(100, 100, 100, 0.08);
+        border: 1.5px solid #5a5a5a;
+        color: #5a5a5a;
+        font-weight: 600;
+    }
+    
+    /* Pequeño ajuste para centrar verticalmente textos en celdas de Bulma */
+    .table td {
+        vertical-align: middle !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5 px-3">
+
+    <div class="box mb-5">
+        <div class="columns is-vcentered">
+            <div class="column">
+                <div class="columns is-vcentered is-mobile is-variable is-2 mb-1">
+                    <div class="column is-narrow">
+                        <h1 class="title is-2 has-text-dark mb-0">{{ clase.nombre }}</h1>
+                    </div>
+                    <div class="column">
+                        {% if clase.tipo == "Individual" %}
+                            <span class="tag is-outline-info is-medium">Individual</span>
+                        {% else %}
+                            <span class="tag is-outline-fixed is-medium">Fija</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <p class="subtitle is-6 has-text-grey">Gestión integral de la clase y resolución de postulantes aspirantes</p>
+            </div>
+            
+            <div class="column is-narrow">
+                <a href="{{ url_for('clases.listar_clases_admin') }}" class="button is-light has-text-grey-darker">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>Volver al Listado</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="columns is-desktop is-flex-desktop">
+        
+        <div class="column is-4-desktop is-flex">
+            <div class="box is-flex is-flex-direction-column is-flex-grow-1">
+                <h3 class="subtitle is-5 has-text-weight-bold pb-3 mb-3" style="border-bottom: 1px solid #ededed;">
+                    <span class="icon mr-2 has-text-info"><i class="fas fa-info-circle"></i></span>Información General
+                </h3>
+                
+                <div class="is-flex-grow-1">
+                    <table class="table is-fullwidth" style="background-color: transparent;">
+                        <tbody>
+                            <tr>
+                                <td class="has-text-grey pl-0">Estado:</td>
+                                <td class="has-text-right pr-0">
+                                    {% if clase.suspendida %}
+                                        <span class="tag is-danger is-light font-weight-bold">Suspendida</span>
+                                    {% else %}
+                                        <span class="tag is-success is-light font-weight-bold">Activa</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="has-text-grey pl-0">Especialidad:</td>
+                                <td class="has-text-right pr-0 has-text-weight-semibold">{{ clase.especialidad }}</td>
+                            </tr>
+                            <tr>
+                                <td class="has-text-grey pl-0">Fecha:</td>
+                                <td class="has-text-right pr-0 has-text-weight-semibold">{{ clase.fecha_clase.strftime('%d/%m/%Y') }}</td>
+                            </tr>
+                            <tr>
+                                <td class="has-text-grey pl-0">Horario:</td>
+                                <td class="has-text-right pr-0 has-text-weight-semibold">{{ clase.horario.strftime('%H:%M') }} hs</td>
+                            </tr>
+                            <tr>
+                                <td class="has-text-grey pl-0">Duración:</td>
+                                <td class="has-text-right pr-0 has-text-weight-semibold">{{ clase.duracion }} min</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-5 pt-3" style="border-top: 1px solid #ededed;">
+                    <p class="is-size-7 has-text-danger mb-2">
+                        <span class="icon is-small mr-1">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </span>
+                        <strong>Acción crítica de gestión</strong>
+                    </p>
+        
+                    {% if clase.suspendida %}
+                        <a class="button is-danger is-outlined is-fullwidth" href="/clases/{{ clase.id }}/alternar-suspension">
+                            <span class="icon"><i class="fas fa-play"></i></span>
+                            <span>Reactivar Clase</span>
+                        </a>
+                    {% else %}
+                        <a class="button is-danger is-fullwidth" href="/clases/{{ clase.id }}/alternar-suspension" onclick="return confirm('¿Estás seguro de que deseas suspender esta clase? Se notificará a los alumnos.');">
+                            <span class="icon"><i class="fas fa-ban"></i></span>
+                            <span>Suspender Clase</span>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="column is-8-desktop is-flex">
+            <div class="box is-flex is-flex-direction-column is-flex-grow-1">
+                <h3 class="subtitle is-5 has-text-weight-bold pb-3 mb-3" style="border-bottom: 1px solid #ededed;">
+                    <span class="icon mr-2 has-text-primary"><i class="fas fa-users"></i></span>Profesores Postulados
+                </h3>
+
+                {% if asignado %}
+                    <div class="notification is-success is-light mb-4 py-3 px-4">
+                        <div class="columns is-vcentered is-mobile">
+                            <div class="column is-narrow">
+                                <span class="icon has-text-success is-medium">
+                                    <i class="fas fa-id-card fa-lg"></i>
+                                </span>
+                            </div>
+                            <div class="column">
+                                <p class="is-size-6 has-text-success-dark mb-0">
+                                    <strong>Profesor Asignado:</strong> {{ asignado.nombre_completo }}
+                                </p>
+                                <p class="is-size-7 has-text-success-dark">
+                                    Especialidad acreditada: {{ asignado.especialidad }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="is-flex-grow-1">
+                    {% if postulantes %}
+                        <div class="table-container">
+                            <table class="table is-hoverable is-fullwidth">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre del Profesor</th>
+                                        <th>Especialidad</th>
+                                        <th class="has-text-centered">Estado</th>
+                                        <th class="has-text-right">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for postu in postulantes %}
+                                    <tr>
+                                        <td class="has-text-weight-semibold">
+                                            {{ postu.nombre_completo }}
+                                        </td>
+                                        <td>
+                                            <span class="tag is-light is-link">{{ postu.especialidad }}</span>
+                                        </td>
+                                        <td class="has-text-centered">
+                                            {% if postu.estado == "PENDIENTE" %}
+                                                <span class="tag is-warning is-light">Pendiente</span>
+                                            {% elif postu.estado == "ACEPTADA" %}
+                                                <span class="tag is-success is-light">Aceptada</span>
+                                            {% else %}
+                                                <span class="tag is-danger is-light">Rechazada</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="has-text-right">
+                                            {% if postu.estado == "PENDIENTE" and asignado %}
+                                                <span class="has-text-grey-light is-size-7 mr-2 italic">Vacante cubierta</span>
+                                            {% elif postu.estado == "PENDIENTE" %}
+                                                <div class="buttons is-right">
+                                                    <form action="{{ url_for('clases.responder_postulacion', postu_id=postu.id_postulacion, accion='aceptar') }}" method="POST" style="display: inline;">
+                                                        <button class="button is-success is-small" type="submit">
+                                                            <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                                            <span>Aceptar</span>
+                                                        </button>
+                                                    </form>
+                                                    
+                                                    <form action="{{ url_for('clases.responder_postulacion', postu_id=postu.id_postulacion, accion='rechazar') }}" method="POST" style="display: inline;">
+                                                        <button class="button is-danger is-small is-outlined" type="submit">
+                                                            <span class="icon is-small"><i class="fas fa-times"></i></span>
+                                                            <span>Rechazar</span>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            {% else %}
+                                                <span class="has-text-grey-light is-size-7 mr-2">Resuelta</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="has-text-centered py-6">
+                            <span class="icon is-large has-text-grey-lighter mb-3">
+                                <i class="fas fa-user-clock fa-3x"></i>
+                            </span>
+                            <p class="has-text-grey-light is-size-5">No hay postulaciones para esta clase actualmente.</p>
+                            <p class="has-text-grey-light is-size-7">Los profesores con la misma especialidad verán esta vacante en su cartelera.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

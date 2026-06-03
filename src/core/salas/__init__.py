@@ -15,6 +15,10 @@ def obtener_sala(id):
         return sala
     return None
 
+def listar_salas_habilitadas():
+    """Retorna los objetos completos de las salas habilitadas (para sacar ID y Puerta en el HTML)."""
+    query = select(Sala).filter(Sala.estado == EstadoSala.HABILITADA)
+    return db.session.scalars(query).all()
 def crear_sala(**kwargs):
     """Crea una nueva sala en la base de datos."""
     numero_puerta = kwargs.get("numero_puerta")
@@ -90,20 +94,20 @@ def buscar_sala_por_numero(numero_puerta):
     """Busca una sala por su número de puerta único."""
     return db.session.execute(select(Sala).filter_by(numero_puerta=numero_puerta, eliminada=False)).scalar_one_or_none()
 
-def obtener_clases_por_sala(sala_id):
+def obtener_clases_por_sala(id_sala):
     """Obtiene el cronograma de clases asignadas a una sala."""
     try:
         from src.core.clases.clases import Clase
-        stmt = select(Clase).filter_by(id_sala=sala_id).order_by(Clase.fecha_clase, Clase.horario)
+        stmt = select(Clase).filter_by(sala_id=id_sala).order_by(Clase.fecha_clase, Clase.horario)
         return db.session.execute(stmt).scalars().all()
     except ImportError:
         return []
 
-def tiene_clases_pendientes(sala_id):
+def tiene_clases_pendientes(id_sala):
     """Verifica si una sala tiene clases asignadas a futuro."""
     try:
         from src.core.clases.clases import Clase
-        stmt = select(Clase).filter(Clase.id_sala == sala_id, Clase.fecha_clase >= date.today())
+        stmt = select(Clase).filter(Clase.sala_id == id_sala, Clase.fecha_clase >= date.today())
         return db.session.execute(stmt).first() is not None
     except ImportError:
         return False

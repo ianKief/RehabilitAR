@@ -197,6 +197,7 @@ def consumir_descuentos(id_cliente, pago, limite):
             restante = 0
 
 def registrar_pago_desde_payment(payment_id,payment):
+    from core.usuarios.usuarios import Usuario
     monto = payment.get("transaction_amount")
     estado = payment.get("status")
 
@@ -400,6 +401,7 @@ def actualizar_precio(nuevo_precio):
 
 
 def bloquear_morosos_abono():
+    from core.usuarios.usuarios import Cliente, EstadoUsuario
     """
     Bloquea a los clientes abonados cuyo abono esté vencido.
     Diseñado para ejecutarse el día 11 de cada mes.
