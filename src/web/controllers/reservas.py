@@ -190,6 +190,10 @@ def abonar_clase_fija(id_clase):
     if clase.tipo != "Fija":
         flash("El pago de clase fija solo aplica a clases fijas.", "warning")
         return redirect(url_for("reservas.calendario_cliente"))
+    
+    if verificar_reserva_semanal_existente(usuario_id, clase.fecha_clase):
+        flash("Límite alcanzado: solo puedes reservar una clase fija por semana.", "warning")
+        return redirect(url_for("reservas.calendario_cliente"))
         
     # Verificamos si el apto físico seguirá habilitado para el momento de la clase
     if not _verificar_apto_fisico(cliente, fecha_clase=datetime.combine(clase.fecha_clase, datetime.min.time())):
@@ -202,6 +206,7 @@ def abonar_clase_fija(id_clase):
     precio = obtener_precio_clase_actual()
 
     if request.method == "POST":
+
         estado_abono = estado_abono_usuario(usuario_id)
 
     # si tiene abono activo no paga
