@@ -245,6 +245,60 @@ def registrar_pago_desde_payment(payment_id,payment):
         db.session.commit()
 
         return
+    
+    if tipo == "reserva_individual":
+
+        external_ref = payment.get("external_reference")
+        if not external_ref:
+            return
+
+        usuario_id, id_clase, porcentaje = external_ref.split(":")
+
+        usuario_id = int(usuario_id)
+        id_clase = int(id_clase)
+        porcentaje = int(porcentaje)
+
+        # evitar duplicados
+        if pago_ya_procesado(payment_id):
+            return
+
+        monto = payment.get("transaction_amount")
+        precio_total = obtener_precio_clase_actual()
+        porcentaje = (monto / precio_total) * 100
+        estado_final = (
+            EstadoPago.COMPLETADO
+            if porcentaje >= 100
+            else EstadoPago.PENDIENTE
+        )
+        
+        # 1. crear pago
+        pago = Pago(
+            payment_id=str(payment_id),
+            id_cliente=usuario_id,
+            monto_total=monto,
+            estado_pago=estado_final,
+            concepto_pago=ConceptoPago.RESERVA
+        )
+
+        db.session.add(pago)
+        db.session.flush()
+
+        # 2. detalle
+        detalle = DetallePago(
+            id_pago=pago.id,
+            cantidad=1,
+            precio_unitario=monto,
+            subtotal=monto
+        )
+
+        db.session.add(detalle)
+
+        # 3. crear reserva REAL
+        crear_reserva(usuario_id, id_clase)
+
+        db.session.commit()
+
+        return
 
     if tipo == "cola":
         external_ref = payment.get("external_reference")

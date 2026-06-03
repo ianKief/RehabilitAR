@@ -406,8 +406,8 @@ def abonar_individual(id_clase):
 
         "back_urls": {
             "success": f"{URL}{url_for('pagos.pago_exitoso')}",
-            "failure": f"{URL}{url_for('pagos.pago_fallido')}",
-            "pending": f"{URL}{url_for('pagos.pago_pendiente')}"
+            "failure": f"{URL}{url_for('pagos.pago_fallido', tipo='reserva_individual', id_clase=id_clase)}",
+            "pending": f"{URL}{url_for('pagos.pago_pendiente', tipo='reserva_individual')}"
         },
 
         "auto_return": "approved"
