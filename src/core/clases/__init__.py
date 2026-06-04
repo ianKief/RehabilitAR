@@ -1,6 +1,6 @@
 import calendar
 from datetime import date, datetime, time, timedelta
-from sqlalchemy import select, func, case, and_, extract
+from sqlalchemy import or_, select, func, case, and_, extract
 from sqlalchemy.orm import aliased
 
 
@@ -11,12 +11,42 @@ from src.core.reservas.reservas import Reserva, AsistenciaReserva
 
 # <VER CLASES ADMIN>
 def listar_clases():
-    """Retorna todas las clases de rehabilitación ordenadas por fecha y hora."""
-    query = select(Clase).order_by(
-        Clase.fecha_clase.asc(), 
-        Clase.horario.asc()
+    """
+    Retorna las clases de rehabilitación que aún no han finalizado,
+    calculando su término exacto en base a su duración.
+    """
+    ahora = datetime.now()
+    hoy = ahora.date()
+
+    query = (
+        select(Clase)
+        .where(Clase.fecha_clase >= hoy)
+        .order_by(
+            Clase.fecha_clase.asc(), 
+            Clase.horario.asc()
+        )
     )
-    return db.session.scalars(query).all()
+    clases_candidatas = db.session.scalars(query).all()
+
+    clases_vigentes = []
+
+    for clase in clases_candidatas:
+        if clase.fecha_clase > hoy:
+            clases_vigentes.append(clase)
+        else:
+            try:
+                hora_inicio_str = clase.horario if isinstance(clase.horario, str) else clase.horario.strftime('%H:%M')
+                dt_inicio = datetime.strptime(f"{hoy} {hora_inicio_str}", "%Y-%m-%d %H:%M")
+                
+                dt_fin = dt_inicio + timedelta(minutes=int(clase.duracion))
+                
+                if ahora <= dt_fin:
+                    clases_vigentes.append(clase)
+            except Exception as e:
+                print(f"Error procesando horario de clase {clase.id}: {e}")
+                clases_vigentes.append(clase)
+
+    return clases_vigentes
 # <VER CLASES ADMIN/>
 
 # <DETALLE DE CLASE>
@@ -38,16 +68,16 @@ def obtener_postulantes_clase(clase_id: int):
     # 1. 🔍 VERIFICAR SI ALGUIEN YA DICTA ESTA CLASE ACTUALMENTE
     query_asignado = (
         select(
-            Usuario.nombre,
-            Usuario.apellido,
-            Especialidad.nombre.label("especialidad_enum") # Traemos el objeto Enum
-        )
-        .join(ProfesorDictaClase, ProfesorDictaClase.id_profesor == Usuario.id)
-        # SQLAlchemy une automáticamente Usuario y Profesor por su herencia (id == id)
-        .join(Profesor) 
-        # 🔄 CAMBIO: especialidad_id -> id_especialidad
-        .join(Especialidad, Profesor.id_especialidad == Especialidad.id)
-        .filter(ProfesorDictaClase.id_clase == clase_id)
+        Usuario.nombre,
+        Usuario.apellido,
+        Especialidad.nombre.label("especialidad_enum")
+    )
+    .join(ProfesorDictaClase, ProfesorDictaClase.id_profesor == Usuario.id)
+    .join(Profesor) # Mantenemos inner porque si dicta, debe ser Profesor
+    # Si el profesor no tiene especialidad, trae nombre/apellido y la especialidad vendrá como None
+    .join(Especialidad, Profesor.id_especialidad == Especialidad.id, isouter=True)
+    
+    .filter(ProfesorDictaClase.id_clase == clase_id)
     )
     res_asignado = db.session.execute(query_asignado).first()
     
@@ -98,37 +128,67 @@ def obtener_horarios_disponibles(fecha_evaluar, duracion_minutos=45, sala_id_eva
     HORA_FIN_LABORAL = 20
     INTERVALO_SLOTS = 30
 
-    anio = fecha_evaluar.year
-    mes = fecha_evaluar.month
-    
-    # Mapeo de día de la semana: Python (0=Lunes...6=Dom) a Postgres (0=Dom, 1=Lunes...6=Sáb)
-    dia_semana_python = fecha_evaluar.weekday()
-    dia_semana_postgres = (dia_semana_python + 1) % 7 
-
-    if tipo_clase == "Fija":
-    
-        query = select(Clase).filter(
-            extract('year', Clase.fecha_clase) == anio,
-            extract('month', Clase.fecha_clase) == mes,
-            extract('dow', Clase.fecha_clase) == dia_semana_postgres,
-            Clase.sala_id == int(sala_id_evaluar),
-            Clase.suspendida == False
-        )
-    else:
-        query = select(Clase).filter(
-            Clase.fecha_clase == fecha_evaluar,
-            Clase.sala_id == int(sala_id_evaluar),
-            Clase.suspendida == False
-        )
-
-    clases_del_dia = db.session.scalars(query).all()
+    # Aseguramos que el ID de la sala sea un entero seguro
+    try:
+        sala_id_evaluar = int(sala_id_evaluar)
+    except (TypeError, ValueError):
+        return []
 
     rangos_ocupados = []
-    for c in clases_del_dia:
-        inicio_dt = datetime.combine(fecha_evaluar, c.horario)
-        fin_dt = inicio_dt + timedelta(minutes=c.duracion)
-        rangos_ocupados.append((inicio_dt, fin_dt))
 
+    if tipo_clase == "Fija":
+        # --- LÓGICA OPTIMIZADA PARA CLASES FIJAS ---
+        anio = fecha_evaluar.year
+        mes = fecha_evaluar.month
+        dia_semana_python = fecha_evaluar.weekday() # 0=Lunes, 6=Domingo
+        
+        # 1. Buscamos el RESTO de las ocurrencias del mismo día en el mes (excluyendo la fecha_evaluar)
+        _, total_dias_mes = calendar.monthrange(anio, mes)
+        otras_fechas_del_mes = []
+        
+        for dia in range(1, total_dias_mes + 1):
+            fecha_posible = datetime(anio, mes, dia).date()
+            if fecha_posible.weekday() == dia_semana_python and fecha_posible != fecha_evaluar:
+                otras_fechas_del_mes.append(fecha_posible)
+        
+        # 2. Una única consulta atómica y liviana:
+        # - Trae TODO lo del día de evaluación (captura la fija base y las individuales de ese día).
+        # - Trae SOLO las individuales del resto de los días repetidos del mes (evita traer fijas duplicadas).
+        query = select(Clase).filter(
+            Clase.sala_id == sala_id_evaluar,
+            Clase.suspendida == False,
+            or_(
+                # Opción A: Todo lo que esté agendado en la fecha inicial a evaluar
+                (Clase.fecha_clase == fecha_evaluar),
+                
+                # Opción B: Únicamente clases individuales en los otros días del mes
+                (Clase.fecha_clase.in_(otras_fechas_del_mes)) & (Clase.tipo == "Individual")
+            )
+        )
+        clases_conflictivas = db.session.scalars(query).all()
+
+        # 3. Mapeamos los rangos ocupados proyectándolos sobre la 'fecha_evaluar' de referencia
+        for c in clases_conflictivas:
+            inicio_dt = datetime.combine(fecha_evaluar, c.horario)
+            fin_dt = inicio_dt + timedelta(minutes=c.duracion)
+            rangos_ocupados.append((inicio_dt, fin_dt))
+
+    else:
+        # --- LÓGICA PARA CLASE INDIVIDUAL ---
+        # Se mantiene lineal: solo nos importa lo que ocurra exactamente ese día en la sala
+        query = select(Clase).filter(
+            Clase.fecha_clase == fecha_evaluar,
+            Clase.sala_id == sala_id_evaluar,
+            Clase.suspendida == False
+        )
+        clases_del_dia = db.session.scalars(query).all()
+
+        for c in clases_del_dia:
+            inicio_dt = datetime.combine(fecha_evaluar, c.horario)
+            fin_dt = inicio_dt + timedelta(minutes=c.duracion)
+            rangos_ocupados.append((inicio_dt, fin_dt))
+
+    # --- GENERADOR DE SLOTS (Ventana deslizante corregida y óptima) ---
     horarios_libres = []
     enfoque_dt = datetime.combine(fecha_evaluar, time(HORA_INICIO_LABORAL, 0))
     fin_laboral_dt = datetime.combine(fecha_evaluar, time(HORA_FIN_LABORAL, 0))
@@ -163,64 +223,63 @@ def listar_especialidades_activas():
 
 def crear_clases_agenda(**datos_clase):
     """
-    Se encarga de persistir las clases en la base de datos.
-    Si es Fija, calcula los días restantes del mes, genera un id_bloque único
-    y los vincula de forma atómica en la tabla intermedia.
+    Se encarga de persistir las clases en la base de datos con manejo estricto de excepciones.
     """
-    fecha_inicial = datos_clase['fecha_clase']
-    tipo = datos_clase['tipo']
-    
-    fechas_a_procesar = []
-
-    if tipo == "Fija":
-        anio = fecha_inicial.year
-        mes = fecha_inicial.month
-        dia_semana_objetivo = fecha_inicial.weekday()
+    try:
+        # Usamos .get() con valores por defecto para evitar KeyErrors si cambian los nombres de los inputs
+        fecha_inicial = datos_clase.get('fecha_clase')
+        tipo = datos_clase.get('tipo') or datos_clase.get('tipo_clase') # Soporta ambas variantes
+        
+        fechas_a_procesar = []
         hoy = date.today()
 
-        # Obtenemos la matriz de semanas del mes correspondiente
-        cal = calendar.monthcalendar(anio, mes)
-        for semana in cal:
-            dia = semana[dia_semana_objetivo]
-            if dia != 0:
-                fecha_calculada = date(anio, mes, dia)
-                # CANDADO: Solo agrega si es igual o posterior al día de hoy
-                if fecha_calculada > hoy:
-                    fechas_a_procesar.append(fecha_calculada)
-    else:
-        fechas_a_procesar.append(fecha_inicial)
+        if tipo == "Fija":
+            anio = fecha_inicial.year
+            mes = fecha_inicial.month
+            dia_semana_objetivo = fecha_inicial.weekday()
 
-    if not fechas_a_procesar:
-        return False
+            # Obtenemos la matriz de semanas del mes correspondiente
+            cal = calendar.monthcalendar(anio, mes)
+            for semana in cal:
+                dia = semana[dia_semana_objetivo]
+                if dia != 0:
+                    fecha_calculada = date(anio, mes, dia)
+                    # CANDADO: Solo agrega si es estrictamente posterior al día de hoy
+                    if fecha_calculada >= hoy:  # Cambiado a >= por seguridad si se crea para el mismo día
+                        fechas_a_procesar.append(fecha_calculada)
+        else:
+            fechas_a_procesar.append(fecha_inicial)
 
-    # SI ES FIJA: Calculamos de antemano el próximo id_bloque secuencial libre
-    id_bloque_actual = None
-    if tipo == "Fija":
-        max_bloque = db.session.scalar(select(func.max(ClaseBloque.id_bloque)))
-        id_bloque_actual = (max_bloque + 1) if max_bloque is not None else 1
+        # Si el algoritmo de fechas falló y quedó vacío
+        if not fechas_a_procesar:
+            print(f"⚠️ Alerta Seeder/Agenda: No se generaron fechas para {fecha_inicial} [Tipo: {tipo}]")
+            return False
 
-    try:
-        # Guardamos cada registro de forma individual compartiendo los mismos parámetros
+        # SI ES FIJA: Calculamos el próximo id_bloque secuencial libre
+        id_bloque_actual = None
+        if tipo == "Fija":
+            max_bloque = db.session.scalar(select(func.max(ClaseBloque.id_bloque)))
+            id_bloque_actual = (max_bloque + 1) if max_bloque is not None else 1
+
+        # Guardamos cada registro en la BD
         for f in fechas_a_procesar:
             nueva_clase = Clase(
-                nombre=datos_clase['nombre'],
-                especialidad=datos_clase['especialidad'],
-                duracion=datos_clase['duracion'],
-                capacidad_maxima=datos_clase['capacidad_maxima'],
-                descripcion=datos_clase['descripcion'],
-                fecha_clase=f,  # Fecha específica del bucle
-                horario=datos_clase['horario'],
+                nombre=datos_clase.get('nombre'),
+                especialidad=datos_clase.get('especialidad'),
+                duracion=datos_clase.get('duracion'),
+                #capacidad_maxima=datos_clase.get('capacidad_maxima'),
+                descripcion=datos_clase.get('descripcion'),
+                fecha_clase=f,
+                horario=datos_clase.get('horario'),
                 tipo=tipo,
-                sala_id=datos_clase['sala_id'],
+                sala_id=datos_clase.get('sala_id'),
                 suspendida=False,
                 aprobada=True
             )
             db.session.add(nueva_clase)
             
-            # SI ES FIJA: Acoplamos la clase recién creada al bloque
             if tipo == "Fija":
-                # Forzamos la asignación del ID en Postgres para esta iteración
-                db.session.flush()
+                db.session.flush() # Forzamos obtención de ID de clase
                 
                 asociacion_bloque = ClaseBloque(
                     id_bloque=id_bloque_actual,
@@ -228,13 +287,15 @@ def crear_clases_agenda(**datos_clase):
                 )
                 db.session.add(asociacion_bloque)
 
-        # Si todo salió bien en el bucle, confirmamos la transacción entera
         db.session.commit()
         return True
 
     except Exception as e:
         db.session.rollback()
-        print(f"Error crítico en el Core al persistir la agenda: {e}")
+        # 🚨 ESTO ES CLAVE: Te va a decir en la terminal la línea y causa exacta del fallo
+        print(f"❌ Error crítico en el Core al persistir la agenda: {str(e)}")
+        import traceback
+        traceback.print_exc() # Imprime el árbol de ejecución del error en tu consola de Flask
         return False
 # <CREAR CLASE/>
 

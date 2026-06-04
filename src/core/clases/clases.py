@@ -24,6 +24,7 @@ class Clase(Base):
     aprobada:Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     tipo: Mapped[str] = mapped_column(String(20), nullable=False)
     sala_id: Mapped[int] = mapped_column(ForeignKey("salas.id"), nullable=False)
+    # capacidad_maxima: Mapped[int] = mapped_column(Integer, nullable=False, default=20) #valor predeterminado 20
     # RELACIÓN: Esto te permite hacer "clase.sala.capacidad_maxima" o "clase.sala.numero_puerta" directo en Python
     aviso_alta_demanda:Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
 
@@ -42,12 +43,10 @@ class Clase(Base):
         onupdate=lambda: datetime.now(tz_arg).replace(tzinfo=None),
         nullable=False
     )
-
     @property
     def capacidad_maxima(self) -> int:
         """Propiedad dinámica para retrocompatibilidad con las vistas (Jinja)"""
         return self.sala.capacidad if self.sala else 0
-
 
     def __repr__(self):
         return (f"<ClaseRehabilitacion(id={self.id}, nombre='{self.nombre}', "

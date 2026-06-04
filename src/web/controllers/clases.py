@@ -1,20 +1,23 @@
 from datetime import datetime
 from src.core.database import db
-from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, session, url_for
 from src.core.clases import crear_clases_agenda, listar_clases, listar_especialidades_activas, obtener_clase_por_id, obtener_horarios_disponibles, obtener_postulantes_clase, resolver_postulacion_clase
 from src.core.salas import listar_salas_habilitadas, obtener_sala
-from src.core.clases.clases import PostulacionClase
+from src.core.clases.clases import Clase, PostulacionClase
 from src.core.clases import obtener_clases_dictadas_por_profesor, obtener_clases_disponibles_para_profesor, obtener_postulaciones_de_profesor
+from src.web.helpers.decorator import requiere_rol
 
 bp = Blueprint("clases", __name__, url_prefix="/clases")
 
 @bp.get("/admin")
+@requiere_rol(['ADMINISTRADOR'])
 def listar_clases_admin():
     """Ruta que muestra el listado de clases para el administrador."""
     clases_registradas = listar_clases()
     return render_template("clases/clases_creadas.html", clases=clases_registradas, current_path=request.path)
 
 @bp.get("/admin/<int:clase_id>")
+@requiere_rol(['ADMINISTRADOR'])
 def ver_detalle_admin(clase_id):
     """Ruta que delega la búsqueda al core y renderiza el detalle de la clase."""
     
@@ -39,6 +42,7 @@ def ver_detalle_admin(clase_id):
 
 #Muestra el formulario al usuario
 @bp.route('/nueva', methods=['GET'])
+@requiere_rol(['ADMINISTRADOR'])
 def nueva_clase():
     """
     Se activa cuando el usuario hace clic en 'Nueva Clase'.
@@ -74,6 +78,7 @@ def api_horarios_disponibles():
 # EL PROCESADOR (Recibe los datos cuando el usuario aprieta "Guardar")
 
 @bp.route('/crear', methods=['POST'])
+@requiere_rol(['ADMINISTRADOR'])
 def crear_clase_post():
     """
     Ataja el formulario por POST, adapta los nombres de los campos
@@ -86,7 +91,7 @@ def crear_clase_post():
     fecha_str = request.form.get('fecha_clase')
     horario_str = request.form.get('horario')
     duracion_str = request.form.get('duracion')
-    capacidad_str = request.form.get('capacidad_maxima')
+    # capacidad_str = request.form.get('capacidad_maxima')
     descripcion = request.form.get('descripcion')
     sala_id_str = request.form.get('sala_id')
 
@@ -95,7 +100,7 @@ def crear_clase_post():
         fecha_clase = datetime.strptime(fecha_str, '%Y-%m-%d').date()
         horario = datetime.strptime(horario_str, '%H:%M').time()
         duracion = int(duracion_str)
-        capacidad_maxima = int(capacidad_str)
+        # capacidad_maxima = int(capacidad_str)
         sala_id = int(sala_id_str)
 
         # Bloqueo de fechas anteriores
@@ -114,7 +119,7 @@ def crear_clase_post():
         
         for esp in especialidades_mock:       
             if str(esp.id) == especialidad_id_str:
-                # 🔄 CAMBIO CLAVE: Si es un objeto Enum, extraemos su .value ("TREN SUPERIOR")
+                # CAMBIO CLAVE: Si es un objeto Enum, extraemos su .value ("TREN SUPERIOR")
                 # Si por alguna razón ya fuese un string, se guarda directamente.
                 if hasattr(esp.nombre, 'value'):
                     especialidad_nombre = esp.nombre.value
@@ -127,9 +132,9 @@ def crear_clase_post():
             flash('La sala seleccionada no es válida.', 'danger')
             return redirect(url_for('clases.nueva_clase'))
 
-        if capacidad_maxima > sala_elegida.capacidad:
-            flash(f'Error: La capacidad máxima para esta clase supera el límite físico de la Sala {sala_elegida.numero_puerta} (Máximo: {sala_elegida.capacidad} personas).', 'danger')
-            return redirect(url_for('clases.nueva_clase'))
+        #if capacidad_maxima > sala_elegida.capacidad:
+        #    flash(f'Error: La capacidad máxima para esta clase supera el límite físico de la Sala {sala_elegida.numero_puerta} (Máximo: {sala_elegida.capacidad} personas).', 'danger')
+        #    return redirect(url_for('clases.nueva_clase'))
 
     except (ValueError, TypeError) as e:
         flash('Error en el formato de los datos obligatorios.', 'danger')
@@ -143,7 +148,7 @@ def crear_clase_post():
         fecha_clase=fecha_clase,
         horario=horario,
         duracion=duracion,
-        capacidad_maxima=capacidad_maxima,
+        #capacidad_maxima=capacidad_maxima,
         descripcion=descripcion,
         sala_id=sala_id
     )
@@ -157,6 +162,7 @@ def crear_clase_post():
 
 
 @bp.post("/admin/postulacion/<int:postu_id>/<string:accion>")
+@requiere_rol(['ADMINISTRADOR'])
 def responder_postulacion(postu_id, accion):
     """
     Procesa la decisión del administrador (aceptar/rechazar) sobre una postulación.
@@ -173,10 +179,10 @@ def responder_postulacion(postu_id, accion):
     
     clase_id = postulacion.clase_id  # Guardamos el ID antes de operar para la redirección
 
-    # 3. Delegar la transacción al Core
+    # Delegar la transacción al Core
     exito = resolver_postulacion_clase(postu_id, accion)
 
-    # 4. Mensajes Flash basados en el resultado de la operación
+    # Mensajes Flash basados en el resultado de la operación
     if exito:
         if accion == "aceptar":
             flash("¡Postulación aceptada con éxito! El profesor fue asignado y se liberó la cartelera.", "success")
@@ -185,21 +191,28 @@ def responder_postulacion(postu_id, accion):
     else:
         flash("Hubo un error al procesar la solicitud o la postulación ya fue resuelta.", "danger")
 
-    # 5. Volvemos exactamente a la misma pantalla del detalle de la clase para ver el cambio reflejado
+    # Volvemos exactamente a la misma pantalla del detalle de la clase para ver el cambio reflejado
     return redirect(url_for("clases.ver_detalle_admin", clase_id=clase_id))
 
 # RUTAS DE PROFESOR PARA LAS CLASES
 @bp.route("/mis-postulaciones/disponibles", methods=["GET"])
-# @login_required
+@requiere_rol(['PROFESOR'])
 def ver_clases_para_postularse():
-    # Simulamos el ID del profesor logueado temporalmente si no tenés la sesión lista
-    # En producción usarías: profesor_id = current_user.id
-    profesor_id = 2 
     
-    # Validar que el usuario sea efectivamente un profesor (seguridad de roles)
-    # if current_user.rol != 'Profesor': abort(403)
+    user_id = session.get('usuario_id')
+    if not user_id:
+        flash("Debes iniciar sesión para ver tus postulaciones.", "warning")
+        return redirect(url_for('auth.login'))
+        
+    profesor_id = user_id
 
-    clases_disponibles = obtener_clases_disponibles_para_profesor(profesor_id)
+    # Control de errores de la base de datos
+    try:
+        clases_disponibles = obtener_clases_disponibles_para_profesor(profesor_id)
+    except Exception as e:
+        # Evitamos la pantalla de error 500, capturando la falla
+        flash("Ocurrió un error al recuperar el listado de clases disponibles.", "danger")
+        clases_disponibles = []
     
     return render_template(
         "profesor/clases_disponibles.html",
@@ -208,52 +221,88 @@ def ver_clases_para_postularse():
 
 
 @bp.route("/mis-postulaciones/postularse", methods=["POST"])
-# @login_required
+@requiere_rol(['PROFESOR'])  # Solo usuarios con rol PROFESOR
 def postularse():
-    # Simulamos el ID del profesor logueado de momento
-    profesor_id = 2 
     
-    # 1. Capturamos el string de IDs que viene del input oculto ("14,15,16")
+    user_id = session.get('usuario_id')
+    if not user_id:
+        flash("Debes iniciar sesión para postularte a las clases.", "warning")
+        return redirect(url_for('auth.login'))
+        
+    profesor_id = user_id
+    
     clases_ids_raw = request.form.get("clases_ids")
     
     if not clases_ids_raw:
-        flash("No se seleccionaron clases válidas.", "danger") # Descomentá si usás flash messages
-        return redirect(url_for("profesor.ver_clases_para_postularse"))
+        flash("No se seleccionaron clases válidas.", "danger")
+        return redirect(url_for("clases.ver_clases_para_postularse"))
     
     try:
-        # 2. Convertimos "14,15,16" en una lista de Python real: [14, 15, 16]
-        lista_ids = [int(id_clase) for id_clase in clases_ids_raw.split(",")]
+        lista_ids = []
+        for id_clase in clases_ids_raw.split(","):
+            cleaned_id = id_clase.strip()
+            if cleaned_id.isdigit():  # Solo procesamos si es un número real
+                lista_ids.append(int(cleaned_id))
         
-        # 3. Insertamos un registro PENDIENTE por cada instancia del bloque
+        if not lista_ids:
+            flash("El formato de las clases seleccionadas no es válido.", "danger")
+            return redirect(url_for("clases.ver_clases_para_postularse"))
+
         for clase_id in lista_ids:
+            
+            clase_existe = db.session.get(Clase, clase_id)
+            if not clase_existe:
+                flash(f"La clase con ID {clase_id} no existe o ya no está disponible.", "warning")
+                db.session.rollback()  # Cancelamos todo el bloque para no dejar datos inconsistentes
+                return redirect(url_for("clases.ver_clases_para_postularse"))
+            
+            postulacion_existente = PostulacionClase.query.filter_by(
+                clase_id=clase_id, 
+                profesor_id=profesor_id
+            ).first()
+            
+            if postulacion_existente:
+                flash(f"Ya te encontrás postulado a una de las clases seleccionadas.", "warning")
+                db.session.rollback()
+                return redirect(url_for("clases.ver_clases_para_postularse"))
+
             nueva_postulacion = PostulacionClase(
                 clase_id=clase_id,
                 profesor_id=profesor_id,
-                estado="PENDIENTE" # Nace como pendiente para que el admin lo decida
+                estado="PENDIENTE"
             )
             db.session.add(nueva_postulacion)
         
-        # 4. Impactamos la base de datos de un solo tiro
         db.session.commit()
         flash("¡Postulación enviada con éxito para todo el bloque!", "success")
 
     except Exception as e:
         db.session.rollback()
-        flash("Hubo un error al procesar la postulación.", "danger")
-        print(f"Error en postulación: {e}") # Para debuggear en consola
+        # Registramos el error de manera interna para debuggear, pero al usuario mensaje genérico
+        # print(f"Error en postulación: {e}") 
+        flash("Hubo un error interno al procesar la postulación. Intentalo de nuevo.", "danger")
         
-    # 5. Redirigimos de vuelta a la cartelera (que ahora ya no va a mostrar estas clases)
     return redirect(url_for("clases.ver_clases_para_postularse"))
 
 
 @bp.route("/mis-postulaciones", methods=["GET"])
-# @login_required
+@requiere_rol(['PROFESOR']) 
 def ver_mis_postulaciones():
-    # Seguimos simulando el ID 2 del profesor con el que venimos probando exitosamente
-    profesor_id = 2 
+
+    user_id = session.get('usuario_id')
+    if not user_id:
+        flash("Debes iniciar sesión para ver tus postulaciones.", "warning")
+        return redirect(url_for('auth.login'))
+        
+    profesor_id = user_id
     
-    # Obtenemos los bloques ya formateados y agrupados
-    postulaciones = obtener_postulaciones_de_profesor(profesor_id)
+    try:
+        postulaciones = obtener_postulaciones_de_profesor(profesor_id)
+    except Exception as e:
+        # Capturamos cualquier fallo de la base de datos (caída de servidor, error de sintaxis, etc.)
+        # para que la aplicación no lance un error 500 al cliente.
+        flash("Ocurrió un error al cargar tus postulaciones. Por favor, intenta de nuevo más tarde.", "danger")
+        postulaciones = []  # Enviamos una lista vacía para que el template no rompa al iterar
     
     return render_template(
         "profesor/mis_postulaciones.html",
@@ -261,14 +310,25 @@ def ver_mis_postulaciones():
     )
 
 @bp.get("/mis-clases")
+@requiere_rol(['PROFESOR']) 
 def ver_clases_asignadas():
     """Ruta para que el profesor vea su agenda de clases asignadas (tabla dicta)."""
     
-    # MOCK: Forzamos el ID de profesor en 2 para pruebas locales
-    usuario_id = 2 
+    user_id = session.get('usuario_id')
+    if not user_id:
+        flash("Debes iniciar sesión para ver tu agenda de clases.", "warning")
+        return redirect(url_for('auth.login'))
     
-    # 2. Delegar al Core la búsqueda de las clases que dicta
-    clases_dictadas = obtener_clases_dictadas_por_profesor(usuario_id)
+    usuario_id = user_id 
+    
+    try:
+        # Delegar al Core la búsqueda de las clases que dicta en la tabla 'dicta'
+        clases_dictadas = obtener_clases_dictadas_por_profesor(usuario_id)
+    except Exception as e:
+        # Si falla la base de datos (por ejemplo, error en el JOIN de la tabla 'dicta'), 
+        # atrapamos el error para evitar un error 500 y devolvemos una lista vacía de forma segura.
+        flash("Ocurrió un error al cargar tu agenda de clases. Inténtalo de nuevo más tarde.", "danger")
+        clases_dictadas = []
 
     return render_template(
         "profesor/mis_clases.html",
