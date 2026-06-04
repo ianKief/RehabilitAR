@@ -104,7 +104,7 @@ class Cliente(Usuario):
     id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), primary_key=True)
 
     # Relaciones
-    apto_fisico: Mapped["AptoFisico"] = relationship(back_populates="cliente", uselist=False)
+    apto_fisico: Mapped["AptoFisico"] = relationship(back_populates="cliente", uselist=False, cascade="all, delete-orphan")
     reservas: Mapped[List["Reserva"]] = relationship(back_populates="cliente", cascade="all, delete-orphan")
     colas: Mapped[list["Cola"]] = relationship(back_populates="cliente", cascade="all, delete-orphan")
 
