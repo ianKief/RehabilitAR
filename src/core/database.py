@@ -45,10 +45,10 @@ def seed_db():
     # Definimos el orden lógico de ejecución de los seeders
     seeders = [
         SalaSeeder(db),
+        EspecialidadSeeder(db),
         UsuarioSeeder(db),
         #ProfesorSeeder(db),
         ClaseSeeder(db),
-        EspecialidadSeeder(db),
         #PostulacionSeeder(db),
         ProfesorDictaClaseSeeder(db),
         SeedPagosSprint1(db),

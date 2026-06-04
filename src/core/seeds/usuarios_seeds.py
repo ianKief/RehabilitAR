@@ -55,7 +55,8 @@ class UsuarioSeeder:
                 dni="33333333",
                 email="profesorprueba@gmail.com",
                 password="123456",
-                estado=Estado.ACTIVO
+                estado=Estado.ACTIVO,
+                id_especialidad=1
             )
             self.db.session.add(profesor)
             self.db.session.commit()

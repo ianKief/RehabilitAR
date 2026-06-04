@@ -6,6 +6,7 @@ from src.core.salas import listar_salas_habilitadas, obtener_sala
 from src.core.clases.clases import Clase, PostulacionClase
 from src.core.clases import obtener_clases_dictadas_por_profesor, obtener_clases_disponibles_para_profesor, obtener_postulaciones_de_profesor
 from src.web.helpers.decorator import requiere_rol
+from sqlalchemy import select
 
 bp = Blueprint("clases", __name__, url_prefix="/clases")
 
@@ -221,18 +222,19 @@ def ver_clases_para_postularse():
 
 
 @bp.route("/mis-postulaciones/postularse", methods=["POST"])
-@requiere_rol(['PROFESOR'])  # Solo usuarios con rol PROFESOR
+@requiere_rol(['PROFESOR'])  
 def postularse():
-    
     user_id = session.get('usuario_id')
     if not user_id:
         flash("Debes iniciar sesión para postularte a las clases.", "warning")
         return redirect(url_for('auth.login'))
         
+    # Como tu modelo Profesor usa el id de usuario como Primary Key (Herencia), 
+    # el profesor_id que necesita la postulación es directamente el user_id de la sesión.
     profesor_id = user_id
     
+    # Leemos el string que viene del formulario
     clases_ids_raw = request.form.get("clases_ids")
-    
     if not clases_ids_raw:
         flash("No se seleccionaron clases válidas.", "danger")
         return redirect(url_for("clases.ver_clases_para_postularse"))
@@ -241,7 +243,7 @@ def postularse():
         lista_ids = []
         for id_clase in clases_ids_raw.split(","):
             cleaned_id = id_clase.strip()
-            if cleaned_id.isdigit():  # Solo procesamos si es un número real
+            if cleaned_id.isdigit():  
                 lista_ids.append(int(cleaned_id))
         
         if not lista_ids:
@@ -249,23 +251,26 @@ def postularse():
             return redirect(url_for("clases.ver_clases_para_postularse"))
 
         for clase_id in lista_ids:
-            
+            # Validamos existencia de la clase
             clase_existe = db.session.get(Clase, clase_id)
             if not clase_existe:
                 flash(f"La clase con ID {clase_id} no existe o ya no está disponible.", "warning")
-                db.session.rollback()  # Cancelamos todo el bloque para no dejar datos inconsistentes
+                db.session.rollback()  
                 return redirect(url_for("clases.ver_clases_para_postularse"))
             
-            postulacion_existente = PostulacionClase.query.filter_by(
-                clase_id=clase_id, 
-                profesor_id=profesor_id
-            ).first()
+            # 🚀 CORRECCIÓN: Buscamos si ya se postuló usando la sintaxis de SQLAlchemy corregida
+            query_existente = select(PostulacionClase).where(
+                PostulacionClase.clase_id == clase_id,
+                PostulacionClase.profesor_id == profesor_id
+            )
+            postulacion_existente = db.session.scalar(query_existente)
             
             if postulacion_existente:
-                flash(f"Ya te encontrás postulado a una de las clases seleccionadas.", "warning")
+                flash("Ya te encontrás postulado a una de las clases seleccionadas.", "warning")
                 db.session.rollback()
                 return redirect(url_for("clases.ver_clases_para_postularse"))
 
+            # Creamos la postulación vinculándola al ID correspondiente
             nueva_postulacion = PostulacionClase(
                 clase_id=clase_id,
                 profesor_id=profesor_id,
@@ -278,8 +283,8 @@ def postularse():
 
     except Exception as e:
         db.session.rollback()
-        # Registramos el error de manera interna para debuggear, pero al usuario mensaje genérico
-        # print(f"Error en postulación: {e}") 
+        # Esto te va a mostrar en la terminal si llega a saltar otra cosa de la base de datos
+        print(f"❌ Error crítico en postulación: {e}") 
         flash("Hubo un error interno al procesar la postulación. Intentalo de nuevo.", "danger")
         
     return redirect(url_for("clases.ver_clases_para_postularse"))
