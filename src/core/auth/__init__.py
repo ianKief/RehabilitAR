@@ -21,7 +21,7 @@ def registrar_cliente(nombre, apellido, dni, telefono, fecha_nacimiento, direcci
 
     nuevo_apto = None
     if nombre_archivo_apto:
-        nuevo_apto = AptoFisico(ruta_archivo=nombre_archivo_apto, fecha_carga=datetime.now(), estado=EstadoAptoFisico.SIN_CARGAR)
+        nuevo_apto = AptoFisico(ruta_archivo=nombre_archivo_apto, fecha_carga=datetime.now(), estado=EstadoAptoFisico.EN_REVISION)
     # Si todo está libre, creamos el usuario
     nuevo_cliente = Cliente(
         nombre=nombre,
