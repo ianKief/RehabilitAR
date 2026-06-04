@@ -3,11 +3,12 @@ from datetime import datetime, date, timedelta
 import json
 import urllib.request
 import os
-
+from src.core.pagos.pagos import DetallePago, ConceptoPago,EstadoPago,Pago
+from src.core.database import db
 from src.web.helpers.decorator import requiere_rol
-from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido, informar_alta_demanda
-from src.core.pagos import estado_abono_usuario, obtener_precio_clase_actual
-from src.core.clases import clase_tiene_lugar, comprobar_alta_demanda
+from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido
+from src.core.pagos import estado_abono_usuario, obtener_precio_clase_actual, tiene_beneficios, TipoBeneficio, registrar_pago_con_credito
+from src.core.clases import clase_tiene_lugar
 from src.core.reservas.reservas import AsistenciaReserva
 from src.core.reservas import (
     listar_clases_disponibles_para_cliente, 
@@ -27,24 +28,21 @@ from src.core.reservas import (
     obtener_profesor_de_clase,
     obtener_cupos_ocupados,
     obtener_ids_clases_encoladas,
-    crear_espera_en_cola,
     obtener_ids_clases_llenas_donde_el_cliente_no_tiene_reserva,
     obtener_colas_cliente,
     obtener_cola,
     cancelar_cola_core
 )
 
-#TODO verificar si cuando un cliente se da de baja de una clase se le da acceso a la persona correcta
-
 reservas_bp = Blueprint("reservas", __name__, url_prefix="/reservas")
 
 # Caché en memoria para no saturar la API externa ni enlentecer la carga de la página
 _CACHE_FERIADOS = {}
 
-def _verificar_apto_fisico(cliente, fecha_clase = datetime.now()) -> bool:
+def _verificar_apto_fisico(cliente, fecha_clase = datetime.now(), message="Debe contar con un apto físico aceptado y vigente para reservar.") -> bool:
     """Helper para validar el apto físico del cliente de forma centralizada."""
     if not tiene_apto_fisico_valido(cliente, fecha_clase):
-        flash("Debe contar con un apto físico aceptado y vigente para reservar.", "warning")
+        flash(message, "warning")
         return False
     return True
 
@@ -67,10 +65,7 @@ def _obtener_feriados(year: int) -> list:
     return feriados
 
 def _obtener_url_base() -> str:
-    """Obtiene la URL base desde donde el usuario está accediendo a la aplicación."""
-    URL = request.url_root.rstrip('/')
-    # Reemplazamos localhost por 127.0.0.1 ya que Mercado Pago rechaza el string "localhost"
-    return URL.replace("localhost", "127.0.0.1")
+    return os.getenv("URL_NGROK")
 
 @reservas_bp.get("/")
 @requiere_rol(["CLIENTE"])
@@ -145,8 +140,12 @@ def reservar_clase(id_clase):
         flash("La clase solicitada no existe.", "danger")
         return redirect(url_for("reservas.calendario_cliente"))  
     
-     # Verifico si el apto físico seguirá habilitado para el momento de la clase
-    if not _verificar_apto_fisico(cliente, fecha_clase=datetime.combine(clase.fecha_clase, datetime.min.time())):
+    # Verifico si el apto físico está habilitado
+    if not _verificar_apto_fisico(cliente):
+        return redirect(url_for("reservas.calendario_cliente"))  
+
+    # Verifico si el apto físico seguirá habilitado para el momento de la clase
+    if not _verificar_apto_fisico(cliente, fecha_clase=datetime.combine(clase.fecha_clase, datetime.min.time()), message="El apto físico vencerá para el momento de la clase"):
         return redirect(url_for("reservas.calendario_cliente"))  
 
     reserva_existente = obtener_reserva(usuario_id, id_clase)
@@ -159,11 +158,7 @@ def reservar_clase(id_clase):
         return redirect(url_for("reservas.calendario_cliente"))
         
     if not clase_tiene_lugar(clase):
-        crear_espera_en_cola (usuario_id, id_clase)
-        flash("No hay lugares disponibles. Se le ha anotado en la lista de espera", "warning")
-        if comprobar_alta_demanda (clase):
-            informar_alta_demanda (clase)
-        return redirect(url_for("reservas.calendario_cliente"))
+        return redirect(url_for("reservas.abonar_cola", id_clase=id_clase))
         
     if clase.tipo == "Fija":
         if verificar_reserva_semanal_existente(usuario_id, clase.fecha_clase):
@@ -192,6 +187,10 @@ def abonar_clase_fija(id_clase):
     if clase.tipo != "Fija":
         flash("El pago de clase fija solo aplica a clases fijas.", "warning")
         return redirect(url_for("reservas.calendario_cliente"))
+    
+    if verificar_reserva_semanal_existente(usuario_id, clase.fecha_clase):
+        flash("Límite alcanzado: solo puedes reservar una clase fija por semana.", "warning")
+        return redirect(url_for("reservas.calendario_cliente"))
         
     # Verificamos si el apto físico seguirá habilitado para el momento de la clase
     if not _verificar_apto_fisico(cliente, fecha_clase=datetime.combine(clase.fecha_clase, datetime.min.time())):
@@ -204,41 +203,139 @@ def abonar_clase_fija(id_clase):
     precio = obtener_precio_clase_actual()
 
     if request.method == "POST":
-        # 1. Aseguramos la reserva en el sistema inmediatamente para no perder el cupo
-        crear_reserva(usuario_id, id_clase)
+
+        estado_abono = estado_abono_usuario(usuario_id)
+
+    # si tiene abono activo no paga
+        if estado_abono == "activo":
+
+            crear_reserva(usuario_id, id_clase)
+
+            flash(
+                "Reserva realizada correctamente usando tu abono activo.",
+                "success"
+            )
+
+            return redirect(
+                url_for("reservas.calendario_cliente")
+            )
         
         # --- TODO: IMPLEMENTACIÓN DE MERCADO PAGO ---
         # 2. Conectamos con Mercado Pago
-        # sdk = current_app.mp_sdk
-        # URL = _obtener_url_base()
 
-        # preference_data = {
-        #     "items": [{
-        #         "title": f"Reserva Clase Fija: {clase.nombre}",
-        #         "quantity": 1,
-        #         "unit_price": float(precio)
-        #     }],
-        #     "external_reference": str(usuario_id),
-        #     "metadata": {
-        #         "id_clase": id_clase,
-        #         "tipo": "reserva_fija"
-        #     },
-        #     "back_urls": {
-        #         "success": f"{URL}{url_for('pagos.pago_exitoso')}",
-        #         "failure": f"{URL}{url_for('pagos.pago_fallido')}",
-        #         "pending": f"{URL}{url_for('pagos.pago_pendiente')}"
-        #     },
-        #     "auto_return": "approved"
-        # }
-        # 
-        # preference_response = sdk.preference().create(preference_data)
-        # return redirect(preference_response["response"]["init_point"])
-        # ---------------------------------------------
+        sdk = current_app.mp_sdk
 
-        flash("¡Pago exitoso! Tu reserva puntual para la clase fija ha sido confirmada. (Modo pruebas)", "success")
+        URL = _obtener_url_base()
+        print(URL)
+
+        preference_data = {
+            "items": [{
+                "title": f"Reserva Clase Fija: {clase.nombre}",
+                "quantity": 1,
+                "unit_price": float(precio)
+            }],
+
+            "external_reference": f"{usuario_id}:{id_clase}",
+
+            "notification_url": (
+                f"{URL}{url_for('pagos.webhook')}"
+            ),
+
+            "metadata": {
+                "id_clase": id_clase,
+                "tipo": "reserva_fija",
+                "usuario_id": usuario_id
+            },
+
+            "back_urls": {
+                "success": (
+                    f"{URL}{url_for('pagos.pago_exitoso', tipo='reserva_fija')}"
+                ),
+                "failure": (
+                    f"{URL}{url_for('pagos.pago_fallido', tipo='reserva_fija', id_clase=id_clase)}"
+                ),
+                "pending": (
+                    f"{URL}{url_for('pagos.pago_pendiente', tipo='reserva_fija')}"
+                )
+            },
+
+            "auto_return": "approved"
+        }
+
+        preference_response = sdk.preference().create(
+            preference_data
+        )
+        print(preference_response)
+
+        return redirect(
+            preference_response["response"]["init_point"]
+        ) 
+    return render_template("pagos/pago_clase_fija.html", clase=clase, precio=precio)
+
+@reservas_bp.route("/<int:id_clase>/abonar_cola", methods=["GET", "POST"])
+@requiere_rol(["CLIENTE"])
+def abonar_cola(id_clase):
+    usuario_id = session.get("usuario_id")
+    cliente = obtener_usuario_por_id_core(usuario_id)
+
+    clase = obtener_clase_por_id(id_clase)
+    if not clase:
+        flash("La clase solicitada no existe.", "danger")
         return redirect(url_for("reservas.calendario_cliente"))
         
-    return render_template("pagos/pago_clase_fija.html", clase=clase, precio=precio)
+    # Verificamos si el apto físico seguirá habilitado para el momento de la clase
+    if not _verificar_apto_fisico(cliente, fecha_clase=datetime.combine(clase.fecha_clase, datetime.min.time())):
+        return redirect(url_for("reservas.calendario_cliente"))
+
+    precio = obtener_precio_clase_actual()
+
+    if request.method == "POST":
+        
+        # --- TODO: IMPLEMENTACIÓN DE MERCADO PAGO ---
+        # 2. Conectamos con Mercado Pago
+
+        sdk = current_app.mp_sdk
+
+        URL = _obtener_url_base()
+        print(URL)
+
+        preference_data = {
+            "items": [{
+                "title": f"Espera para clase: {clase.nombre}",
+                "quantity": 1,
+                "unit_price": float(precio)
+            }],
+
+            "external_reference": f"{usuario_id}:{id_clase}",
+
+            "notification_url": (
+                f"{URL}{url_for('pagos.webhook')}"
+            ),
+
+            "metadata": {
+                "id_clase": id_clase,
+                "tipo": "cola",
+                "usuario_id": usuario_id
+            },
+
+            "back_urls": {
+                "success": (f"{URL}{url_for('pagos.pago_exitoso', tipo='reserva_fija')}"),
+                "failure": (f"{URL}{url_for('pagos.pago_fallido', tipo='reserva_fija', id_clase=id_clase)}"),
+                "pending": (f"{URL}{url_for('pagos.pago_pendiente', tipo='reserva_fija')}")
+            },
+
+            "auto_return": "approved"
+        }
+
+        preference_response = sdk.preference().create(
+            preference_data
+        )
+        print(preference_response)
+
+        return redirect(
+            preference_response["response"]["init_point"]
+        ) 
+    return render_template("pagos/pago_esperar_clase.html", clase=clase, precio=precio)
 
 @reservas_bp.route("/<int:id_clase>/abonar_individual", methods=["GET", "POST"])
 @requiere_rol(["CLIENTE"])
@@ -265,55 +362,78 @@ def abonar_individual(id_clase):
 
     precio = obtener_precio_clase_actual()
 
-    if request.method == "POST":
-        tipo_pago = request.form.get("tipo_pago")
-        
-        if tipo_pago == "sena":
-            monto_sena = request.form.get("monto_sena", type=float)
-            if not monto_sena or monto_sena < (precio * 0.5):
-                flash("La seña no puede ser menor al 50% del valor de la clase.", "danger")
-                return redirect(url_for("reservas.abonar_individual", id_clase=id_clase))
-            monto_a_pagar = monto_sena
-            titulo_mp = f"Seña Clase Individual: {clase.nombre}"
-        else:
-            monto_a_pagar = precio
-            titulo_mp = f"Reserva Clase Individual: {clase.nombre}"
+    tiene_credito = tiene_beneficios (usuario_id, tipo=TipoBeneficio.CREDITO)
 
-        # 1. Aseguramos la reserva en el sistema inmediatamente para no perder el cupo
-        crear_reserva(usuario_id, id_clase)
-        
-        # --- TODO: IMPLEMENTACIÓN DE MERCADO PAGO ---
-        # 2. Conectamos con Mercado Pago
-        # sdk = current_app.mp_sdk
-        # URL = _obtener_url_base()
+    if request.method == "GET":
+        return render_template(
+            "pagos/pago_senia.html",
+            clase=clase,
+            precio=precio,
+            tiene_credito = tiene_credito
+        )
 
-        # preference_data = {
-        #     "items": [{
-        #         "title": titulo_mp,
-        #         "quantity": 1,
-        #         "unit_price": float(monto_a_pagar)
-        #     }],
-        #     "external_reference": str(usuario_id),
-        #     "metadata": {
-        #         "id_clase": id_clase,
-        #         "tipo": "reserva_individual"
-        #     },
-        #     "back_urls": {
-        #         "success": f"{URL}{url_for('pagos.pago_exitoso')}",
-        #         "failure": f"{URL}{url_for('pagos.pago_fallido')}",
-        #         "pending": f"{URL}{url_for('pagos.pago_pendiente')}"
-        #     },
-        #     "auto_return": "approved"
-        # }
-        # 
-        # preference_response = sdk.preference().create(preference_data)
-        # return redirect(preference_response["response"]["init_point"])
-        # ---------------------------------------------
+    # =========================
+    # POST
+    # =========================
+    porcentaje = request.form.get("porcentaje", type=int)
+    credito = request.form.get("credito")
 
-        flash("¡Pago exitoso! Tu reserva para la clase individual ha sido confirmada. (Modo pruebas)", "success")
+    # Si hay crédito, evitamos hacer pago por MP porque no se pueden hacer pagos de $0
+    if credito != None:
+        try:
+            registrar_pago_con_credito (cliente, clase, precio)
+        except ValueError as e:
+            flash (str(e))
+        flash ("Se ha usado el crédito con éxitos", "success")
         return redirect(url_for("reservas.calendario_cliente"))
-        
-    return render_template("pagos/pago_senia.html", clase=clase, precio=precio)
+
+
+    porcentajes_validos = [50, 60, 70, 80, 90, 100]
+    
+    if not credito and porcentaje not in porcentajes_validos:
+        flash("Debes seleccionar un porcentaje válido (50% a 100%).", "danger")
+        return redirect(url_for("reservas.abonar_individual", id_clase=id_clase))
+
+    monto = (precio * porcentaje) / 100
+    print ("El monto que mandé es", monto, "porque el porcenaje es", porcentaje)
+
+    # =========================
+    # MERCADO PAGO
+    # =========================
+    sdk = current_app.mp_sdk
+    URL = _obtener_url_base()
+
+    preference_data = {
+        "items": [{
+            "title": f"Clase Individual {clase.nombre} ({porcentaje}%)",
+            "quantity": 1,
+            "unit_price": float(monto)
+        }],
+
+        "external_reference": f"{usuario_id}:{id_clase}:{porcentaje}",
+
+        "notification_url": (
+            f"{URL}{url_for('pagos.webhook')}"
+        ),
+
+        "metadata": {
+            "id_clase": id_clase,
+            "tipo": "reserva_individual",
+            "usuario_id": usuario_id,
+            "porcentaje": porcentaje,
+        },
+
+        "back_urls": {
+            "success": f"{URL}{url_for('pagos.pago_exitoso')}",
+            "failure": f"{URL}{url_for('pagos.pago_fallido', tipo='reserva_individual', id_clase=id_clase)}",
+            "pending": f"{URL}{url_for('pagos.pago_pendiente', tipo='reserva_individual')}"
+        },
+
+        "auto_return": "approved"
+    }
+
+    preference_response = sdk.preference().create(preference_data)
+    return redirect(preference_response["response"]["init_point"])
 
 @reservas_bp.route("/<int:id_clase>/reservar_mensual", methods=["GET", "POST"])
 @requiere_rol(["CLIENTE"])

@@ -60,3 +60,13 @@ def seed_db():
         seeder.run()
         
     print("¡Base de datos poblada exitosamente!")
+
+def seed_db_admin():
+    """
+    Pobla la base de datos con unicamente un admin de prueba.
+    """
+    from src.core.database import db
+    from src.core.seeds.usuarios_seeds import AdminSeeder
+
+    admin_seeder = AdminSeeder(db)
+    admin_seeder.run()

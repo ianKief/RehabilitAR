@@ -1,5 +1,3 @@
-
-
 {% extends "layout.html" %}
 
 {% block title %}Pago Rechazado{% endblock %}
@@ -21,7 +19,7 @@
             </h1>
 
             <p class="subtitle has-text-grey">
-                No se pudo completar el pago del abono mensual.
+                {{ mensaje }}
             </p>
 
             <p class="mb-5">
@@ -30,9 +28,10 @@
 
             <div class="buttons is-centered">
 
-                <a href="{{ url_for('pagos.suscripcion') }}" class="button is-warning">
+                <a href="{{ url_reintento }}" class="button is-warning">
                     Reintentar Pago
-                </a>                    
+                </a>
+
                 <a href="/" class="button is-light">
                     Volver al Inicio
                 </a>

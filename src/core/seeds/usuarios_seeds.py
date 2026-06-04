@@ -100,3 +100,24 @@ class UsuarioSeeder:
 
         self.db.session.commit()
         print("¡Se han guardado los 20 usuarios con éxito!")
+
+
+class AdminSeeder:
+    def __init__(self, db):
+        self.db = db
+
+    def run(self):
+        # 1. Creación del Administrador por defecto
+        admin_existente = self.db.session.query(Usuario).filter_by(email='pruebasrehabilitar@gmail.com').first()
+        if not admin_existente:
+            admin = Administrador(
+                nombre = "Admin",
+                apellido = "Admin",
+                dni = "12345678",
+                email = "pruebasrehabilitar@gmail.com",
+                password = "123456",
+                estado = Estado.ACTIVO
+            )
+            self.db.session.add(admin)
+            self.db.session.commit()
+            print("Admin por defecto creado con éxito")

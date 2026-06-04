@@ -27,7 +27,7 @@ class SeedAsistenciaYSeguimientoSprint1 ():
             apellido="AYS",
             dni="8000001", 
             email="profesorays1@gmail.com",
-            password="contraseña",
+            password="123456",
             estado = EstadoUsuario.ACTIVO
         )
         self.db.session.add(profesor1)
@@ -38,7 +38,7 @@ class SeedAsistenciaYSeguimientoSprint1 ():
             apellido="AYS",
             dni="8000002",
             email="profesorays2@gmail.com",
-            password="contraseña",
+            password="123456",
             estado = EstadoUsuario.ACTIVO
         )
         self.db.session.add(profesor2)
@@ -49,7 +49,7 @@ class SeedAsistenciaYSeguimientoSprint1 ():
             apellido="AYS",
             dni="8000003",
             email="profesorays3@gmail.com",
-            password="contraseña",
+            password="123456",
             estado = EstadoUsuario.ACTIVO
         )
         self.db.session.add(profesor3)
