@@ -23,6 +23,12 @@
     .table td {
         vertical-align: middle !important;
     }
+
+    /* Ajuste de seguridad para títulos muy largos */
+    .title-container {
+        word-wrap: break-word;
+        word-break: break-word;
+    }
 </style>
 {% endblock %}
 
@@ -30,13 +36,11 @@
 <div class="container py-5 px-3">
 
     <div class="box mb-5">
-        <div class="columns is-vcentered">
-            <div class="column">
-                <div class="columns is-vcentered is-mobile is-variable is-2 mb-1">
-                    <div class="column is-narrow">
-                        <h1 class="title is-2 has-text-dark mb-0">{{ clase.nombre }}</h1>
-                    </div>
-                    <div class="column">
+        <div class="columns is-vcentered is-multiline">
+            <div class="column is-flex-grow-1 title-container pr-3">
+                <div class="is-flex is-align-items-center is-flex-wrap-wrap mb-2" style="gap: 0.75rem;">
+                    <h1 class="title is-2 has-text-dark mb-0">{{ clase.nombre }}</h1>
+                    <div>
                         {% if clase.tipo == "Individual" %}
                             <span class="tag is-outline-info is-medium">Individual</span>
                         {% else %}
@@ -48,7 +52,7 @@
             </div>
             
             <div class="column is-narrow">
-                <a href="{{ url_for('clases.listar_clases_admin') }}" class="button is-light has-text-grey-darker">
+                <a href="{{ url_for('clases.listar_clases_admin') }}" class="button is-light is-fullwidth-mobile">
                     <span class="icon"><i class="fas fa-arrow-left"></i></span>
                     <span>Volver al Listado</span>
                 </a>
@@ -58,8 +62,8 @@
 
     <div class="columns is-desktop is-flex-desktop">
         
-        <div class="column is-4-desktop is-flex">
-            <div class="box is-flex is-flex-direction-column is-flex-grow-1">
+        <div class="column is-4-desktop is-flex is-flex-direction-column">
+            <div class="box is-flex is-flex-direction-column is-flex-grow-1 mb-4">
                 <h3 class="subtitle is-5 has-text-weight-bold pb-3 mb-3" style="border-bottom: 1px solid #ededed;">
                     <span class="icon mr-2 has-text-info"><i class="fas fa-info-circle"></i></span>Información General
                 </h3>
@@ -94,18 +98,9 @@
                                 <td class="has-text-right pr-0 has-text-weight-semibold">{{ clase.duracion }} min</td>
                             </tr>
                             <tr>
-                                    <td class="has-text-grey pl-0">Sala:</td>
-                                    <td class="has-text-right pr-0 has-text-weight-semibold">
-                                        {% if clase.sala %}
-                                            Sala {{ clase.sala.numero_puerta }}
-                                            {% if clase.sala.descripcion %}
-                                                <span class="is-size-7 has-text-grey has-text-weight-normal">({{ clase.sala.descripcion }})</span>
-                                            {% endif %}
-                                        {% else %}
-                                            <span class="has-text-grey-light is-italic">Sin asignar</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
+                                <td class="has-text-grey pl-0">Sala:</td>
+                                <td class="has-text-right pr-0 has-text-weight-semibold">N° {{ clase.sala.numero_puerta }}</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -131,8 +126,20 @@
                     {% endif %}
                 </div>
             </div>
-        </div>
 
+            <div class="box mt-4">
+                <h3 class="subtitle is-5 has-text-weight-bold pb-2 mb-3" style="border-bottom: 1px solid #ededed;">
+                    <span class="icon mr-2 has-text-warning"><i class="fas fa-align-left"></i></span>Descripción
+                </h3>
+                <div class="content is-size-6">
+                    {% if clase.descripcion %}
+                        <p>{{ clase.descripcion }}</p>
+                    {% else %}
+                        <p class="has-text-grey-light is-italic is-size-7">No se cargó una descripción específica para este bloque de clase.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
         <div class="column is-8-desktop is-flex">
             <div class="box is-flex is-flex-direction-column is-flex-grow-1">
                 <h3 class="subtitle is-5 has-text-weight-bold pb-3 mb-3" style="border-bottom: 1px solid #ededed;">
@@ -148,10 +155,10 @@
                                 </span>
                             </div>
                             <div class="column">
-                                <p class="is-size-6 has-text-success-dark mb-0">
+                                <p class="is-size-6 mb-0">
                                     <strong>Profesor Asignado:</strong> {{ asignado.nombre_completo }}
                                 </p>
-                                <p class="is-size-7 has-text-success-dark">
+                                <p class="is-size-7 mb-0">
                                     Especialidad acreditada: {{ asignado.especialidad }}
                                 </p>
                             </div>

@@ -1,6 +1,8 @@
 from flask_sqlalchemy_lite import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 
+
+
 db = SQLAlchemy()
 
 def init_db(app):
@@ -34,6 +36,7 @@ def seed_db():
     #from src.core.seeds.postulacionSeeder import PostulacionSeeder
     #from src.core.seeds.clases_seeds2 import ClaseSeeder2
     from src.core.seeds.clases_seeds import ClaseSeeder, ProfesorDictaClaseSeeder
+    from src.core.seeds.especialidades_seeds import EspecialidadSeeder
     from src.core.seeds.usuarios_seeds import UsuarioSeeder
     from src.core.seeds.sprint1_5 import SeedPagosSprint1
     from src.core.seeds.sprint1_8 import SeedAsistenciaYSeguimientoSprint1
@@ -45,6 +48,7 @@ def seed_db():
         UsuarioSeeder(db),
         #ProfesorSeeder(db),
         ClaseSeeder(db),
+        EspecialidadSeeder(db),
         #PostulacionSeeder(db),
         ProfesorDictaClaseSeeder(db),
         SeedPagosSprint1(db),
