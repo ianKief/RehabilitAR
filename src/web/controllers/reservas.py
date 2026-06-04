@@ -140,12 +140,8 @@ def reservar_clase(id_clase):
         flash("La clase solicitada no existe.", "danger")
         return redirect(url_for("reservas.calendario_cliente"))  
     
-    # Verifico si el apto físico está habilitado
-    if not _verificar_apto_fisico(cliente):
-        return redirect(url_for("reservas.calendario_cliente"))  
-
-    # Verifico si el apto físico seguirá habilitado para el momento de la clase
-    if not _verificar_apto_fisico(cliente, fecha_clase=datetime.combine(clase.fecha_clase, datetime.min.time()), message="El apto físico vencerá para el momento de la clase"):
+    # Verificamos si el apto físico es válido para el momento de la clase
+    if not _verificar_apto_fisico(cliente, fecha_clase=datetime.combine(clase.fecha_clase, datetime.min.time())):
         return redirect(url_for("reservas.calendario_cliente"))  
 
     reserva_existente = obtener_reserva(usuario_id, id_clase)
@@ -162,7 +158,7 @@ def reservar_clase(id_clase):
         
     if clase.tipo == "Fija":
         if verificar_reserva_semanal_existente(usuario_id, clase.fecha_clase):
-            flash("Límite alcanzado: solo puede realizar una reserva puntual de clase fija por semana.", "warning")
+            flash("Límite alcanzado: solo puedes reservar una clase fija por semana.", "warning")
             return redirect(url_for("reservas.calendario_cliente"))
         return redirect(url_for("reservas.abonar_clase_fija", id_clase=id_clase))
     elif clase.tipo == "Individual":
@@ -212,7 +208,7 @@ def abonar_clase_fija(id_clase):
             crear_reserva(usuario_id, id_clase)
 
             flash(
-                "Reserva realizada correctamente usando tu abono activo.",
+                "Reserva confirmada con éxito.",
                 "success"
             )
 
