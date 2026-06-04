@@ -204,8 +204,10 @@ def eliminar_usuario(usuario_id):
     usuario = db.session.get(Usuario, usuario_id)
     if not usuario:
         raise ValueError("El usuario no existe.")
-        
-    db.session.delete(usuario)
+
+    usuario.estado = EstadoUsuario.BLOQUEADO
+    usuario.email = f"eliminado_{usuario.id}_{usuario.email}"  
+    # db.session.delete(usuario)
     db.session.commit()
     return True
 
