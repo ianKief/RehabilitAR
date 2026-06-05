@@ -33,7 +33,8 @@ from src.core.reservas import (
     obtener_cola,
     cancelar_cola_core,
     reactivar_cola,
-    crear_espera_en_cola
+    crear_espera_en_cola,
+    cliente_tiene_conflicto_horario
 )
 
 reservas_bp = Blueprint("reservas", __name__, url_prefix="/reservas")
@@ -144,13 +145,17 @@ def reservar_clase(id_clase):
     
     # Verificamos si el apto físico es válido para el momento de la clase
     if not _verificar_apto_fisico(cliente, fecha_clase=datetime.combine(clase.fecha_clase, datetime.min.time())):
-        return redirect(url_for("reservas.calendario_cliente"))  
+        return redirect(url_for("reservas.calendario_cliente"))
+    
+    conflicto_horario = cliente_tiene_conflicto_horario (clase, usuario_id)
+    if conflicto_horario != False:
+        flash (f"El cliente ya tiene una clase en el mismo horario: {conflicto_horario}", "warning")
+        return redirect(url_for("reservas.calendario_cliente"))
 
     reserva_existente = obtener_reserva(usuario_id, id_clase)
     if reserva_existente and clase_tiene_lugar(clase):
         if reserva_existente.asiste == AsistenciaReserva.CANCELADA:
             reactivar_reserva(reserva_existente)
-            # ACÁ
             flash("¡Reserva reactivada exitosamente!", "success")
         else:
             flash("Ya tenés una reserva activa para esta clase.", "warning")

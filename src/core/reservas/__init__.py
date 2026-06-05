@@ -398,3 +398,41 @@ def dar_acceso_segun_orden_cola (id_clase):
         print(f"No mandé el mail che: {e}")
         
     return proximo
+
+# Esto lo generé con ChatGPT y se ve pesado. Acepto cambios de optimización
+def cliente_tiene_conflicto_horario(clase, id_cliente):
+    """Dada una clase y el id_cliente, comprueba si existe otra clase que se de a la vez que la primera. En caso de no existir clase devuelve false, caso contrario devuelve un texto preparado para meter en flash()"""
+    clases_cliente = []
+
+    reservas = (db.session.query(Clase)
+        .join(Reserva, Reserva.id_clase == Clase.id)
+        .filter(Reserva.id_cliente == id_cliente)
+        .filter (Reserva.asiste != AsistenciaReserva.CANCELADA)
+        .filter(Clase.fecha_clase == clase.fecha_clase)
+        .all()
+    )
+
+    colas = (db.session.query(Clase)
+        .join(Cola, Cola.id_clase == Clase.id)
+        .filter(Cola.id_cliente == id_cliente)
+        .filter(Cola.estado == EstadoCola.EN_CURSO)
+        .filter(Clase.fecha_clase == clase.fecha_clase)
+        .all()
+    )
+
+    clases_cliente.extend(reservas)
+    clases_cliente.extend(colas)
+
+    inicio_nuevo = datetime.combine(clase.fecha_clase,clase.horario)
+    fin_nuevo = inicio_nuevo + timedelta(minutes=clase.duracion)
+
+    for otra in clases_cliente:
+        if otra.id == clase.id:
+            continue
+
+        inicio_otra = datetime.combine(otra.fecha_clase,otra.horario)
+        fin_otra = inicio_otra + timedelta(minutes=otra.duracion)
+
+        if (inicio_nuevo < fin_otra and fin_nuevo > inicio_otra):
+            return otra.nombre
+    return False
