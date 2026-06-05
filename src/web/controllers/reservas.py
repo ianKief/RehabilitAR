@@ -3,13 +3,13 @@ from datetime import datetime, date, timedelta
 import json
 import urllib.request
 import os
-from src.core.pagos.pagos import DetallePago, ConceptoPago,EstadoPago,Pago
+
 from src.core.database import db
 from src.web.helpers.decorator import requiere_rol
 from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido
 from src.core.pagos import estado_abono_usuario, obtener_precio_clase_actual, tiene_beneficios, TipoBeneficio, registrar_pago_con_credito
 from src.core.clases import clase_tiene_lugar
-from src.core.reservas.reservas import AsistenciaReserva
+from src.core.reservas.reservas import AsistenciaReserva, EstadoCola
 from src.core.reservas import (
     listar_clases_disponibles_para_cliente, 
     obtener_fechas_con_clases,
@@ -31,7 +31,10 @@ from src.core.reservas import (
     obtener_ids_clases_llenas_donde_el_cliente_no_tiene_reserva,
     obtener_colas_cliente,
     obtener_cola,
-    cancelar_cola_core
+    cancelar_cola_core,
+    reactivar_cola,
+    crear_espera_en_cola,
+    cliente_tiene_conflicto_horario
 )
 
 reservas_bp = Blueprint("reservas", __name__, url_prefix="/reservas")
@@ -142,7 +145,12 @@ def reservar_clase(id_clase):
     
     # Verificamos si el apto físico es válido para el momento de la clase
     if not _verificar_apto_fisico(cliente, fecha_clase=datetime.combine(clase.fecha_clase, datetime.min.time())):
-        return redirect(url_for("reservas.calendario_cliente"))  
+        return redirect(url_for("reservas.calendario_cliente"))
+    
+    conflicto_horario = cliente_tiene_conflicto_horario (clase, usuario_id)
+    if conflicto_horario != False:
+        flash (f"El cliente ya tiene una clase en el mismo horario: {conflicto_horario}", "warning")
+        return redirect(url_for("reservas.calendario_cliente"))
 
     reserva_existente = obtener_reserva(usuario_id, id_clase)
     if reserva_existente and clase_tiene_lugar(clase):
@@ -283,6 +291,36 @@ def abonar_cola(id_clase):
     if not _verificar_apto_fisico(cliente, fecha_clase=datetime.combine(clase.fecha_clase, datetime.min.time())):
         return redirect(url_for("reservas.calendario_cliente"))
 
+    # Verificamos si existía un espacio de la cola previo. En ese caso, reactivamos la cola nuevamente sin pasar por el costo
+    # Verificamos también si tiene una reserva cancelada previa. En ese caso, activamos la cola nuevamente sin pasar por el costo
+    cola = obtener_cola(usuario_id, clase.id)
+    reserva = obtener_reserva(usuario_id, clase.id)
+    if cola != None:
+        if cola.estado == EstadoCola.EN_RESERVA:
+            if reserva.asiste == AsistenciaReserva.CANCELADA:
+                reactivar_cola (cola)
+                flash ("Has perdido tu lugar en la clase porque se llenó. La previa acreditación es válida")
+                # TODO dado cómo funciona esto, cuando alguien se dé de baja y dé espacio a otro, debería comprobarse que exista una reserva cancelada previamente, momento en el que pregunto ¿Qué hacemos? Deshacer la cancelación es borrarla de al estadística ¿Creamos otra cancelación?
+            else:
+                flash ("¡Ya tienes una reserva de esta clase en curso!", "success")
+        elif cola.estado == EstadoCola.EN_CURSO:
+            flash ("Usted ya tiene un espacio en la cola activo", "success")
+        elif cola.estado == EstadoCola.CANCELADO:
+            reactivar_cola (cola)
+            flash ("Se ha reactivado su espacio en la cola")
+        return redirect(url_for("reservas.calendario_cliente"))
+
+    # Si tengo una reserva sin haber hecho una cola
+    if reserva:
+        if reserva.asiste == AsistenciaReserva.CANCELADA:
+            crear_espera_en_cola (usuario_id, clase.id)
+            flash ("Se ha creado un espacio en la cola. Se ha utilizado el pago de la reserva", "success")
+        else:
+            flash ("¡Ya tienes una reserva de esta clase en curso!", "success")
+        return redirect(url_for("reservas.calendario_cliente"))
+
+
+
     precio = obtener_precio_clase_actual()
 
     if request.method == "POST":
@@ -353,7 +391,7 @@ def abonar_individual(id_clase):
         return redirect(url_for("reservas.calendario_cliente"))
 
     if not clase_tiene_lugar(clase):
-        flash("No hay lugares disponibles. Próximamente habilitaremos la opción de Inscribirse en lista de espera.", "danger")
+        flash("No hay lugares disponibles. Intente anotarse a la lista de espera.", "danger")
         return redirect(url_for("reservas.calendario_cliente"))
 
     precio = obtener_precio_clase_actual()

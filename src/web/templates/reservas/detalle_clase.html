@@ -105,7 +105,7 @@
             {% endif %}
         {% endif %}
 
-        {% if cola and cola.cancelada != True %}
+        {% if cola and cola.estado.value == 'en_curso' %}
         <hr class="my-4" style="background-color: var(--bulma-border-weak); opacity: 0.5;">
         
         <div class="is-flex is-justify-content-space-between is-align-items-center mb-3">

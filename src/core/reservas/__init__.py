@@ -4,7 +4,7 @@ from sqlalchemy.orm import contains_eager
 from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
 
-from src.core.reservas.reservas import Reserva, AsistenciaReserva, Cola, Cancelacion
+from src.core.reservas.reservas import Reserva, AsistenciaReserva, Cola, Cancelacion, EstadoCola, EstadoCancelacion
 from datetime import date, timedelta, datetime
 import calendar
 from src.core.salas.salas import Sala
@@ -68,11 +68,11 @@ def obtener_ids_clases_reservadas(id_cliente):
 
 def obtener_ids_clases_encoladas(id_cliente):
     from src.core.usuarios.usuarios import Cliente
-    """Obtiene una lista con los IDs de las clases en las que un cliente tiene una espera en cola activada (no cancelada)."""
+    """Obtiene una lista con los IDs de las clases en las que un cliente tiene una espera en cola activada (no cancelada ni en reserva)."""
     query = (db.session.query(Cola.id_clase)
         .join (Cliente, Cliente.id == Cola.id_cliente)
         .filter (Cliente.id == id_cliente)
-        .filter (Cola.cancelada == False)
+        .filter (Cola.estado == EstadoCola.EN_CURSO)
     )
     return db.session.scalars(query).all()
 
@@ -86,7 +86,7 @@ def obtener_cola(id_cliente, id_clase):
     query = (db.session.query(Cola)
         .filter(Cola.id_cliente == id_cliente)
         .filter(Cola.id_clase == id_clase)
-        .filter(Cola.cancelada == False)
+        .filter(Cola.estado == EstadoCola.EN_CURSO)
         .order_by(Cola.fecha_modificacion.desc())
     )
     return db.session.scalars(query).first()
@@ -96,13 +96,18 @@ def reactivar_reserva(reserva):
     reserva.asiste = AsistenciaReserva.AUSENTE
     db.session.commit()
 
+def reactivar_cola(cola):
+    """Cambia el estado de una cola previamente cancelada a 'en_curso', volviéndola a activar."""
+    cola.estado = EstadoCola.EN_CURSO
+    db.session.commit()
+
 def cancelar_reserva_core(reserva):
     """Cambia el estado de una reserva a 'cancelada', liberando el cupo."""
     reserva.asiste = AsistenciaReserva.CANCELADA
     nueva_cancelacion = Cancelacion (
         descripcion = "El cliente ha cancelado la reserva",
         reserva = reserva,
-        acredito_devolucion_previamente = False
+        estado = EstadoCancelacion.CORRESPONDE_ACREDITAR
     )
     db.session.add(nueva_cancelacion)
     if hay_cola (obtener_clase_por_id(reserva.id_clase)):
@@ -111,19 +116,23 @@ def cancelar_reserva_core(reserva):
 
 def cancelar_cola_core(cola):
     """Cambia el estado de una reserva a 'cancelada', liberando el cupo."""
-    cola.cancelada = True
+    cola.estado = EstadoCola.EN_RESERVA
     db.session.commit()
 
-def crear_reserva(id_cliente, id_clase):
+def crear_reserva(id_cliente, id_clase, session=None):
     """Crea y registra una nueva reserva con estado 'ausente' para el cliente y la clase indicados."""
     nueva_reserva = Reserva(id_cliente=id_cliente, id_clase=id_clase, asiste=AsistenciaReserva.AUSENTE)
-    db.session.add(nueva_reserva)
-    db.session.commit()
+    if session == None:
+        db.session.add(nueva_reserva)
+        db.session.commit()
+    else:
+        session.add(nueva_reserva)
+        session.flush()
     return nueva_reserva
 
 def crear_espera_en_cola (id_cliente, id_clase):
     """Crea una nueva espera en la cola de espera"""
-    nueva_cola = Cola (id_clase = id_clase, id_cliente = id_cliente, cancelada = False)
+    nueva_cola = Cola (id_clase = id_clase, id_cliente = id_cliente)
     db.session.add(nueva_cola)
     db.session.commit()
     return nueva_cola
@@ -253,6 +262,7 @@ def procesar_reservas_mensuales_automatica(id_cliente, clases_a_reservar):
         db.session.commit()
     return reservas_creadas
 
+# TODO sobras?
 def cancelar_cola (id_cliente, id_clase):
     from src.core.usuarios.usuarios import Cliente
     """Cancela la cola, primero obteniéndola vía id_cliente y id_clase. Fuera de operación actualmente"""
@@ -260,7 +270,7 @@ def cancelar_cola (id_cliente, id_clase):
     if not cola:
         raise ValueError("No se ha podido encontrar la cola")
     
-    cola.cancelada = True
+    cola.estado = EstadoCola.CANCELADO
     db.session.commit()
 
 def obtener_reservas_cliente(id_cliente):
@@ -284,7 +294,7 @@ def obtener_colas_cliente(id_cliente):
         contains_eager(Cola.clase)
     ).filter(
         Cola.id_cliente == id_cliente,
-        Cola.cancelada == False
+        Cola.estado == EstadoCola.EN_CURSO
     ).order_by(Clase.fecha_clase.asc(), Clase.horario.asc())
     
     return db.session.scalars(query).all()
@@ -318,7 +328,7 @@ def obtener_ids_clases_llenas_donde_el_cliente_no_tiene_reserva (id_cliente):
 def devolver_cantidad_esperando_en_cola (clase):
     return (db.session.query(func.count(Cola.id))
         .filter(Cola.id_clase == clase.id)
-        .filter(Cola.cancelada == False)
+        .filter(Cola.estado == EstadoCola.EN_CURSO)
         .scalar()
     )
 
@@ -334,7 +344,7 @@ def dar_acceso_segun_orden_cola (id_clase):
     try:
         query_base = (db.session.query(Cliente, Cola)
             .join(Cola, Cola.id_cliente == Cliente.id)
-            .filter(Cola.cancelada == False, Cola.id_clase == id_clase)
+            .filter(Cola.estado == EstadoCola.EN_CURSO, Cola.id_clase == id_clase)
             .order_by(Cola.fecha_modificacion.asc())
         )
 
@@ -353,8 +363,7 @@ def dar_acceso_segun_orden_cola (id_clase):
             raise ValueError("No hay clientes en cola")
         
         proximo, cola = datos
-        cola.cancelada = True
-        cola.en_reserva = True
+        cola.estado = EstadoCola.EN_RESERVA
 
         reserva_existente = obtener_reserva(proximo.id, id_clase)
         if reserva_existente:
@@ -389,3 +398,41 @@ def dar_acceso_segun_orden_cola (id_clase):
         print(f"No mandé el mail che: {e}")
         
     return proximo
+
+# Esto lo generé con ChatGPT y se ve pesado. Acepto cambios de optimización
+def cliente_tiene_conflicto_horario(clase, id_cliente):
+    """Dada una clase y el id_cliente, comprueba si existe otra clase que se de a la vez que la primera. En caso de no existir clase devuelve false, caso contrario devuelve un texto preparado para meter en flash()"""
+    clases_cliente = []
+
+    reservas = (db.session.query(Clase)
+        .join(Reserva, Reserva.id_clase == Clase.id)
+        .filter(Reserva.id_cliente == id_cliente)
+        .filter (Reserva.asiste != AsistenciaReserva.CANCELADA)
+        .filter(Clase.fecha_clase == clase.fecha_clase)
+        .all()
+    )
+
+    colas = (db.session.query(Clase)
+        .join(Cola, Cola.id_clase == Clase.id)
+        .filter(Cola.id_cliente == id_cliente)
+        .filter(Cola.estado == EstadoCola.EN_CURSO)
+        .filter(Clase.fecha_clase == clase.fecha_clase)
+        .all()
+    )
+
+    clases_cliente.extend(reservas)
+    clases_cliente.extend(colas)
+
+    inicio_nuevo = datetime.combine(clase.fecha_clase,clase.horario)
+    fin_nuevo = inicio_nuevo + timedelta(minutes=clase.duracion)
+
+    for otra in clases_cliente:
+        if otra.id == clase.id:
+            continue
+
+        inicio_otra = datetime.combine(otra.fecha_clase,otra.horario)
+        fin_otra = inicio_otra + timedelta(minutes=otra.duracion)
+
+        if (inicio_nuevo < fin_otra and fin_nuevo > inicio_otra):
+            return otra.nombre
+    return False

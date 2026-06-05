@@ -10,5 +10,4 @@ def correos_bypass ():
         "clientecondescuento1@gmail.com",
         "clientecondescuento2@gmail.com",
         "clientecondescuento3@gmail.com"
-
     ]

@@ -117,7 +117,7 @@ def obtener_ultimo_abono(user_id):
     return db.session.execute(stmt).scalars().first()
 
 
-def registrar_abono(id_pago, dia_fijo):
+def registrar_abono(id_pago, dia_fijo, session=None):
     fecha_inicio = datetime.today()
 
     fecha_fin = fecha_inicio + relativedelta(months=1)
@@ -129,8 +129,12 @@ def registrar_abono(id_pago, dia_fijo):
         fecha_fin=fecha_fin,
     )
 
-    db.session.add(nuevo_abono)
-    db.session.commit()
+    if session != None:
+        session.add(nuevo_abono)
+        session.commit()
+    else:
+        db.session.add(nuevo_abono)
+        db.session.commit()
 
     return nuevo_abono
 
@@ -141,7 +145,8 @@ def pago_ya_procesado(payment_id):
     pago = db.session.execute(stmt).scalar_one_or_none()
     return pago is not None
 
-def registrar_pago_abono_mensual(payment_id,id_cliente,monto):
+# Este nombre es horrible. No expresa su intención
+def registrar_pago_abono_mensual(payment_id, id_cliente, monto, session=None):
     
     pago = Pago(
         payment_id=str(payment_id),
@@ -151,18 +156,12 @@ def registrar_pago_abono_mensual(payment_id,id_cliente,monto):
         concepto_pago= ConceptoPago.ABONO
     )
 
-    db.session.add(pago)
-    db.session.flush()
-
-    detalle_pago = DetallePago(
-        id_pago=pago.id,
-        cantidad=1,
-        precio_unitario=monto,
-        subtotal=monto,
-    )
-
-    db.session.add(detalle_pago)
-    db.session.commit()
+    if session != None:
+        session.add(pago)
+        session.flush()
+    else: 
+        db.session.add(pago)
+        db.session.commit()
 
     return pago
 
@@ -196,7 +195,7 @@ def consumir_descuentos(id_cliente, pago, limite, session=None):
             session.add(nuevo_beneficio)
             restante = 0
 
-def registrar_pago_desde_payment(payment_id,payment):
+def registrar_pago_desde_payment(payment_id, payment):
     monto = payment.get("transaction_amount")
     estado = payment.get("status")
 
@@ -280,6 +279,11 @@ def registrar_pago_desde_payment(payment_id,payment):
         )
 
         db.session.add(pago)
+
+
+        # 3. crear reserva REAL
+        reserva = crear_reserva(usuario_id, id_clase, session=db.session)
+
         db.session.flush()
 
         # 2. detalle
@@ -287,13 +291,10 @@ def registrar_pago_desde_payment(payment_id,payment):
             id_pago=pago.id,
             cantidad=1,
             precio_unitario=monto,
-            subtotal=monto
+            subtotal=monto,
+            reserva = reserva
         )
-
         db.session.add(detalle)
-
-        # 3. crear reserva REAL
-        crear_reserva(usuario_id, id_clase)
 
         db.session.commit()
 
@@ -321,17 +322,21 @@ def registrar_pago_desde_payment(payment_id,payment):
             concepto_pago=ConceptoPago.RESERVA
         )
         db.session.add(pago)
+
+        # TODO fijate acá: no se crea ni un abono ni un detallepago. Eso se debe a que cola no tiene una referencia particular que se pueda consultar al chequear los pagos.
     
         crear_espera_en_cola (usuario_id, id_clase)
         db.session.commit()
 
+        # Esto queda fuera de la session porque no afectan al funcionamiento atómico del pago (no voy a cancelar el pago porque no pude enviar correo al admin -_-)
         clase = db.session.query(Clase).filter(Clase.id == id_clase).first()
         if comprobar_alta_demanda (clase):
             informar_alta_demanda (clase)
 
         return
     
-    # evitar duplicado
+    # if tipo == "abono": (o algo así)
+
     if pago_ya_procesado(payment_id):
         print("Pago duplicado")
         return
@@ -342,21 +347,21 @@ def registrar_pago_desde_payment(payment_id,payment):
     user_id = int(external_ref)
 
     descuento = float(metadata.get("descuento_usuario", 0))
-    print ("ESTE DATO DICE SI TIENE DESCUENTO :O", descuento)
 
-    pago = registrar_pago_abono_mensual(payment_id, user_id, monto)
+    pago = registrar_pago_abono_mensual(payment_id, user_id, monto, session=db.session)
 
     if descuento > 0:
         consumir_descuentos(user_id, pago, descuento, session=db.session)
 
-    registrar_abono (pago.id, dia_fijo)
+    registrar_abono (pago.id, dia_fijo, session=db.session)
 
     db.session.commit()
 
 def registrar_pago_con_credito (cliente, clase, precio):
+
     pago = Pago (
         id_cliente = cliente.id,
-        payment_id = "Crédito usado",
+        payment_id = f"Crédito {cliente.id} - {clase.id} usado",
         monto_total = 0,
         estado_pago = EstadoPago.PENDIENTE,
         concepto_pago = ConceptoPago.RESERVA,
@@ -369,20 +374,23 @@ def registrar_pago_con_credito (cliente, clase, precio):
     except:
         raise ValueError("El cliente no tiene un crédito habilitado")
         db.session.rollback()
-        
+    
+    try:
+        reserva = crear_reserva(cliente.id, clase.id, session=db.session)
+    except:
+        raise ValueError("Ha habido un problema al crear la reserva")
+        db.session.rollback()
+    
+    db.session.flush()
+
     detalle = DetallePago(
         id_pago=pago.id,
         cantidad=1,
         precio_unitario=precio,
-        subtotal=0
+        subtotal=0,
+        reserva = reserva
     )
     db.session.add(detalle)
-
-    try:
-        crear_reserva(cliente.id, clase.id)
-    except:
-        raise ValueError("Ha habido un problema al crear la reserva")
-        db.session.rollback()
 
     pago.estado_pago = EstadoPago.COMPLETADO
     db.session.commit()

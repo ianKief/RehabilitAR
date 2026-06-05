@@ -3,7 +3,7 @@ from datetime import datetime
 
 from src.core.usuarios import Cliente, EstadoUsuario, AptoFisico, EstadoAptoFisico
 from src.core.reservas.reservas import Comentario
-from src.core.pagos import Beneficio, TipoBeneficio, Pago, Abono, EstadoPago, ConceptoPago, DetallePago
+from src.core.pagos import Beneficio, TipoBeneficio, Pago, Abono, EstadoPago, ConceptoPago
 
 tz_arg = ZoneInfo("America/Argentina/Buenos_Aires")
 
