@@ -1,0 +1,287 @@
+{% extends "layout.html" %}
+
+{% block title %}Mi Perfil - RehabilitAR{% endblock %}
+
+{% block content %}
+<div class="container is-max-desktop ">
+    <div class="box p-6" style="border-radius: 1rem;">
+        
+        <div class="has-text-centered mb-5">
+            <span class="icon is-large has-text-primary mb-3">
+                <i class="fas fa-user-circle fa-4x"></i>
+            </span>
+            <h1 class="title is-3">Mi Perfil</h1>
+            <p class="subtitle is-6 has-text-grey">
+                {% if editando %}Actualizá tus datos de contacto{% else %}Información de tu cuenta{% endif %}
+            </p>
+        </div>
+
+        <hr>
+
+        {% if editando %}
+        <form action="{{ url_for('usuarios.editar_perfil') }}" method="POST">
+        {% endif %}
+
+        <div class="columns is-multiline">
+            
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-grey is-small">Nombre Completo</label>
+                    <p class="is-size-5"><strong>{{ usuario.nombre }} {{ usuario.apellido }}</strong></p>
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-grey is-small">Documento (DNI)</label>
+                    <p class="is-size-5">{{ usuario.dni }}</p>
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-grey is-small">Correo Electrónico</label>
+                    <p class="is-size-5">{{ usuario.email }}</p>
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-grey is-small" for="telefono">Teléfono</label>
+                    {% if editando %}
+                        <div class="control has-icons-left">
+                            <input class="input" type="tel" id="telefono" name="telefono" 
+                                   value="{{ usuario.telefono if usuario.telefono else '' }}">
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-phone"></i>
+                            </span>
+                        </div>
+                    {% else %}
+                        <p class="is-size-5">{{ usuario.telefono if usuario.telefono else 'No especificado' }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-grey is-small">Fecha de Nacimiento</label>
+                    <p class="is-size-5">{{ usuario.fecha_nacimiento.strftime('%d/%m/%Y') if usuario.fecha_nacimiento else 'No especificada' }}</p>
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-grey is-small" for="direccion">Dirección</label>
+                    {% if editando %}
+                        <div class="control has-icons-left">
+                            <input class="input" type="text" id="direccion" name="direccion" 
+                                   value="{{ usuario.direccion if usuario.direccion else '' }}">
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </span>
+                        </div>
+                    {% else %}
+                        <p class="is-size-5">{{ usuario.direccion if usuario.direccion else 'No especificada' }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="column is-12">
+                <div class="field">
+                    <label class="label has-text-grey is-small">Rol en el Sistema</label>
+                    <span class="tag is-primary is-light is-medium">{{ usuario.rol.value | capitalize }}</span>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="buttons is-centered mt-4">
+            {% if editando %}
+                <button type="submit" class="button is-success">
+                    <span class="icon"><i class="fas fa-save"></i></span>
+                    <span>Guardar Cambios</span>
+                </button>
+                <a href="{{ url_for('usuarios.perfil') }}" class="button is-light">Cancelar</a>
+            {% else %}
+                <a href="{{ url_for('usuarios.editar_perfil') }}" class="button is-primary">
+                    <span class="icon"><i class="fas fa-edit"></i></span>
+                    <span>Editar Perfil</span>
+                </a>
+                <a href="{{ url_for('home') }}" class="button is-light">Volver al Inicio</a>
+            {% endif %}
+        </div>
+
+        {% if editando %}
+        </form>
+        {% endif %}
+        
+        <hr>
+
+        <div class="box">
+            <div class="columns is-vcentered">
+                
+                <div class="column">
+                    {% if usuario.apto_fisico and usuario.apto_fisico.estado.name == 'RECHAZADO' %}
+                        
+                        <div class="is-flex is-align-items-center is-flex-wrap-wrap is-size-7-mobile">
+                            <span class="has-text-weight-bold mr-2">Estado de Apto físico:</span> 
+                            <span class="tag is-danger is-medium mr-3">Rechazado</span>
+                            
+                            <span class="has-text-danger mr-2 my-1">
+                                <i class="fas fa-times-circle mr-1"></i> El documento subido no es válido, mirá el motivo...
+                            </span>
+                            
+                            <button type="button" class="button is-danger is-small is-light my-1" onclick="abrirModalMotivo()">
+                                <span class="icon is-small"><i class="fas fa-eye"></i></span>
+                                <span>Ver motivo</span>
+                            </button>
+                        </div>
+
+                    {% else %}
+                        
+                        <div class="is-flex is-align-items-center is-flex-wrap-wrap mb-2">
+                            <span class="has-text-weight-bold mr-2">Estado del documento:</span> 
+                            
+                            {% if not usuario.apto_fisico or not usuario.apto_fisico.estado or usuario.apto_fisico.estado.name == 'SIN_CARGAR' %}
+                                <span class="tag is-light is-medium">Sin Subir</span>
+                            {% elif usuario.apto_fisico.estado.name == 'EN_REVISION' %}
+                                <span class="tag is-warning is-medium">Pendiente de Revisión</span>
+                            {% elif usuario.apto_fisico.estado.name == 'ACEPTADO' %}
+                                <span class="tag is-success is-medium">Aceptado</span>
+                            {% endif %}
+                        </div>
+
+                        {# --- Mensajes informativos inferiores para los demás estados --- #}
+                        {% if usuario.apto_fisico and usuario.apto_fisico.estado.name == 'ACEPTADO' %}
+                            {% if dias_restantes > 0 %}
+                                <p class="is-size-7 has-text-success">
+                                    <i class="fas fa-check-circle"></i> Válido por <strong>{{ dias_restantes }}</strong> días más.
+                                </p>
+                            {% else %}
+                                <p class="is-size-7 has-text-danger">
+                                    <i class="fas fa-exclamation-triangle"></i> Tu apto físico ha vencido. Por favor, subí uno nuevo.
+                                </p>
+                            {% endif %}
+                        {% elif usuario.apto_fisico and usuario.apto_fisico.estado.name == 'EN_REVISION' %}
+                            <p class="is-size-7 has-text-info">
+                                <i class="fas fa-hourglass-half mr-1"></i> El personal administrativo está verificando tu documento. Te notificaremos cuando cambie el estado.
+                            </p>
+                        {% else %}
+                            <p class="is-size-7 has-text-grey">
+                                <i class="fas fa-info-circle mr-1"></i> Subí tu certificado médico para poder acceder a las reservas de clases.
+                            </p>
+                        {% endif %}
+
+                    {% endif %}
+                </div>
+
+                <div class="column is-narrow">
+                    
+                    {% if not (usuario.apto_fisico and usuario.apto_fisico.estado.name == 'ACEPTADO' and dias_restantes > 0) %}
+                        
+                        <form action="{{ url_for('usuarios.subir_apto') }}" method="POST" enctype="multipart/form-data">
+                            <div class="field has-addons">
+                                
+                                <div class="control is-expanded">
+                                    <div class="file is-info has-name is-fullwidth">
+                                        <label class="file-label">
+                                            <input class="file-input" type="file" name="apto_fisico" accept=".pdf,.jpg,.jpeg,.png" required id="input-apto">
+                                            
+                                            <span class="file-cta">
+                                                <span class="file-icon">
+                                                    <i class="fas fa-file-medical"></i>
+                                                </span>
+                                                <span class="file-label">
+                                                    Elegir archivo
+                                                </span>
+                                            </span>
+                                            <span class="file-name" id="nombre-archivo" style="background-color: transparent;">
+                                                Ningún archivo seleccionado
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="control">
+                                    <button type="submit" class="button is-primary">
+                                        <span class="icon mr-2"><i class="fas fa-upload"></i></span>
+                                        Subir
+                                    </button>
+                                </div>
+
+                            </div>
+                        </form>
+
+                        <script>
+                            const fileInput = document.querySelector('#input-apto');
+                            const fileName = document.querySelector('#nombre-archivo');
+                            if (fileInput) {
+                                fileInput.addEventListener('change', () => {
+                                    if (fileInput.files.length > 0) {
+                                        fileName.textContent = fileInput.files[0].name;
+                                    }
+                                });
+                            }
+                        </script>
+
+                    {% endif %}
+
+                </div>
+                
+            </div>
+        </div>    
+        
+
+        {% if usuario.apto_fisico and usuario.apto_fisico.estado.name == 'RECHAZADO' %}
+        <div class="modal" id="modal-motivo-rechazo">
+            <div class="modal-background" onclick="cerrarModalMotivo()"></div>
+            
+            <div class="modal-card px-3">
+                <header class="modal-card-head has-background-danger-dark">
+                    <p class="modal-card-title has-text-white is-size-5">
+                        <span class="icon mr-2"><i class="fas fa-comment-slash"></i></span>
+                        Motivo del Rechazo
+                    </p>
+                    <button type="button" class="delete" aria-label="close" onclick="cerrarModalMotivo()"></button>
+                </header>
+                
+                <section class="modal-card-body">
+                    <div class="content">
+                        <p class="has-text-weight-medium mb-2">El administrador indicó lo siguiente:</p>
+                        
+                        <div class="box has-background-background p-4" style="border-left: 4px solid #f14668; font-style: italic;">
+                            {{ usuario.apto_fisico.comentario if usuario.apto_fisico.comentario else "No se especificó un motivo detallado. Por favor, asegúrate de que el documento sea legible, esté firmado y se encuentre vigente." }}
+                        </div>
+                        
+                        <p class="is-size-7 has-text-grey mt-3">
+                            <i class="fas fa-info-circle"></i> Podés seleccionar y subir un archivo nuevo utilizando el formulario que está en pantalla.
+                        </p>
+                    </div>
+                </section>
+                
+                <footer class="modal-card-foot is-justify-content-flex-end">
+                    <button type="button" class="button is-primary" onclick="cerrarModalMotivo()">Entendido</button>
+                </footer>
+            </div>
+        </div>
+
+        <script>
+            function abrirModalMotivo() {
+                const modal = document.getElementById('modal-motivo-rechazo');
+                if (modal) modal.classList.add('is-active');
+            }
+
+            function cerrarModalMotivo() {
+                const modal = document.getElementById('modal-motivo-rechazo');
+                if (modal) modal.classList.remove('is-active');
+            }
+            
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') cerrarModalMotivo();
+            });
+        </script>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

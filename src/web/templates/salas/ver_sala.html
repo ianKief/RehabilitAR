@@ -1,0 +1,126 @@
+{% extends "layout.html" %}
+
+{% block title %}Sala {{ sala.numero_puerta }} | Rehabilitar{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="columns is-centered">
+            <div class="column is-8">
+                
+                <!-- Título principal -->
+                <div class="block mb-5">
+                    <h1 class="title is-3">
+                        <span class="icon has-text-primary mr-2"><i class="fas fa-door-open"></i></span>
+                        Sala {{ sala.numero_puerta }}
+                    </h1>
+                    <p class="subtitle is-6 has-text-grey">Consulta de información detallada y cronograma de ocupación.</p>
+                </div>
+
+                <!-- Pestañas (Tabs) de navegación -->
+                <div class="tabs is-boxed">
+                    <ul>
+                        <li id="tab-datos" class="is-active">
+                            <a onclick="cambiarPestana('datos')">
+                                <span class="icon is-small"><i class="fas fa-info-circle"></i></span>
+                                <span>Datos de la Sala</span>
+                            </a>
+                        </li>
+                        <li id="tab-cronograma">
+                            <a onclick="cambiarPestana('cronograma')">
+                                <span class="icon is-small"><i class="fas fa-calendar-alt"></i></span>
+                                <span>Cronograma</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="box">
+                    <!-- DATOS -->
+                    <div id="contenido-datos">
+                        <div class="columns is-multiline">
+                            <div class="column is-half">
+                                <div class="field">
+                                    <label class="label">Número de Puerta</label>
+                                    <div class="control">
+                                        <input class="input" type="text" value="{{ sala.numero_puerta }}" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="column is-half">
+                                <div class="field">
+                                    <label class="label">Estado</label>
+                                    <div class="control">
+                                        <input class="input has-text-weight-bold {% if sala.estado.name == 'HABILITADA' %}has-text-success{% else %}has-text-danger{% endif %}" 
+                                               type="text" value="{{ sala.estado.name }}" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="column is-half">
+                                <div class="field">
+                                    <label class="label">Capacidad</label>
+                                    <div class="control">
+                                        <input class="input" type="text" value="{{ sala.capacidad }} personas" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="column is-full">
+                                <div class="field">
+                                    <label class="label">Descripción</label>
+                                    <div class="control">
+                                        <textarea class="textarea{% if not sala.descripcion %} has-text-grey is-italic{% endif %}" rows="3" readonly>{{ sala.descripcion or 'Sin descripción' }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CRONOGRAMA -->
+                    <div id="contenido-cronograma" class="is-hidden">
+                        <table class="table is-fullwidth is-striped is-hoverable mt-3">
+                            <thead>
+                                <tr>
+                                    <th>Día</th>
+                                    <th>Horario</th>
+                                    <th>Clase Asignada</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for clase in clases %}
+                                <tr>
+                                    <td>{{ clase.fecha_clase.strftime('%d/%m/%Y') }}</td>
+                                    <td>{{ clase.horario.strftime('%H:%M') }}</td>
+                                    <td>{{ clase.nombre }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="3" class="has-text-centered py-5 has-text-grey">
+                                        <i>No hay clases asignadas a esta sala en el cronograma actual.</i>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Botonera -->
+                <div class="buttons is-right mt-4">
+                    <a href="{{ url_for('salas.lista_salas') }}" class="button is-link is-light">Volver al listado</a>
+                    <a href="{{ url_for('salas.editar_sala', id=sala.id) }}" class="button is-warning">Editar Sala</a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+function cambiarPestana(pestana) {
+    document.getElementById('tab-datos').classList.toggle('is-active', pestana === 'datos');
+    document.getElementById('tab-cronograma').classList.toggle('is-active', pestana === 'cronograma');
+    document.getElementById('contenido-datos').classList.toggle('is-hidden', pestana !== 'datos');
+    document.getElementById('contenido-cronograma').classList.toggle('is-hidden', pestana !== 'cronograma');
+}
+</script>
+{% endblock %}

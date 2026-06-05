@@ -1,0 +1,223 @@
+{% extends "layout.html" %}
+
+{% block title %} Inicio - Gestión de profesores {% endblock %}
+
+{% block content %}
+<!-- Contenedor principal -->
+<div class="container is-max-desktop mt-5 px-3">
+
+    <!-- LÓGICA JINJA: Verifica si hay una clase activa -->
+    {% if clase_actual %}
+        
+        <!-- 1. TARJETA DE INFORMACIÓN DE LA CLASE -->
+        <div class="box active-class-card mb-5">
+            <div class="is-flex is-align-items-center mb-2">
+                <!-- Un indicador visual (punto pulsante) de que la clase está "En vivo" -->
+                <span class="live-indicator mr-2"></span>
+                <span class="has-text-weight-bold has-text-success is-size-7 is-uppercase tracking-wide">Clase en curso</span>
+            </div>
+            
+            <h1 class="title is-3 mb-2">{{ clase_actual.nombre }}</h1>
+            <p class="subtitle is-5 has-text-grey mb-5">{{ clase_actual.descripcion }}</p>
+
+            <!-- Estadísticas de la clase -->
+            <div class="class-stats p-4">
+                <nav class="level is-mobile">
+                    <div class="level-item has-text-centered">
+                        <div>
+                            <p class="heading mb-1">Reservas</p>
+                            <p class="title is-3 has-text-info">{{ reservas }}</p>
+                        </div>
+                    </div>
+                    <div class="level-item has-text-centered">
+                        <div>
+                            <p class="heading mb-1">Asistencias</p>
+                            <!-- Color dinámico: verde si todos vinieron, sino el color por defecto -->
+                            <p class="title is-3 {{ 'has-text-success' if asistencias >= reservas else 'has-text-primary' }}">
+                                {{ asistencias }}
+                            </p>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </div>
+
+        <!-- 2. BOTONES DE ACCIÓN (Diseño tipo "Tiles" o Tarjetas) -->
+        <div class="columns is-variable is-3 is-mobile is-multiline mb-6">
+            
+            <!-- Botón: Lista de Alumnos -->
+            <div class="column is-12-mobile is-4-tablet">
+                <a href="/profesor/listado_alumnos" class="box action-tile is-flex is-flex-direction-column is-align-items-center is-justify-content-center h-100">
+                    <span class="icon is-large has-text-link mb-3">
+                        <i class="fas fa-users fa-2x"></i>
+                    </span>
+                    <span class="has-text-weight-semibold is-size-6 has-text-centered">Lista de alumnos</span>
+                </a>
+            </div>
+
+            <!-- Botón: Presente Manual -->
+            <div class="column is-12-mobile is-4-tablet">
+                <a href="/profesor/presente_manual" class="box action-tile is-flex is-flex-direction-column is-align-items-center is-justify-content-center h-100">
+                    <span class="icon is-large has-text-warning mb-3">
+                        <i class="fas fa-clipboard-check fa-2x"></i>
+                    </span>
+                    <span class="has-text-weight-semibold is-size-6 has-text-centered">Presente manual</span>
+                </a>
+            </div>
+
+            <!-- Botón: Generar QR (Destacado con gradiente) -->
+            <div class="column is-12-mobile is-4-tablet">
+                <a class="box action-tile qr-tile is-flex is-flex-direction-column is-align-items-center is-justify-content-center h-100">
+                    <span class="icon is-large has-text-white mb-3">
+                        <i class="fas fa-qrcode fa-2x"></i>
+                    </span>
+                    <span class="has-text-weight-semibold is-size-6 has-text-white has-text-centered">Generar QR (proximamente)</span>
+                </a>
+            </div>
+
+        </div>
+
+    {% else %}
+
+        <!-- ESTADO VACÍO (Si no hay clase activa) -->
+        <div class="box empty-state-card has-text-centered py-6 mb-6">
+            <span class="icon is-large has-text-grey-light mb-4">
+                <i class="fas fa-calendar-times fa-3x"></i>
+            </span>
+            <h2 class="title is-4 mb-2">No hay clases en curso</h2>
+            <p class="has-text-grey">Actualmente no hay ninguna clase iniciada en el sistema.</p>
+        </div>
+
+    {% endif %}
+
+    <!-- 3. SECCIÓN SIEMPRE VISIBLE: Registro de asistencias -->
+    <div class="border-top-divider pt-5 mb-6">
+        <a href="/profesor/ver_asistencias" class="box history-btn-card is-flex is-align-items-center is-justify-content-space-between">
+            <div class="is-flex is-align-items-center">
+                <div class="icon-wrapper has-background-primary-light mr-4">
+                    <span class="icon has-text-primary">
+                        <i class="fas fa-history"></i>
+                    </span>
+                </div>
+                <div>
+                    <h3 class="has-text-weight-semibold is-size-5 mb-0">Registro de asistencias</h3>
+                    <p class="is-size-7 has-text-grey">Ver el historial completo de clases y alumnos</p>
+                </div>
+            </div>
+            <span class="icon has-text-grey-light arrow-icon">
+                <i class="fas fa-chevron-right"></i>
+            </span>
+        </a>
+    </div>
+
+</div>
+
+<!-- BLOQUE DE ESTILOS -->
+<style>
+/* --- TARJETA DE CLASE ACTIVA --- */
+.active-class-card {
+    border-top: 5px solid #48c774; /* Borde superior verde para indicar "Activo" */
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* Indicador de "En vivo" (Puntito que titila) */
+.live-indicator {
+    width: 8px;
+    height: 8px;
+    background-color: #48c774;
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(72, 199, 116, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(72, 199, 116, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(72, 199, 116, 0); }
+}
+
+/* Caja gris/transparente para los números */
+.class-stats {
+    background-color: rgba(128, 128, 128, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(128, 128, 128, 0.1);
+}
+
+.tracking-wide {
+    letter-spacing: 0.05em;
+}
+
+/* --- BOTONES DE ACCIÓN (TILES) --- */
+/* Forzamos alto 100% para que en tablets se vean parejos si el texto baja a 2 líneas */
+.h-100 {
+    height: 100%;
+}
+
+.action-tile {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(128, 128, 128, 0.05);
+    transition: all 0.2s ease;
+    padding: 2rem 1rem;
+}
+
+.action-tile:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+    border-color: rgba(62, 142, 208, 0.3);
+}
+
+/* Botón especial del QR (Gradiente que funciona en modo claro y oscuro) */
+.qr-tile {
+    background: linear-gradient(135deg, #7148fc 0%, #3e8ed0 100%);
+    border: none;
+}
+
+.qr-tile:hover {
+    box-shadow: 0 8px 16px rgba(113, 72, 252, 0.3);
+    border-color: transparent; /* Anulamos el borde azul del hover normal */
+}
+
+/* --- ESTADO VACÍO --- */
+.empty-state-card {
+    background-color: rgba(128, 128, 128, 0.02);
+    border: 2px dashed rgba(128, 128, 128, 0.2);
+    box-shadow: none;
+}
+
+/* --- SECCIÓN HISTORIAL --- */
+.border-top-divider {
+    border-top: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.history-btn-card {
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(128, 128, 128, 0.1);
+}
+
+.icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.history-btn-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-color: #00d1b2; /* Color primary de Bulma */
+}
+
+/* Animación sutil de la flecha al pasar el mouse */
+.history-btn-card:hover .arrow-icon {
+    transform: translateX(4px);
+    color: #00d1b2 !important;
+}
+.arrow-icon {
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+</style>
+{% endblock %}

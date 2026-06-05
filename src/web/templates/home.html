@@ -1,0 +1,378 @@
+{% extends "layout.html" %}
+
+{% block title %}Inicio - RehabilitAR{% endblock %}
+
+{% block content %}
+
+{% if session.get('usuario_id') %}
+    <!-- ========================================== -->
+    <!-- VISTA PARA USUARIOS LOGUEADOS (DASHBOARD)  -->
+    <!-- ========================================== -->
+    <div class="mb-6">
+        <h1 class="title is-3 mb-2">Bienvenido a RehabilitAR</h1>
+        <p class="subtitle is-6 has-text-grey">Tu panel de control y resumen de actividad</p>
+    </div>
+
+    {% if session.get('rol') == 'CLIENTE' %}
+        <!-- ========================================== -->
+        <!-- DASHBOARD CLIENTE                          -->
+        <!-- ========================================== -->
+        {% if estado_abono == "activo" %}
+
+        <div class="box mb-5">
+            <div class="columns is-vcentered">
+                <div class="column">
+                    <h2 class="title is-5 mb-2">
+                        <i class="fas fa-check-circle has-text-success"></i>
+                        Abono activo
+                    </h2>
+
+                    <p class="has-text-grey">
+                        Tenés todos los beneficios activos.
+                    </p>
+                </div>
+
+                <div class="column is-narrow">
+                    <button class="button is-success is-medium" disabled>
+                        Activo
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {% elif estado_abono == "vencido" %}
+
+        <div class="box mb-5 has-background-warning-light">
+            <div class="columns is-vcentered">
+                <div class="column">
+
+                    <span class="tag is-warning mb-3">
+                        Renovación disponible
+                    </span>
+
+                    <h2 class="title is-5 mb-2">
+                        <i class="fas fa-rotate-right has-text-warning"></i>
+                        Tu abono venció
+                    </h2>
+
+                    <p class="has-text-grey">
+                        Renová tu suscripción para recuperar tus beneficios y continuar con tus clases.
+                    </p>
+
+                </div>
+
+                <div class="column is-narrow">
+                    <a href="/contratar_abono/suscripcion"
+                    class="button is-warning is-medium">
+                        Renovar Abono
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {% elif estado_abono == "suspendido" %}
+
+        <div class="box mb-5 has-background-danger-light">
+            <div class="columns is-vcentered">
+                <div class="column">
+
+                    <span class="tag is-danger mb-3">
+                        Abono suspendido
+                    </span>
+
+                    <h2 class="title is-5 mb-2">
+                        <i class="fas fa-circle-exclamation has-text-danger"></i>
+                        Tu suscripción fue suspendida
+                    </h2>
+
+                    <p class="has-text-grey">
+                        Pasaron más de 10 días desde el vencimiento del abono.
+                    </p>
+
+                </div>
+
+                <div class="column is-narrow">
+                    <a href="/contratar_abono/suscripcion"
+                    class="button is-danger is-medium">
+                        Contratar nuevamente
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+
+        <div class="box mb-5">
+            <div class="columns is-vcentered">
+                <div class="column">
+
+                    <span class="tag is-primary mb-3">
+                        Nuevo
+                    </span>
+
+                    <h2 class="title is-5 mb-2">
+                        <i class="fas fa-credit-card has-text-primary"></i>
+                        Abono mensual
+                    </h2>
+
+                    <p class="has-text-grey">
+                        Contratá tu suscripción y accedé a beneficios exclusivos.
+                    </p>
+
+                </div>
+
+                <div class="column is-narrow">
+                    <a href="/contratar_abono/suscripcion"
+                    class="button is-primary is-medium">
+                        Contratar Abono
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {% endif %}
+
+        <div class="columns is-multiline">
+            <div class="column is-6">
+                <div class="box has-text-centered is-fullheight p-5">
+                    <span class="icon is-large has-text-primary mb-3"><i class="far fa-calendar-check fa-3x"></i></span>
+                    <h3 class="title is-5">Reservar Turno</h3>
+                    <p class="has-text-grey mb-4">Explorá el calendario y reservá tu próxima sesión de rehabilitación.</p>
+                    <a href="{{ url_for('reservas.calendario_cliente') }}" class="button is-primary is-rounded">Ir al Calendario</a>
+                </div>
+            </div>
+            <div class="column is-6">
+                <div class="box has-text-centered is-fullheight p-5">
+                    <span class="icon is-large has-text-info mb-3"><i class="fas fa-chalkboard-user fa-3x"></i></span>
+                    <h3 class="title is-5">Mis Clases</h3>
+                    <p class="has-text-grey mb-4">Revisá el historial de tus sesiones, tus reservas actuales y lugares en espera.</p>
+                    <a href="{{ url_for('reservas.mis_clases') }}" class="button is-info is-rounded">Ver Mis Clases</a>
+                </div>
+            </div>
+        </div>
+
+    {% elif session.get('rol') == 'ADMINISTRADOR' %}
+        <!-- ========================================== -->
+        <!-- DASHBOARD ADMINISTRADOR                    -->
+        <!-- ========================================== -->
+        <div class="columns is-multiline mb-6">
+            <div class="column is-3-desktop is-6-tablet">
+                <div class="box">
+                    <div class="has-text-centered">
+                        <p class="heading has-text-info">Salas Disponibles</p>
+                        <p class="title is-3 has-text-info">8</p>
+                    </div>
+                </div>
+            </div>
+            <div class="column is-3-desktop is-6-tablet">
+                <div class="box">
+                    <div class="has-text-centered">
+                        <p class="heading has-text-success">Clases Hoy</p>
+                        <p class="title is-3 has-text-success">5</p>
+                    </div>
+                </div>
+            </div>
+            <div class="column is-3-desktop is-6-tablet">
+                <div class="box">
+                    <div class="has-text-centered">
+                        <p class="heading has-text-warning">Pacientes Activos</p>
+                        <p class="title is-3 has-text-warning">24</p>
+                    </div>
+                </div>
+            </div>
+            <div class="column is-3-desktop is-6-tablet">
+                <div class="box">
+                    <div class="has-text-centered">
+                        <p class="heading has-text-danger">Próximas Reservas</p>
+                        <p class="title is-3 has-text-danger">12</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="columns is-multiline">
+            <div class="column is-12">
+                <div class="box">
+                    <h2 class="title is-5 mb-4">
+                        <span class="icon mr-2"><i class="fas fa-calendar-alt"></i></span>
+                        Próximas Clases
+                    </h2>
+                    <div class="content is-small">
+                        <table class="table is-fullwidth is-hoverable is-size-7">
+                            <tbody>
+                                <tr>
+                                    <td><strong>Terapia Física</strong></td>
+                                    <td>Sala A</td>
+                                    <td class="has-text-right">10:00 AM</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Pilates</strong></td>
+                                    <td>Sala B</td>
+                                    <td class="has-text-right">11:30 AM</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Yoga Terapéutico</strong></td>
+                                    <td>Sala C</td>
+                                    <td class="has-text-right">02:00 PM</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Recuperación</strong></td>
+                                    <td>Sala D</td>
+                                    <td class="has-text-right">03:30 PM</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    {% elif session.get('rol') == 'PROFESOR' %}
+        <!-- ========================================== -->
+        <!-- DASHBOARD PROFESOR                         -->
+        <!-- ========================================== -->
+        <div class="columns is-multiline">
+            <div class="column is-12">
+                <div class="box has-text-centered py-6">
+                    <span class="icon is-large has-text-primary mb-3"><i class="far fa-bookmark fa-3x"></i></span>
+                    <h3 class="title is-4">Panel de Profesor</h3>
+                    <p class="subtitle is-6 has-text-grey mb-5">Bienvenido. Desde aquí podés gestionar la asistencia de tus alumnos y realizar el seguimiento de su evolución.</p>
+                    <a href="{{ url_for('profesor.index_profesor') }}" class="button is-primary is-medium is-rounded shadow-button">
+                        <span class="icon"><i class="fas fa-clipboard-list"></i></span>
+                        <span>Ir a Asistencia y Seguimiento</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+{% else %}
+    <!-- ========================================== -->
+    <!-- VISTA PARA VISITANTES (LANDING PAGE)       -->
+    <!-- ========================================== -->
+    
+    <!-- Hero Principal -->
+    <section class="hero is-primary is-medium mb-6" style="border-radius: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; position: relative;">
+        <!-- Fondo de pantalla dividida (Solo visible en escritorio) -->
+        <div class="is-hidden-touch" style="position: absolute; top: 0; right: 0; bottom: 0; width: 55%; background-color: #ffffff; clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%); z-index: 0;">
+            <img src="{{ url_for('static', filename='logo_RehabilitAR.png') }}" alt="" style="width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; pointer-events: none;">
+        </div>
+        <div class="hero-body" style="position: relative; z-index: 1;">
+            <div class="container">
+                <div class="columns is-vcentered">
+                    <!-- Columna de Texto -->
+                    <div class="column is-6 has-text-left-desktop has-text-centered-touch">
+                        
+                        <!-- Logo para Móviles (Arriba del texto y en formato circular) -->
+                        <div class="is-hidden-desktop mb-5 is-flex is-justify-content-center">
+                            <div style="width: 140px; height: 140px; background-color: white; border-radius: 50%; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.15);">
+                                <img src="{{ url_for('static', filename='logo_RehabilitAR.png') }}" alt="Logo RehabilitAR" style="width: 100%; height: 100%; object-fit: contain;">
+                            </div>
+                        </div>
+                        
+                        <h1 class="title is-1 has-text-weight-bold is-size-2-mobile mb-4">Bienvenido a RehabilitAR</h1>
+                        <p class="subtitle is-4 is-size-5-mobile mb-6" style="opacity: 0.9;">Tu centro integral de bienestar y terapia física</p>
+                        <div class="mt-5">
+                            <a href="{{ url_for('auth.registrar_cliente') }}" class="button is-white is-medium is-rounded has-text-primary has-text-weight-bold px-6 py-4 shadow-sm is-size-6-mobile" style="transition: transform 0.2s; white-space: normal; height: auto; text-align: center;">
+                                Comenzá tu recuperación hoy
+                            </a>
+                        </div>
+                    </div>
+                    <!-- Columna espaciadora en Desktop (Se oculta en móvil para no generar espacio muerto) -->
+                    <div class="column is-6 is-hidden-touch">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección de Introducción -->
+    <div class="container has-text-centered mb-6 px-3" style="max-width: 800px;">
+        <h2 class="title is-3 mb-4 has-text-grey-dark">Nuestra Misión</h2>
+        <p class="is-size-5 has-text-grey" style="line-height: 1.6;">
+            En <strong>RehabilitAR</strong> nos dedicamos a acompañarte en tu proceso de recuperación y entrenamiento. 
+            Nuestro portal está diseñado para brindar la mejor experiencia tanto a nuestros pacientes como a 
+            nuestro equipo de profesionales.
+        </p>
+    </div>
+
+    <!-- Grilla de Beneficios -->
+    <div class="columns is-multiline mb-6">
+        <!-- Beneficio 1 -->
+        <div class="column is-4-desktop is-6-tablet">
+            <div class="box is-fullheight has-text-centered p-5 feature-card" style="border-radius: 1rem; border: 1px solid var(--bulma-border-weak); transition: all 0.3s ease;">
+                <span class="icon is-large has-text-primary mb-4 p-5 has-background-primary-light is-rounded" style="border-radius: 50%; width: 4rem; height: 4rem;">
+                    <i class="fas fa-calendar-check fa-2x"></i>
+                </span>
+                <h3 class="title is-5 mb-3">Reservas Ágiles</h3>
+                <p class="has-text-grey">Gestioná tus turnos para clases y sesiones de terapia física de forma rápida y sin complicaciones.</p>
+            </div>
+        </div>
+        
+        <!-- Beneficio 2 -->
+        <div class="column is-4-desktop is-6-tablet">
+            <div class="box is-fullheight has-text-centered p-5 feature-card" style="border-radius: 1rem; border: 1px solid var(--bulma-border-weak); transition: all 0.3s ease;">
+                <span class="icon is-large has-text-primary mb-4 p-5 has-background-primary-light is-rounded" style="border-radius: 50%; width: 4rem; height: 4rem;">
+                    <i class="fas fa-file-medical fa-2x"></i>
+                </span>
+                <h3 class="title is-5 mb-3">Aptos Físicos</h3>
+                <p class="has-text-grey">Cargá y almacená de forma segura tu documentación médica y aptos físicos en la nube.</p>
+            </div>
+        </div>
+
+        <!-- Beneficio 3 -->
+        <div class="column is-4-desktop is-6-tablet">
+            <div class="box is-fullheight has-text-centered p-5 feature-card" style="border-radius: 1rem; border: 1px solid var(--bulma-border-weak); transition: all 0.3s ease;">
+                <span class="icon is-large has-text-primary mb-4 p-5 has-background-primary-light is-rounded" style="border-radius: 50%; width: 4rem; height: 4rem;">
+                    <i class="fas fa-chart-line fa-2x"></i>
+                </span>
+                <h3 class="title is-5 mb-3">Seguimiento</h3>
+                <p class="has-text-grey">Observá tu progreso y evolución de manera personalizada paso a paso junto a tu terapeuta.</p>
+            </div>
+        </div>
+
+        <!-- Beneficio 4 -->
+        <div class="column is-4-desktop is-6-tablet">
+            <div class="box is-fullheight has-text-centered p-5 feature-card" style="border-radius: 1rem; border: 1px solid var(--bulma-border-weak); transition: all 0.3s ease;">
+                <span class="icon is-large has-text-primary mb-4 p-5 has-background-primary-light is-rounded" style="border-radius: 50%; width: 4rem; height: 4rem;">
+                    <i class="fas fa-user-md fa-2x"></i>
+                </span>
+                <h3 class="title is-5 mb-3">Profesionales</h3>
+                <p class="has-text-grey">Organización eficiente de horarios y turnos para brindarte la mejor atención posible.</p>
+            </div>
+        </div>
+
+        <!-- Beneficio 5 -->
+        <div class="column is-4-desktop is-6-tablet">
+            <div class="box is-fullheight has-text-centered p-5 feature-card" style="border-radius: 1rem; border: 1px solid var(--bulma-border-weak); transition: all 0.3s ease;">
+                <span class="icon is-large has-text-primary mb-4 p-5 has-background-primary-light is-rounded" style="border-radius: 50%; width: 4rem; height: 4rem;">
+                    <i class="fas fa-comments fa-2x"></i>
+                </span>
+                <h3 class="title is-5 mb-3">Contacto Directo</h3>
+                <p class="has-text-grey">Mantené una comunicación fluida y personalizada con el equipo del centro para tu bienestar.</p>
+            </div>
+        </div>
+
+        <!-- Beneficio 6 -->
+        <div class="column is-4-desktop is-6-tablet">
+            <div class="box is-fullheight has-text-centered p-5 feature-card" style="border-radius: 1rem; border: 1px solid var(--bulma-border-weak); transition: all 0.3s ease;">
+                <span class="icon is-large has-text-primary mb-4 p-5 has-background-primary-light is-rounded" style="border-radius: 50%; width: 4rem; height: 4rem;">
+                    <i class="fas fa-shield-alt fa-2x"></i>
+                </span>
+                <h3 class="title is-5 mb-3">Plataforma Segura</h3>
+                <p class="has-text-grey">Tu información personal y médica protegida bajo los más altos estándares de seguridad.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Estilos para animar las tarjetas al pasar el ratón -->
+    <style>
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+            border-color: var(--bulma-primary) !important;
+        }
+    </style>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,311 @@
+{% extends "layout.html" %}
+
+{% block title %}Nueva Clase - RehabilitAR{% endblock %}
+
+{% block content %}
+<style>
+    /* Corrección del fondo del Nombre de la Clase (Quitamos el blanco brillante) */
+    .input[type="text"] {
+        background-color: #1f242d !important; 
+        color: #ffffff !important; 
+        border: 1px solid #3f4756;
+    }
+    .input[type="text"]::placeholder {
+        color: #a0aec0 !important; 
+    }
+
+    /* Fuerza a que todo el recuadro del input sea clickeable para abrir el calendario */
+    input[type="date"] {
+        position: relative;
+    }
+    /* Estira el botón nativo del calendario invisible por encima de todo el input */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: auto;
+        height: auto;
+        color: transparent;
+        background: transparent;
+        cursor: pointer;
+    }
+
+    /* Ajuste del selector de salas para que el icono no pise el texto */
+    .select select {
+        padding-left: 2.5em !important;
+    }
+</style>
+
+<div class="box">
+    <div class="mb-5">
+        <h1 class="title is-3 has-text-dark">
+            <span class="icon-text">
+                <span class="icon has-text-primary mr-2">
+                    <i class="fas fa-calendar-plus"></i>
+                </span>
+                <span>Programar Nueva Clase</span>
+            </span>
+        </h1>
+        <p class="subtitle is-6 has-text-grey">Completá los datos para dar de alta un nuevo espacio de rehabilitación en la agenda</p>
+    </div>
+
+    <hr>
+
+    <form action="{{ url_for('clases.crear_clase_post') }}" method="POST">
+        
+        <div class="columns">
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-dark">Nombre de la Clase</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="text" name="nombre" placeholder="Ej: Estabilidad de Tobillo" required>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-heading"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-dark">Especialidad</label>
+                    <div class="control has-icons-left">
+                        <div class="select is-fullwidth">
+                            <select name="especialidad_id" required>
+                                <option value="" disabled selected>Seleccioná la especialidad...</option>
+                                {% for esp in templates_especialidades %}
+                                    <option value="{{ esp.id }}">
+                                        {% if esp.nombre.value is defined %}
+                                            {{ esp.nombre.value | title }}
+                                        {% else %}
+                                            {{ esp.nombre | title }}
+                                        {% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-briefcase"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="columns">
+            <div class="column is-3">
+                <div class="field">
+                    <label class="label has-text-dark">Tipo de Clase</label>
+                    <div class="control has-icons-left">
+                        <div class="select is-fullwidth">
+                            <select name="tipo_clase" id="tipo_clase_select" required>
+                                <option value="Fija" selected>Fija (Grupal)</option>
+                                <option value="Individual">Individual</option>
+                            </select>
+                        </div>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-fingerprint"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-3">
+                <div class="field">
+                    <label class="label has-text-dark">Sala Asignada</label>
+                    <div class="control has-icons-left">
+                        <div class="select is-fullwidth">
+                            <select name="sala_id" id="sala_select" required>
+                                <option value="" disabled selected>Seleccioná una sala...</option>
+                                {% for sala in puertas_salas %}
+                                    <option value="{{ sala.id }}" data-capacidad="{{ sala.capacidad }}">
+                                        Sala {{ sala.numero_puerta }} (Máx: {{ sala.capacidad }} personas)
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-door-open"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-3">
+                <div class="field">
+                    <label class="label has-text-dark">Fecha de la Clase</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="date" id="fecha_input" name="fecha_clase" disabled required>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-calendar-alt"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-3">
+                <div class="field">
+                    <label class="label has-text-dark">Duración</label>
+                    <div class="control has-icons-left">
+                        <div class="select is-fullwidth">
+                            <select name="duracion" id="duracion_select" required>
+                                <option value="30">30 minutos</option>
+                                <option value="45" selected>45 minutos</option>
+                                <option value="60">1 hora</option>
+                                <option value="90">1 hora y media</option>
+                            </select>
+                        </div>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-hourglass-half"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="columns">
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label has-text-dark">Horario de Inicio</label>
+                    <div class="control has-icons-left">
+                        <div class="select is-fullwidth">
+                            <select name="horario" id="horario_select" disabled required>
+                                <option value="">Seleccione fecha, sala y duración primero...</option>
+                            </select>
+                        </div>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-clock"></i>
+                        </span>
+                    </div>
+                    <p class="help has-text-grey">Solo se listan los bloques libres sin superposiciones en la sala elegida.</p>
+                </div>
+            </div>
+            
+            <div class="column is-6"></div>
+        </div>
+
+        <div class="field mt-4">
+            <label class="label has-text-dark">Descripción de la Clase</label>
+            <div class="control">
+                <textarea class="textarea" name="descripcion" placeholder="Escribí acá los detalles sobre la patología a tratar, ejercicios pautados o indicaciones específicas para los profesionales..." rows="4"></textarea>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="field is-grouped is-grouped-right mt-5">
+            <p class="control">
+                <a href="/clases/admin" class="button is-light">Cancelar</a>
+            </p>
+            <p class="control">
+                <button type="submit" class="button is-primary">
+                    <span class="icon">
+                        <i class="fas fa-save"></i>
+                    </span>
+                    <span>Guardar Clase</span>
+                </button>
+            </p>
+        </div>
+
+    </form>
+</div>
+
+<script>
+    const fechaInput = document.getElementById('fecha_input');
+    const duracionSelect = document.getElementById('duracion_select');
+    const horarioSelect = document.getElementById('horario_select');
+    const tipoClaseSelect = document.getElementById('tipo_clase_select');
+    const salaSelect = document.getElementById('sala_select');
+    
+    // --- Configuración de fecha mínima ---
+    const hoy = new Date();
+    const mañana = new Date(hoy);
+    mañana.setDate(hoy.getDate() + 1); 
+
+    const yyyy = mañana.getFullYear();
+    const mm = String(mañana.getMonth() + 1).padStart(2, '0'); 
+    const dd = String(mañana.getDate()).padStart(2, '0');
+    
+    const fechaMinimaString = `${yyyy}-${mm}-${dd}`;
+    fechaInput.min = fechaMinimaString;
+
+    // Control de fines de semana interactivo
+    fechaInput.addEventListener('input', function() {
+        const fechaVal = this.value;
+        if (!fechaVal) return;
+
+        const fechaSeleccionada = new Date(fechaVal.replace(/-/g, '\/'));
+        const diaSemana = fechaSeleccionada.getDay(); 
+
+        if (diaSemana === 0 || diaSemana === 6) {
+            alert("El centro de rehabilitación solo atiende de lunes a viernes. Por favor, elegí un día hábil.");
+            this.value = ""; 
+            horarioSelect.disabled = true;
+            horarioSelect.innerHTML = '<option value="">Seleccione primero fecha y duración...</option>';
+        }
+    });
+
+    // Activación dinámica de la fecha al seleccionar la sala
+    salaSelect.addEventListener('change', function() {
+        if (this.value) {
+            fechaInput.disabled = false; 
+        } else {
+            fechaInput.disabled = true;
+            fechaInput.value = "";
+            horarioSelect.disabled = true;
+            horarioSelect.innerHTML = '<option value="">Seleccione fecha, sala y duración primero...</option>';
+        }
+    });
+
+    // Consulta al controlador los horarios libres mediante Fetch
+    async function actualizarHorariosDisponibles() {
+        const fecha = fechaInput.value;
+        const duracion = duracionSelect.value;
+        const sala = salaSelect.value; 
+        const tipo = tipoClaseSelect.value; 
+
+        if (!fecha || !sala) return; 
+
+        const fechaSeleccionada = new Date(fecha.replace(/-/g, '\/'));
+        const diaSemana = fechaSeleccionada.getDay(); 
+
+        if (diaSemana === 0 || diaSemana === 6) {
+            horarioSelect.disabled = true;
+            horarioSelect.innerHTML = '<option value="">Seleccione primero fecha y duración...</option>';
+            return; 
+        }
+
+        horarioSelect.disabled = true;
+        horarioSelect.innerHTML = '<option value="">Cargando horarios libres...</option>';
+
+        try {
+            const response = await fetch(`{{ url_for('clases.api_horarios_disponibles') }}?fecha=${fecha}&duracion=${duracion}&sala_id=${sala}&tipo=${tipo}`);
+            const horariosLibres = await response.json();
+
+            horarioSelect.innerHTML = ''; 
+
+            if (horariosLibres.length === 0) {
+                horarioSelect.innerHTML = '<option value="">No hay horarios libres en esta fecha</option>';
+            } else {
+                horariosLibres.forEach(hora => {
+                    const option = document.createElement('option');
+                    option.value = hora;
+                    option.textContent = `${hora} hs`;
+                    horarioSelect.appendChild(option);
+                });
+                horarioSelect.disabled = false; 
+            }
+        } catch (error) {
+            console.error("Error crítico de comunicación con la API del Core:", error);
+            horarioSelect.innerHTML = '<option value="">Error al conectar con la agenda</option>';
+        }
+    }
+
+    fechaInput.addEventListener('change', actualizarHorariosDisponibles);
+    duracionSelect.addEventListener('change', actualizarHorariosDisponibles);
+    salaSelect.addEventListener('change', actualizarHorariosDisponibles);
+    tipoClaseSelect.addEventListener('change', actualizarHorariosDisponibles);
+</script>
+{% endblock %}
