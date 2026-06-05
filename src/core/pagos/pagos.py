@@ -65,7 +65,7 @@ class Abono(Base):
     id_pago: Mapped[int] = mapped_column( ForeignKey("pagos.id"),nullable=False)
 
     dia_fijo: Mapped[int] = mapped_column(Integer, nullable=False)
-    fecha_inicio: Mapped[datetime] = mapped_column(DateTime,nullable=False, default=datetime.now(tz_arg).replace(tzinfo=None))
+    fecha_inicio: Mapped[datetime] = mapped_column(DateTime,nullable=False, default=lambda: datetime.now(tz_arg).replace(tzinfo=None))
     fecha_fin: Mapped[datetime] = mapped_column(DateTime,nullable=False)
 
     # Relationships:

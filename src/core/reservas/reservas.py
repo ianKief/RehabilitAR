@@ -12,6 +12,11 @@ class AsistenciaReserva(enum.Enum):
     PRESENTE = "presente"
     CANCELADA = "cancelada"
 
+class EstadoCola(enum.Enum):
+    CANCELADO = "cancelado"
+    EN_CURSO = "en_curso"
+    EN_RESERVA = "en_reserva"
+
 class Reserva(Base):
     __tablename__= "reserva"
 
@@ -86,8 +91,7 @@ class Cola(Base):
     id_clase: Mapped[int] = mapped_column(ForeignKey("clases.id"), nullable=False)
     id_cliente: Mapped[int] = mapped_column(ForeignKey("clientes.id"), nullable=False)
 
-    cancelada: Mapped[bool] = mapped_column(Boolean, nullable=True, default=False)
-    en_reserva: Mapped[bool] = mapped_column(Boolean, nullable=True, default=False)
+    estado: Mapped[EstadoCola] = mapped_column(Enum(EstadoCola), default=EstadoCola.EN_CURSO)
 
     # Relaciones
     clase: Mapped[list["Clase"]] = relationship(back_populates="colas")

@@ -77,6 +77,20 @@ class SeedListaDeEspera ():
         )
         self.db.session.add(clase_re_llena)
 
+        # Esto lo agrego porque si hago el test en jueves y viernes no puedo comprobar la condición luego :P
+        clase_re_llena2 = Clase(
+            nombre= "Clase con 9 esperas segunda edición",
+            especialidad= "Programación",
+            duracion=180,
+            sala = aula_re_llena,
+            descripcion = "Otorgamos una clase de 3 horas para 1 persona y 9 esperando para que nuestro cliente pueda ver el mail enviado al administrativo",
+            fecha_clase = datetime.now(tz_arg).replace(tzinfo=None).date() + timedelta(days=4),
+            horario = datetime.now(tz_arg).replace(tzinfo=None).time(),
+            aprobada = True,
+            tipo = "Individual"
+        )
+        self.db.session.add(clase_re_llena2)
+
         clase_que_se_da_cuando_otra_1 = Clase(
             nombre= "Clase asíncrona 1",
             especialidad= "Programación",
@@ -109,11 +123,24 @@ class SeedListaDeEspera ():
         )
         self.db.session.add(profesor_dicta_clase)
 
+        # idem
+        profesor_dicta_clase2 = ProfesorDictaClase (
+            id_profesor = profesor.id,
+            id_clase = clase_re_llena2.id
+        )
+        self.db.session.add(profesor_dicta_clase2)
+
         reserva = Reserva (
             id_cliente = 2,
             id_clase = clase_re_llena.id
         )
         self.db.session.add(reserva)
+
+        reserva2 = Reserva (
+            id_cliente = 2,
+            id_clase = clase_re_llena2.id
+        )
+        self.db.session.add(reserva2)
 
         print ("Generando clientes nuevos por si anteriores generados no son suficientes")
 
@@ -158,6 +185,11 @@ class SeedListaDeEspera ():
                 id_clase = clase_re_llena.id
             )
             self.db.session.add(nueva_cola)
+            nueva_cola2 = Cola (
+                id_cliente = cliente.id,
+                id_clase = clase_re_llena2.id
+            )
+            self.db.session.add(nueva_cola2)
             i+=1
             if (i == 9):
                 break
