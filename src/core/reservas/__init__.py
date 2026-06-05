@@ -114,11 +114,15 @@ def cancelar_cola_core(cola):
     cola.cancelada = True
     db.session.commit()
 
-def crear_reserva(id_cliente, id_clase):
+def crear_reserva(id_cliente, id_clase, session=None):
     """Crea y registra una nueva reserva con estado 'ausente' para el cliente y la clase indicados."""
     nueva_reserva = Reserva(id_cliente=id_cliente, id_clase=id_clase, asiste=AsistenciaReserva.AUSENTE)
-    db.session.add(nueva_reserva)
-    db.session.commit()
+    if session == None:
+        db.session.add(nueva_reserva)
+        db.session.commit()
+    else:
+        session.add(nueva_reserva)
+        session.flush()
     return nueva_reserva
 
 def crear_espera_en_cola (id_cliente, id_clase):

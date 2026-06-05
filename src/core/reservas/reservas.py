@@ -25,6 +25,7 @@ class Reserva(Base):
     clase: Mapped["Clase"] = relationship(back_populates="reservas")
     comentarios: Mapped[list["Comentario"]] = relationship(back_populates="reserva", cascade="all, delete-orphan")
     cancelaciones: Mapped[list["Cancelacion"]] = relationship(back_populates="reserva", cascade="all, delete-orphan")
+    detalle_pago: Mapped[list["DetallePago"]] = relationship(back_populates="reserva", cascade="all, delete-orphan")
 
     # Campos de auditoría
     fecha_creacion: Mapped[datetime] = mapped_column(

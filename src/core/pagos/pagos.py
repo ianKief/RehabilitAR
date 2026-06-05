@@ -42,12 +42,12 @@ class Pago (Base):
     beneficios = relationship("Beneficio", back_populates="pago")
     abono = relationship("Abono", back_populates="pago")
 
-
 class DetallePago (Base):
     __tablename__ = "detalle_pago"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     id_pago: Mapped[int] = mapped_column(ForeignKey("pagos.id"))
+    id_reserva: Mapped[int] = mapped_column(ForeignKey("reserva.id"))
 
     cantidad: Mapped[int] = mapped_column(Integer, nullable=False)
     precio_unitario: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -56,7 +56,7 @@ class DetallePago (Base):
     # Relationships
 
     pago = relationship("Pago", back_populates="detalle_pago")
-    detalle_pago_reserva = relationship("DetallePagoReserva", back_populates="detalle_pago")
+    reserva = relationship("Reserva", back_populates="detalle_pago")
 
 class Abono(Base):
     __tablename__ = "abonos"
@@ -65,29 +65,12 @@ class Abono(Base):
     id_pago: Mapped[int] = mapped_column( ForeignKey("pagos.id"),nullable=False)
 
     dia_fijo: Mapped[int] = mapped_column(Integer, nullable=False)
-    #TODO convertir en enum
     fecha_inicio: Mapped[datetime] = mapped_column(DateTime,nullable=False, default=datetime.now(tz_arg).replace(tzinfo=None))
     fecha_fin: Mapped[datetime] = mapped_column(DateTime,nullable=False)
 
     # Relationships:
+
     pago = relationship("Pago", back_populates="abono")
-
-
-
-
-
-# Tablas de conexión de Pago y Clase (para ambas categorías)
-
-class DetallePagoReserva (Base):
-    __tablename__ ="pago_clase"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    id_detalle_pago: Mapped[int] = mapped_column(ForeignKey("detalle_pago.id"))
-    id_reserva: Mapped[int] = mapped_column(ForeignKey("reserva.id"))
-
-    # Relationships:
-
-    detalle_pago = relationship("DetallePago", back_populates="detalle_pago_reserva")
 
 
 
@@ -115,6 +98,7 @@ class Beneficio (Base):
         nullable=False
     )
 
+    # Relationships
     pago = relationship("Pago", back_populates="beneficios")
 
     """NOTA: No se agrega fecha_modificación porque hay una sola razón por la que podría cambiar: se usó en un pago.

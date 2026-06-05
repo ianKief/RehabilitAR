@@ -141,7 +141,8 @@ def pago_ya_procesado(payment_id):
     pago = db.session.execute(stmt).scalar_one_or_none()
     return pago is not None
 
-def registrar_pago_abono_mensual(payment_id,id_cliente,monto):
+# TODO entonces estas son también sobras?
+def registrar_pago_abono_mensual(payment_id, id_cliente, monto):
     
     pago = Pago(
         payment_id=str(payment_id),
@@ -196,7 +197,7 @@ def consumir_descuentos(id_cliente, pago, limite, session=None):
             session.add(nuevo_beneficio)
             restante = 0
 
-def registrar_pago_desde_payment(payment_id,payment):
+def registrar_pago_desde_payment(payment_id, payment):
     monto = payment.get("transaction_amount")
     estado = payment.get("status")
 
@@ -280,6 +281,11 @@ def registrar_pago_desde_payment(payment_id,payment):
         )
 
         db.session.add(pago)
+
+
+        # 3. crear reserva REAL
+        reserva = crear_reserva(usuario_id, id_clase, session=db.session)
+
         db.session.flush()
 
         # 2. detalle
@@ -287,13 +293,10 @@ def registrar_pago_desde_payment(payment_id,payment):
             id_pago=pago.id,
             cantidad=1,
             precio_unitario=monto,
-            subtotal=monto
+            subtotal=monto,
+            reserva = reserva
         )
-
         db.session.add(detalle)
-
-        # 3. crear reserva REAL
-        crear_reserva(usuario_id, id_clase)
 
         db.session.commit()
 
@@ -331,6 +334,8 @@ def registrar_pago_desde_payment(payment_id,payment):
 
         return
     
+    # TODO ¿Qué se supone que significa este bloque? ¿Son sobras?
+
     # evitar duplicado
     if pago_ya_procesado(payment_id):
         print("Pago duplicado")
@@ -354,9 +359,10 @@ def registrar_pago_desde_payment(payment_id,payment):
     db.session.commit()
 
 def registrar_pago_con_credito (cliente, clase, precio):
+
     pago = Pago (
         id_cliente = cliente.id,
-        payment_id = "Crédito usado",
+        payment_id = f"Crédito {cliente.id} - {clase.id} usado",
         monto_total = 0,
         estado_pago = EstadoPago.PENDIENTE,
         concepto_pago = ConceptoPago.RESERVA,
@@ -369,20 +375,23 @@ def registrar_pago_con_credito (cliente, clase, precio):
     except:
         raise ValueError("El cliente no tiene un crédito habilitado")
         db.session.rollback()
-        
+    
+    try:
+        reserva = crear_reserva(cliente.id, clase.id, session=db.session)
+    except:
+        raise ValueError("Ha habido un problema al crear la reserva")
+        db.session.rollback()
+    
+    db.session.flush()
+
     detalle = DetallePago(
         id_pago=pago.id,
         cantidad=1,
         precio_unitario=precio,
-        subtotal=0
+        subtotal=0,
+        reserva = reserva
     )
     db.session.add(detalle)
-
-    try:
-        crear_reserva(cliente.id, clase.id)
-    except:
-        raise ValueError("Ha habido un problema al crear la reserva")
-        db.session.rollback()
 
     pago.estado_pago = EstadoPago.COMPLETADO
     db.session.commit()

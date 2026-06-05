@@ -3,7 +3,7 @@ from datetime import datetime, date, timedelta
 import json
 import urllib.request
 import os
-from src.core.pagos.pagos import DetallePago, ConceptoPago,EstadoPago,Pago
+
 from src.core.database import db
 from src.web.helpers.decorator import requiere_rol
 from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido

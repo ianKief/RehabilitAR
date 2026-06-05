@@ -125,8 +125,7 @@ def registrar_presente_alumno (dni_alumno):
     reserva_a_actualizar = db.session.scalars(query).one()
     if (reserva_a_actualizar.asiste != AsistenciaReserva.AUSENTE):
         print ("No deberíamos haber llegado acá.")
-        #TODO agregar excepción
-        return False
+        raise ValueError("Ya se ha registrado el presente del alumno") # Esta condición debería comprobarse antes, por ende nunca debería llegarse acá
     reserva_a_actualizar.asiste = AsistenciaReserva.PRESENTE
 
     db.session.commit()
