@@ -17,6 +17,12 @@ class EstadoCola(enum.Enum):
     EN_CURSO = "en_curso"
     EN_RESERVA = "en_reserva"
 
+class EstadoCancelacion(enum.Enum):
+    CORRESPONDE_ACREDITAR = "corresponde_acreditar" # Significa que las condiciones se dan para acreditar, lo que no impide calcular el tiempo. Si corresponde_acreditar es válida, entonces se chequear el tiempo. En dicho caso puede no acreditarse nada, y de paso marcarse como "ya_acreditado"
+    YA_ACREDITADO = "ya_acreditado"
+    NO_CORRESPONDE_ACREDITAR = "no_corresponde_acreditar" # No sé en qué situación se puede usar pero alguna va a surgir
+    CORRESPONDE_ACREDITAR_SIN_LIMITES = "corresponde_acreditar_sin_limites" # Usado cuando la reserva se cancela por motivos de fuerza mayor: cancelación de la clase, fin de semana inesperado, etc. Contempla la mayor devolución sin depender del tiempo. Si alguien tiene dudas preguntar a matias
+
 class Reserva(Base):
     __tablename__= "reserva"
 
@@ -66,11 +72,11 @@ class Cancelacion(Base):
     id_reserva: Mapped[int] = mapped_column(ForeignKey("reserva.id"))
 
     descripcion: Mapped[str] = mapped_column(String(255), nullable=True)
-    acredito_devolucion_previamente: Mapped[Boolean] = mapped_column(Boolean, nullable=False, default=False)
-    # La variable de arriba dice 
+    estado: Mapped[EstadoCancelacion] = mapped_column(Enum(EstadoCancelacion), default=EstadoCancelacion.CORRESPONDE_ACREDITAR, nullable=True)
 
     # Relaciones:
     reserva: Mapped["Reserva"] = relationship(back_populates="cancelaciones")
+    
     # NOTA: al obtener una cancelación, procurar que sea la última registrada, dado que el sistema y el dominio no impiden que haya varias (de hecho, gracias a la política de reactivación de cancelaciones pareciera que es posible cancelar dos veces una misma clase)
 
     # Campos de auditoría

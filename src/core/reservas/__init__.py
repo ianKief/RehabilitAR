@@ -4,7 +4,7 @@ from sqlalchemy.orm import contains_eager
 from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
 
-from src.core.reservas.reservas import Reserva, AsistenciaReserva, Cola, Cancelacion, EstadoCola
+from src.core.reservas.reservas import Reserva, AsistenciaReserva, Cola, Cancelacion, EstadoCola, EstadoCancelacion
 from datetime import date, timedelta, datetime
 import calendar
 from src.core.salas.salas import Sala
@@ -107,7 +107,7 @@ def cancelar_reserva_core(reserva):
     nueva_cancelacion = Cancelacion (
         descripcion = "El cliente ha cancelado la reserva",
         reserva = reserva,
-        acredito_devolucion_previamente = False
+        estado = EstadoCancelacion.CORRESPONDE_ACREDITAR
     )
     db.session.add(nueva_cancelacion)
     if hay_cola (obtener_clase_por_id(reserva.id_clase)):
