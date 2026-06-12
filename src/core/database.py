@@ -1,6 +1,6 @@
 from flask_sqlalchemy_lite import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
-
+from sqlalchemy import text
 
 
 db = SQLAlchemy()
@@ -23,7 +23,10 @@ def reset_db():
     
     """Reinicia la base de datos eliminando todas las tablas y volviéndolas a crear."""
     print("Reiniciando la base de datos...")
-    Base.metadata.drop_all(bind=db.engine)
+    with db.engine.connect() as conn:
+        conn.execute(text("DROP SCHEMA public CASCADE;"))
+        conn.execute(text("CREATE SCHEMA public;"))
+        conn.commit()
     Base.metadata.create_all(bind=db.engine)
     print("Base de datos reiniciada.")
 
