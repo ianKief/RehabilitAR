@@ -155,7 +155,12 @@ def crear_clase_post():
     )
 
     if exito:
-        flash('Clase(s) programada(s) con éxito para el mes en curso.', 'success')
+        if (tipo_clase == "Individual"):
+            flash("Clase individual creada con éxito", "success")
+        elif (tipo_clase == "Fija"):
+            flash("Clase fija creada con éxito. Se han creado instancias de la clase hasta final del mes", "success")
+        else:
+            flash('Clase(s) programada(s) con éxito para el mes en curso.', 'success')
     else:
         flash('No se pudieron programar clases (las fechas calculadas ya pasaron).', 'warning')
 
@@ -279,7 +284,7 @@ def postularse():
             db.session.add(nueva_postulacion)
         
         db.session.commit()
-        flash("¡Postulación enviada con éxito para todo el bloque!", "success")
+        flash("Usted fue asignado correctamente, puede ver sus clases en la seccion 'Mis clases'.", "success")
 
     except Exception as e:
         db.session.rollback()
