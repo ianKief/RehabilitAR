@@ -67,11 +67,11 @@
 
             <!-- Botón: Generar QR (Destacado con gradiente) -->
             <div class="column is-12-mobile is-4-tablet">
-                <a class="box action-tile qr-tile is-flex is-flex-direction-column is-align-items-center is-justify-content-center h-100">
+                <a href="{{ url_for('profesor.mostrar_qr', id=clase_actual.id) }}" class="box action-tile qr-tile is-flex is-flex-direction-column is-align-items-center is-justify-content-center h-100">
                     <span class="icon is-large has-text-white mb-3">
                         <i class="fas fa-qrcode fa-2x"></i>
                     </span>
-                    <span class="has-text-weight-semibold is-size-6 has-text-white has-text-centered">Generar QR (proximamente)</span>
+                    <span class="has-text-weight-semibold is-size-6 has-text-white has-text-centered">Generar QR</span>
                 </a>
             </div>
 

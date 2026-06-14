@@ -7,6 +7,7 @@ from src.web.controllers.profesor.listado_alumnos import consultar_listado_alumn
 from src.web.controllers.profesor.perfil_alumno import cargar_perfil_alumno
 from src.web.controllers.profesor.subir_comentario import subir_comentario_a_alumnoXclase
 from src.web.controllers.profesor.ver_asistencias import ver_comentarios_y_asistencias
+from src.web.controllers.profesor.mostrar_qr import mostrar_qr_en_pantalla
 
 profesor_bp = Blueprint('profesor', __name__, url_prefix="/profesor")
 
@@ -39,3 +40,8 @@ def subir_comentario (dni):
 @requiere_rol(["PROFESOR"])
 def ver_asistencias ():
     return ver_comentarios_y_asistencias ()
+
+@profesor_bp.route("/clase/<int:id>/qr")
+@requiere_rol(["PROFESOR"])
+def mostrar_qr (id):
+    return mostrar_qr_en_pantalla (id)
