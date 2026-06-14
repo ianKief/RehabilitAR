@@ -22,9 +22,14 @@ def mostrar_qr_en_pantalla(id_clase):
         abort(404)
     
     # Si no existe el QR, lo crea
+    # Sinceramente, no sé si se puede generar 2 tokens iguales. Debería dar excepción en dicho caso porque token_qr es unique. Para esos casos prefiero que el profesor lo genere de vuelta para no hacer loops innecesarios. Al ser algo técnico, no lo voy a considerar para la HU.
     if clase.token_qr is None:
-        clase.token_qr = (secrets.token_urlsafe(32))
-        db.session.commit()
+        try:
+            clase.token_qr = (secrets.token_urlsafe(32))
+            db.session.commit()
+        except:
+            flash ("Ha habido un error el enlace. Pruebe nuevamente")
+            return redirect(url_for("Profesor.index_profesor"))
     url = (
         devolver_enlace_absoluto_actual()
         + url_for(
