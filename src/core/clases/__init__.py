@@ -561,10 +561,13 @@ def conseguir_clase_actual (id_profesor):
     Profesor = aliased(Usuario)
     
     query = (
-        db.session.query(Clase, func.count(
-            Reserva.id
-        ).label("reservas_totales"), func.coalesce(
+        db.session.query(Clase, func.coalesce(
             func.sum(case(
+                (Reserva.asiste != AsistenciaReserva.CANCELADA, 1),
+                else_=0
+            )), 0
+        ).label("reservas_totales"),
+            func.coalesce(func.sum(case(
                 (Reserva.asiste == AsistenciaReserva.PRESENTE, 1),
                 else_=0
             )), 0
