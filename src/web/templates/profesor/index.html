@@ -65,9 +65,9 @@
                 </a>
             </div>
 
-            <!-- Botón: Generar QR (Destacado con gradiente) -->
+            <!--Botón: Generar QR-->
             <div class="column is-12-mobile is-4-tablet">
-                <a href="{{ url_for('profesor.mostrar_qr', id=clase_actual.id) }}" class="box action-tile qr-tile is-flex is-flex-direction-column is-align-items-center is-justify-content-center h-100">
+                <a href="javascript:void(0);" id="btn-open-qr" data-url="{{ url_for('profesor.mostrar_qr', id=clase_actual.id) }}" class="box action-tile qr-tile is-flex is-flex-direction-column is-align-items-center is-justify-content-center h-100">
                     <span class="icon is-large has-text-white mb-3">
                         <i class="fas fa-qrcode fa-2x"></i>
                     </span>
@@ -110,7 +110,68 @@
         </a>
     </div>
 
+    <!--Popup QR-->
+    <div class="modal" id="qr-modal">
+        <div class="modal-background"></div>
+
+        <div class="modal-content">
+            <div class="box has-text-centered px-6 py-6">
+                <h3 class="title is-4 mb-5">Código QR de Asistencia</h3>
+                
+                <figure class="image is-inline-block mb-4" style="min-height: 250px;">
+                    <img id="qr-image" src="" alt="Código QR" style="border-radius: 8px;">
+                </figure>
+                
+                <p class="has-text-grey mb-5">Los alumnos pueden escanear este código desde sus dispositivos para registrar el presente.</p>
+                
+                <button class="button is-info is-outlined id-close-btn">Entendido</button>
+            </div>
+        </div>
+        
+        <button class="modal-close is-large" aria-label="close"></button>
+    </div>
+
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Referencias a los elementos del DOM
+    const btnOpenQr = document.getElementById('btn-open-qr');
+    const modal = document.getElementById('qr-modal');
+    const modalBackground = modal.querySelector('.modal-background');
+    const modalClose = modal.querySelector('.modal-close');
+    const btnCloseInternal = modal.querySelector('.id-close-btn');
+    const qrImage = document.getElementById('qr-image');
+
+    // Función para abrir el modal
+    if (btnOpenQr) {
+        btnOpenQr.addEventListener('click', () => {
+            // Obtenemos la URL de la ruta de Flask desde el botón
+            const qrUrl = btnOpenQr.getAttribute('data-url');
+            
+            // Le asignamos la URL al <img>. 
+            // Añadimos un timestamp (?t=...) para evitar que el navegador guarde la imagen en caché 
+            // si es que el QR se regenera constantemente con datos nuevos.
+            qrImage.src = qrUrl + "?t=" + new Date().getTime();
+            
+            // Bulma muestra los modales agregándoles la clase 'is-active'
+            modal.classList.add('is-active');
+        });
+    }
+
+    // Función para cerrar el modal
+    const closeModal = () => {
+        modal.classList.remove('is-active');
+        // Limpiamos el src medio segundo después para que no quede en memoria
+        setTimeout(() => { qrImage.src = ''; }, 500);
+    };
+
+    // Asignar el cierre a los diferentes botones/fondos
+    if (modalBackground) modalBackground.addEventListener('click', closeModal);
+    if (modalClose) modalClose.addEventListener('click', closeModal);
+    if (btnCloseInternal) btnCloseInternal.addEventListener('click', closeModal);
+});
+</script>
 
 <!-- BLOQUE DE ESTILOS -->
 <style>
