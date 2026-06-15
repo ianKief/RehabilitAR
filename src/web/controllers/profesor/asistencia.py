@@ -7,6 +7,10 @@ from src.core.asistencias import registrar_presente_alumno, alumno_tiene_asisten
 
 asistencia_bp = Blueprint('asistencia', __name__, url_prefix="/asistencia")
 
+    # estado_actual = 'exito'
+    # estado_actual = 'duplicado'
+    # estado_actual = 'no_pertenece'
+    # estado_actual = 'suspendido'
 @asistencia_bp.route("/qr/<token>")
 @requiere_rol(["CLIENTE"])
 def registrar_asistencia_qr(token):
@@ -25,24 +29,19 @@ def registrar_asistencia_qr(token):
     try:
         reserva = obtener_reserva (id_cliente, clase.id)
         if reserva == None:
-            flash ("No se tiene una reserva para la clase seleccionada", "warning")
-            return redirect(url_for("home"))
+            return render_template('profesor/resultado_qr.html', estado='no_pertenece')
         if reserva.asiste == AsistenciaReserva.CANCELADA:
-            flash ("La reserva actual se encuentra cancelada. Para más información por favor comuníquese con el administrativo", "warning")
-            return redirect(url_for("home"))
+            return render_template('profesor/resultado_qr.html', estado='suspendido')
     except:
-        flash ("No se ha podido verificar que el cliente pertenece a la clase", "warning")
-        return redirect(url_for("home"))
+        return render_template('profesor/resultado_qr.html', estado='no_pertenece')
 
     # Comprobación 4: el alumno aún no tiene la asistencia de su clase
     estado_asistencia_alumno = alumno_tiene_asistencia (id_alumno=id_cliente)
     if estado_asistencia_alumno == AsistenciaReserva.PRESENTE:
-        flash ("El alumno ya tiene su asistencia marcada", "success")
-        return redirect(url_for("home"))
+        return render_template('profesor/resultado_qr.html', estado='duplicado')
+
 
     registrar_presente_alumno (id_alumno=id_cliente)
     db.session.commit()
 
-    flash ("Se ha registrado la asistencia con éxito", "success")
-    return redirect(url_for("home"))
-    # TODO agregar una página como la gente
+    return render_template('profesor/resultado_qr.html', estado='exito')
