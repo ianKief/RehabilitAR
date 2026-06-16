@@ -3,10 +3,9 @@
 {% block title %}Sala {{ sala.numero_puerta }} | Rehabilitar{% endblock %}
 
 {% block content %}
-<section class="section">
-    <div class="container">
-        <div class="columns is-centered">
-            <div class="column is-8">
+<div class="columns">
+    <div class="column is-full">
+        <div class="box">
                 
                 <!-- Título principal -->
                 <div class="block mb-5">
@@ -35,9 +34,8 @@
                     </ul>
                 </div>
 
-                <div class="box">
-                    <!-- DATOS -->
-                    <div id="contenido-datos">
+                <!-- DATOS -->
+                <div id="contenido-datos">
                         <div class="columns is-multiline">
                             <div class="column is-half">
                                 <div class="field">
@@ -102,7 +100,6 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
 
                 <!-- Botonera -->
                 <div class="buttons is-right mt-4">
@@ -110,10 +107,9 @@
                     <a href="{{ url_for('salas.editar_sala', id=sala.id) }}" class="button is-warning">Editar Sala</a>
                 </div>
 
-            </div>
         </div>
     </div>
-</section>
+</div>
 
 <script>
 function cambiarPestana(pestana) {
