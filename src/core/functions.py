@@ -4,11 +4,11 @@ from src.core.pagos import Pago, ConceptoPago
 
 def filtro_clase_actual ():
     """Devuelve dos filtros para filtrar que actualmente está sucediendo una clase. Para usar, hacer .filter(*filtro_clase_actual())"""
-    
+    fecha_actual = devolver_fecha_actual()
     hora_actual = devolver_hora_actual()
 
     return [
-        func.current_date() == Clase.fecha_clase,
+        fecha_actual == Clase.fecha_clase,
 
         hora_actual > Clase.horario,
 

@@ -3,7 +3,7 @@ from sqlalchemy.orm import joinedload, selectinload, contains_eager, aliased
 from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reservas.reservas import Comentario, Reserva, AsistenciaReserva
-from src.core.usuarios.usuarios import Usuario, RolUsuario, Cliente
+from src.core.usuarios.usuarios import Usuario, RolUsuario, Cliente, Profesor
 
 from src.core.functions import filtro_clase_actual
 
@@ -37,9 +37,6 @@ def alumno_tiene_asistencia (dni_alumno=None, id_alumno=None):
 def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos', fecha="", solo_comentarios=False):
     """Devuelve todas las asistencias basado en una serie de filtros. Si no encuentra nada, devuelve una lista vacía"""
 
-    Profesor = aliased(Usuario)
-    Cliente = aliased(Usuario)
-
     # Inicializaciones necesarias
     filters = []
     cliente_filtrado = False
@@ -60,27 +57,47 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
     if (fecha != ""):
         filters.append(fecha == Clase.fecha_clase)
 
+    if solo_comentarios:
+        reservas_faltantes_sin_comentarios = []
+    else:
+        reservas_faltantes_sin_comentarios = (
+            db.session.query(Reserva.id)
+            .join(Clase, Clase.id == Reserva.id_clase)
+            .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
+                        
+            .filter(ProfesorDictaClase.id_profesor == id_profesor)
+            .filter(Reserva.asiste == AsistenciaReserva.AUSENTE)
+            .filter(*filtro_clase_actual())
+            .filter(~Reserva.comentarios.any()) 
+            
+            .subquery()
+        )
+    
     # query en sí
     query = (
         db.session.query(Reserva)
 
         .join(Clase, Clase.id == Reserva.id_clase)
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
-        .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
         .join(Cliente, Reserva.id_cliente == Cliente.id)
 
-        .filter(Profesor.id == id_profesor)
-        .filter(Profesor.rol == RolUsuario.PROFESOR)
+        .filter(ProfesorDictaClase.id_profesor == id_profesor)
         .filter(Reserva.asiste != AsistenciaReserva.CANCELADA)
+
         .filter(*filters)
+
+        # filtramos los alumnos que no tienen comentarios y están ausentes, dado que son alumnos que aún no llegaron
+
+        .filter(Reserva.id.notin_(reservas_faltantes_sin_comentarios))
 
         .order_by(Reserva.fecha_modificacion.desc())
     )
 
-    if solo_comentarios or busqueda != "":
+    if solo_comentarios:
         query = query.join(Comentario, Comentario.id_reserva == Reserva.id)
     else:
         query = query.outerjoin(Comentario, Comentario.id_reserva == Reserva.id)
+
 
     if cliente_filtrado:
         query = query.options(
