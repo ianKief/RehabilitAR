@@ -319,16 +319,15 @@ def registrar_pago_desde_payment(payment_id, payment):
             id_cliente=usuario_id,
             monto_total=monto,
             estado_pago=EstadoPago.COMPLETADO,
-            concepto_pago=ConceptoPago.RESERVA
+            concepto_pago=ConceptoPago.RESERVA # Agregar otro concepto de pago para las colas
         )
         db.session.add(pago)
 
-        # TODO fijate acá: no se crea ni un abono ni un detallepago. Eso se debe a que cola no tiene una referencia particular que se pueda consultar al chequear los pagos.
+        # TODO Poner conexión de pago a cola aquí
     
         crear_espera_en_cola (usuario_id, id_clase)
         db.session.commit()
 
-        # Esto queda fuera de la session porque no afectan al funcionamiento atómico del pago (no voy a cancelar el pago porque no pude enviar correo al admin -_-)
         clase = db.session.query(Clase).filter(Clase.id == id_clase).first()
         if comprobar_alta_demanda (clase):
             informar_alta_demanda (clase)

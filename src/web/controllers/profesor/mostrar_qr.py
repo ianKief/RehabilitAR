@@ -46,4 +46,3 @@ def mostrar_qr_en_pantalla(id_clase):
         buffer,
         mimetype="image/png"
     )
-    # TODO agregar una forma más linda de conseguir la imagen (devolverla en otra página, popup. Evaluar)
