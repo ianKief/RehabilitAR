@@ -15,7 +15,7 @@ class Sala(Base):
     __tablename__ = "salas"
     
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    numero_puerta: Mapped[str] = mapped_column(String(50), nullable=False)
+    numero_puerta: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     descripcion: Mapped[str] = mapped_column(String(255), nullable=True)
     capacidad: Mapped[int] = mapped_column(Integer, nullable=False)
     estado: Mapped[EstadoSala] = mapped_column(Enum(EstadoSala), default=EstadoSala.HABILITADA, nullable=False)

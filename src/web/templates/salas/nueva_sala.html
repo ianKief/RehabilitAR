@@ -3,8 +3,8 @@
 {% block title %}Agregar Sala | RehabilitAR{% endblock %}
 
 {% block content %}
-<div class="columns is-centered">
-    <div class="column is-8">
+<div class="columns">
+    <div class="column is-full">
         <div class="box">
             <div class="block mb-5">
                 <h1 class="title is-3">
@@ -49,15 +49,11 @@
                             <label class="label">Descripción</label>
                             <div class="control">
                                 <textarea class="textarea {% if datos is not none and not datos.descripcion %}is-danger{% endif %}" 
-                                          name="descripcion" rows="4" placeholder="Detalles de la sala..." required>{{ datos.descripcion if datos else '' }}</textarea>
+                                          name="descripcion" rows="4" placeholder="Detalles de la sala...">{{ datos.descripcion if datos else '' }}</textarea>
                             </div>
-                            {% if datos is not none and not datos.descripcion %}
-                            <p class="help is-danger">Este campo es obligatorio.</p>
-                            {% endif %}
                         </div>
                     </div>
                 </div>
-
                 <div class="buttons is-right mt-5">
                     <a href="/salas" class="button is-light">Cancelar</a>
                     <button type="submit" class="button is-primary">Guardar</button>
