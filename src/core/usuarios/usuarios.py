@@ -102,6 +102,7 @@ class Usuario(Base):
 class Cliente(Usuario):
     __tablename__ = "clientes"
     id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), primary_key=True)
+    fecha_ultima_verificacion: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     # Relaciones
     apto_fisico: Mapped["AptoFisico"] = relationship(back_populates="cliente", uselist=False, cascade="all, delete-orphan")
