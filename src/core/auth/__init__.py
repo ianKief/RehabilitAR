@@ -88,14 +88,25 @@ def login(email, password):
     # Si pasó todas las validaciones, se loguea exitosamente y se resetean los intentos de login
     usuario.intentos_login = 0
     usuario.bloqueado_hasta = None
-    db.session.commit()        
 
-    codigo_verificacion = str(random.randint(100000, 999999))
-    tiempo_expiracion = datetime.now() + timedelta(minutes=15)
+    necesita_verificacion = True
+    if usuario.rol == RolUsuario.CLIENTE:
+        fecha_ult = getattr(usuario, "fecha_ultima_verificacion", None)
+        if fecha_ult and datetime.now() <= fecha_ult +timedelta(days=30):
+            necesita_verificacion = False
+    
+    if necesita_verificacion:
+        codigo_verificacion = str(random.randint(100000, 999999))
+        tiempo_expiracion = datetime.now() + timedelta(minutes=15)
 
-    usuario.codigo_verificacion = codigo_verificacion
-    usuario.codigo_verificacion_expira = tiempo_expiracion
-    usuario.intentos_codigo = 0
+        usuario.codigo_verificacion = codigo_verificacion
+        usuario.codigo_verificacion_expira = tiempo_expiracion
+        usuario.intentos_codigo = 0
+    else:
+        usuario.codigo_verificacion = None
+        usuario.codigo_verificacion_expira = None
+
+    db.session.commit()
 
     db.session.flush()
 
@@ -133,6 +144,9 @@ def confirmar_codigo(user_id, codigo_ingresado):
     usuario.codigo_verificacion_expira = None
     usuario.intentos_codigo = 0
     usuario.estado = EstadoUsuario.ACTIVO
+
+    if usuario.rol == RolUsuario.CLIENTE:
+        usuario.fecha_ultima_verificacion = datetime.now()
 
     db.session.commit()
 
