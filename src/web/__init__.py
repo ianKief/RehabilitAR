@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request,render_template,session
+from flask import Flask, request,render_template,session, request
 from flask_mail import Mail
 from src.web.config import config
 from src.core.database import init_db, reset_db, seed_db, seed_db_admin
@@ -40,6 +40,7 @@ def create_app():
     from src.web.controllers.pagos import bp as pagos_bp
     from src.web.controllers.contratar_abono import bp as contratar_abono_bp
     from src.web.controllers.profesor.asistencia import asistencia_bp
+    from src.web.controllers.notificaciones import bp as notificaciones_bp
 
     app.register_blueprint(salas_bp)
     app.register_blueprint (profesor_bp)
@@ -50,6 +51,7 @@ def create_app():
     app.register_blueprint(pagos_bp)
     app.register_blueprint(contratar_abono_bp)
     app.register_blueprint(asistencia_bp)
+    app.register_blueprint(notificaciones_bp)
 
     # Registrar CLI commands
     @app.cli.command("reset-db")
@@ -66,6 +68,25 @@ def create_app():
     def seed_db_admin_command():
         """Pobla la base de datos con unicamente un admin de prueba."""
         seed_db_admin()
+
+    @app.context_processor
+    def notificaciones():
+        from src.core.notificaciones import obtener_notificaciones_del_usuario, contar_notificaciones_no_leidas
+        current_user_id = session.get('usuario_id')
+        # Solo buscamos notificaciones si el usuario inició sesión
+        if current_user_id != None:
+            # Aquí llamas a tus funciones de base de datos
+            notificaciones = obtener_notificaciones_del_usuario(current_user_id)
+            unread_count = contar_notificaciones_no_leidas(current_user_id)
+            
+            # Retornas un diccionario con las variables que Jinja necesita
+            return dict(
+                notificaciones=notificaciones,
+                unread_count=unread_count
+            )
+        
+        # Si no está logueado, enviamos datos vacíos para que no falle el HTML
+        return dict(notificaciones=[], unread_count=0)
 
     # Registrar manejadores de errores
     app.register_error_handler(404, error.not_found)

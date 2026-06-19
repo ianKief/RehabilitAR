@@ -76,6 +76,8 @@ class Usuario(Base):
 
     intentos_login: Mapped[int] = mapped_column(Integer, default=0, nullable=True)
     bloqueado_hasta: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+
+    notificaciones: Mapped[list["Notificacion"]] = relationship("Notificacion", back_populates="usuario")
     
     fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),

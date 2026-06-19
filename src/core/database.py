@@ -17,6 +17,8 @@ class Base(DeclarativeBase):
 def reset_db():
     from src.core.salas import Sala
     from src.core.clases.clases import Clase, ProfesorDictaClase
+    from src.core.notificaciones.notificaciones import Notificacion
+    print(Notificacion)
     from src.core.usuarios import Usuario
     from src.core.reservas.reservas import Reserva, Comentario
     from src.core.pagos.pagos import Pago, DetallePago, Beneficio, PrecioClase, Abono
@@ -44,6 +46,7 @@ def seed_db():
     from src.core.seeds.sprint1_5 import SeedPagosSprint1
     from src.core.seeds.sprint1_8 import SeedAsistenciaYSeguimientoSprint1
     from src.core.seeds.sprint1_9 import SeedListaDeEspera
+    from src.core.seeds.notificaciones_seeds import NotificacionesSeeder
 
     # Definimos el orden lógico de ejecución de los seeders
     seeders = [
@@ -57,6 +60,7 @@ def seed_db():
         SeedPagosSprint1(db),
         SeedAsistenciaYSeguimientoSprint1(db),
         SeedListaDeEspera (db),
+        NotificacionesSeeder (db)
     ]
 
     for seeder in seeders:
