@@ -38,11 +38,6 @@ def registrar_asistencia_manual ():
         if not es_dni(dni_alumno):
             flash ("El dato ingresado no es un DNI", "warning")
             return render_template('profesor/presente_manual.html')
-
-        # Comprobación 3: el profesor está logeado [EN INSTANCIA]
-        # COMPROBAR LOGIN
-        #   flash('El profesor no está logueado', 'warning')
-        #   return redirect(url_for('home'))
         
         # Comprobación 4: el profesor está en una clase [EN BD]
         if not profesor_está_en_clase (id_profesor):
@@ -54,7 +49,7 @@ def registrar_asistencia_manual ():
             flash ("El DNI del alumno no corresponde a la clase del profesor o no existe", "warning")
             return render_template('profesor/presente_manual.html')
 
-        estado_asistencia_alumno = alumno_tiene_asistencia (dni_alumno)
+        estado_asistencia_alumno = alumno_tiene_asistencia (dni_alumno=dni_alumno)
 
         # Comprobación 5.5: caso que no debería existir porque se asume que es el único alumno perteneciente a la clase y que se va a conseguir True o False
         if estado_asistencia_alumno == None:
@@ -70,7 +65,7 @@ def registrar_asistencia_manual ():
             flash ("El DNI del alumno no corresponde a la clase del profesor o no existe", "warning")
             return render_template('profesor/presente_manual.html')
         
-        exito = registrar_presente_alumno (dni_alumno)
+        exito = registrar_presente_alumno (dni_alumno=dni_alumno)
 
         if not exito:
             flash ('Ha ocurrido un error inesperado', 'danger')

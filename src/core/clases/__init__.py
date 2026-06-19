@@ -561,19 +561,23 @@ def conseguir_clase_actual (id_profesor):
     Profesor = aliased(Usuario)
     
     query = (
-        db.session.query(Clase, func.count(
-            Reserva.id
-        ).label("reservas_totales"), func.coalesce(
-            func.sum(case(
-                (Reserva.asiste == AsistenciaReserva.PRESENTE, 1),
-                else_=0
-            )), 0
-        ).label("asistencias_actuales"))
+        db.session.query(Clase, func.coalesce(
+                func.sum(case(
+                    (Reserva.asiste != AsistenciaReserva.CANCELADA, 1),
+                    else_=0
+                )), 0
+            ).label("reservas_totales"),
+            func.coalesce
+                (func.sum(case(
+                    (Reserva.asiste == AsistenciaReserva.PRESENTE, 1),
+                    else_=0
+                )), 0
+            ).label("asistencias_actuales")
+        )
 
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
         .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
-        # Las reglas de negocio no permiten que se de una clase sin alumnos, pero, dado el caso, outerjoin prepara el escenario
-        .outerjoin(Reserva, Reserva.id_clase == Clase.id)
+        .join(Reserva, Reserva.id_clase == Clase.id)
 
         .filter(Profesor.id == id_profesor)
         .filter(Profesor.rol == RolUsuario.PROFESOR)
@@ -581,6 +585,7 @@ def conseguir_clase_actual (id_profesor):
 
         .group_by(Clase.id)
     )
+    print (db.session.execute(query).one_or_none())
 
     return db.session.execute(query).one_or_none()
 
@@ -627,3 +632,12 @@ def comprobar_alta_demanda (clase):
         db.session.commit()
         return True
     return False
+
+def tiene_qr (clase_actual):
+    query = (db.session.query(Clase)
+        .filter (Clase.id == clase_actual.id)
+        .filter (Clase.token_qr != None)
+    )
+    return db.session.query(
+        query.exists()
+    ).scalar()

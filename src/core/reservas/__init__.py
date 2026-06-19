@@ -262,17 +262,6 @@ def procesar_reservas_mensuales_automatica(id_cliente, clases_a_reservar):
         db.session.commit()
     return reservas_creadas
 
-# TODO sobras?
-def cancelar_cola (id_cliente, id_clase):
-    from src.core.usuarios.usuarios import Cliente
-    """Cancela la cola, primero obteniéndola vía id_cliente y id_clase. Fuera de operación actualmente"""
-    cola = obtener_cola(id_cliente, id_clase)
-    if not cola:
-        raise ValueError("No se ha podido encontrar la cola")
-    
-    cola.estado = EstadoCola.CANCELADO
-    db.session.commit()
-
 def obtener_reservas_cliente(id_cliente):
     """
     Retorna las reservas de un cliente específico, ordenadas por fecha y hora.
