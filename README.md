@@ -27,6 +27,8 @@ Repositorio para el proyecto "RehabilitAR" de la materia Ingeniería de Software
 - psycopg2-binary
 - flask-sqlalchemy-lite
 - tzdata
+- pillow
+- qrcode
 
 ## Dependencias de desarrollo
 
