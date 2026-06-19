@@ -632,3 +632,12 @@ def comprobar_alta_demanda (clase):
         db.session.commit()
         return True
     return False
+
+def tiene_qr (clase_actual):
+    query = (db.session.query(Clase)
+        .filter (Clase.id == clase_actual.id)
+        .filter (Clase.token_qr != None)
+    )
+    return db.session.query(
+        query.exists()
+    ).scalar()
