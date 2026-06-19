@@ -146,10 +146,12 @@ def login():
             usuario = login_core(email, password)
 
             # Bypass de verificación de dos pasos para las cuentas de prueba
-            if usuario.email in correos_bypass():
-                usuario.codigo_verificacion = None
-                usuario.codigo_verificacion_expira = None
-                db.session.commit()
+            if usuario.email in correos_bypass() or not usuario.codigo_verificacion:
+                if usuario.email in correos_bypass():
+                    usuario.codigo_verificacion = None
+                    usuario.codigo_verificacion_expira = None
+                    db.session.commit()
+                    
                 session.permanent = True
                 session['usuario_id'] = usuario.id
                 session['rol'] = usuario.rol.name
