@@ -1,16 +1,18 @@
-from flask import Blueprint, request, current_app, redirect, flash, url_for, session, render_template
+from flask import Blueprint, request, current_app, redirect, flash, url_for, session, render_template, jsonify
+from src.web.helpers.decorator import requiere_rol
 
-bp = Blueprint("notificaciones", __name__)
+from src.core.notificaciones import core_marcar_como_leido
+bp = Blueprint("notificaciones", __name__, url_prefix="/notificaciones")
 
-#ruta que procesa la contratación de un nuevo abono
-@bp.route("/listar_notificaciones", methods=["POST"])
 # Poner acá comprobación de USUARIO
-def listar_notificaciones():
-    # mis_notificaciones = Usuario.obtener_notificaciones() 
-    # cantidad_no_leidas = Usuario.obtener_conteo_no_leidas()
+@bp.route("/<id_notificacion>/marcar_como_leido", methods=["POST"])
+def marcar_como_leido(id_notificacion):
+    id_usuario = session.get("usuario_id")
+    print ("Pasé por acá")
+    try:
+        core_marcar_como_leido(id_usuario, id_notificacion)
+    except ValueError as e:
+        flash (str(e), "warning")
+        return jsonify({})
+    return jsonify({"status": "success", "message": "Notificación leída"})
 
-    return render_template(
-        'tu_plantilla.html'
-        # notificaciones=mis_notificaciones,  # <-- Lista de diccionarios u objetos
-        # unread_count=cantidad_no_leidas     # <-- Número entero
-    )

@@ -105,7 +105,7 @@
                                 <span class="has-text-weight-medium">Notificaciones</span>
                             </div>
                             {% if unread_count and unread_count > 0 %}
-                            <span class="tag is-danger is-rounded has-text-weight-bold">{{ unread_count }}</span>
+                            <span class="tag is-danger is-rounded has-text-weight-bold" id="count_mobile">{{ unread_count }}</span>
                             {% endif %}
                         </a>
 
@@ -126,9 +126,9 @@
                                         <div class="icon is-medium has-text-info mr-3 mt-1"><i class="{{ notif.icono | default('fas fa-circle') }}"></i></div>
                                         <div class="notification-content is-flex-grow-1">
                                             <p class="has-text-weight-semibold is-size-6 mb-0">{{ notif.titulo }}</p>
-                                            <p class="is-size-7 has-text-grey mb-1">{{ notif.contenido }}</p>
+                                            <p class="is-size-7 has-text-grey mb-1 truncate-1-line">{{ notif.contenido }}</p>
                                         </div>
-                                        {% if not notif.leida %}<div class="unread-dot ml-2 mt-2"></div>{% endif %}
+                                        {% if not notif.leida %}<a class="unread-dot ml-2 mt-2" href="{{ 'url_for(notificaciones.marcar_como_leido, id_notificacion=notif.id)'}}"></a>{% endif %}
                                         <!--OJO-->
                                     </a>
                                 {% else %}
@@ -173,7 +173,7 @@
                                     <button class="button is-ghost notification-bell js-pc-bell-trigger" aria-label="Notificaciones">
                                         <span class="icon is-medium has-text-grey-dark"><i class="fas fa-bell fa-lg"></i></span>
                                         {% if unread_count and unread_count > 0 %}
-                                        <span class="notification-badge">{{ unread_count }}</span>
+                                        <span class="notification-badge" id="count_desktop">{{ unread_count }}</span>
                                         {% endif %}
                                     </button>
 
@@ -191,11 +191,17 @@
                                                     <div class="icon is-medium has-text-info mr-3 mt-1"><i class="{{ notif.icono | default('fas fa-circle') }}"></i></div>
                                                     <div class="notification-content is-flex-grow-1">
                                                         <p class="has-text-weight-semibold is-size-6 mb-0">{{ notif.titulo }}</p>
-                                                        <p class="is-size-7 has-text-grey mb-1">{{ notif.contenido }}</p>
+                                                        <p class="is-size-7 has-text-grey mb-1 truncate-1-line">{{ notif.contenido }}</p>
                                                         <p class="is-size-7 has-text-grey-light">{{ notif.fecha_creacion.replace(microsecond=0) }}</p>
                                                     </div>
-                                                    <!--OJO-->
-                                                    {% if not notif.leida %}<div class="unread-dot ml-2 mt-2"></div>{% endif %}
+
+                                                    {% if not notif.leida %}
+                                                        <button class="button is-small is-ghost js-mark-read mt-2 ml-2" data-id="{{ notif.id }}" title="Marcar como leída">
+                                                            <span class="icon has-text-grey-light hover-success">
+                                                                <i class="fas fa-check-circle"></i>
+                                                            </span>
+                                                        </button>
+                                                    {% endif %}
                                                 </a>
                                             {% else %}
                                                 <div class="has-text-centered p-5">
@@ -492,6 +498,65 @@
     </script>
 
     <script>
+        // Seleccionamos todos los botones de "marcar como leída"
+        const markReadButtons = document.querySelectorAll('.js-mark-read');
+
+        markReadButtons.forEach(button => {
+            button.addEventListener('click', async (e) => {
+                // Estas dos líneas son CRÍTICAS. 
+                // Evitan que el click se propague a la etiqueta <a> padre y te cambie de página.
+                e.preventDefault(); 
+                e.stopPropagation();
+
+                // Obtenemos el ID de la notificación desde el HTML
+                const notifId = button.getAttribute('data-id');
+
+                try {
+                    // Hacemos la petición POST a nuestra nueva ruta de Flask
+                    const response = await fetch(`/notificaciones/${notifId}/marcar_como_leido`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    // Si Flask responde que todo salió bien (código 200)
+                    if (response.ok) {
+                        // 1. Buscamos el contenedor padre de esta notificación
+                        const notifItem = button.closest('.notification-item');
+                        
+                        // 2. Le quitamos la clase del fondo rosado
+                        notifItem.classList.remove('is-unread');
+                        
+                        // 3. Hacemos desaparecer el botón de "check" porque ya está leída
+                        button.remove();
+
+                        // (Opcional) Aquí podrías restar 1 al contador de la campanita principal
+                        const countMobile = document.getElementById("count_mobile")                        
+                        let mobileValue = parseInt(countMobile.textContent);
+                        mobileValue--;
+                        countMobile.textContent = mobileValue
+
+                        const countDesktop = document.getElementById("count_desktop")
+                        let desktopValue = parseInt(countDesktop.textContent);
+                        desktopValue--;
+                        countDesktop.textContent = desktopValue
+
+                        if (mobileValue == 0 || desktopValue == 0) {
+                            countDesktop.classList.toggle("is-hidden")
+                            countMobile.classList.toggle("is-hidden")
+                        }
+                    } else {
+                        console.error("Error en el servidor al marcar como leída");
+                    }
+                } catch (error) {
+                    console.error("Error de red:", error);
+                }
+            });
+        });
+    </script>
+
+    <script>
         document.addEventListener('DOMContentLoaded', () => {
             // === LÓGICA PARA PC ===
             const pcWrapper = document.querySelector('.desktop-notifications-wrapper');
@@ -584,6 +649,13 @@
             
             /* Opcional: aseguramos que las esquinas de abajo no queden redondeadas por culpa del .box */
             border-radius: 20px 20px 0 0 !important; 
+        }
+        .truncate-1-line {
+            display: -webkit-box;
+            -webkit-line-clamp: 1; /* Cambia este número a 1 si quieres una sola línea */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
     </style>
     {% block scripts %}{% endblock %}
