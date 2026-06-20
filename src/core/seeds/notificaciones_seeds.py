@@ -9,6 +9,7 @@ class NotificacionesSeeder:
         print("Insertando notificaciones...")
 
         notificacion = Notificacion (
+            titulo = "TITULO",
             contenido = "Este es un mensaje!",
             id_usuario = 2 #cliente
         )

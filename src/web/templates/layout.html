@@ -126,9 +126,10 @@
                                         <div class="icon is-medium has-text-info mr-3 mt-1"><i class="{{ notif.icono | default('fas fa-circle') }}"></i></div>
                                         <div class="notification-content is-flex-grow-1">
                                             <p class="has-text-weight-semibold is-size-6 mb-0">{{ notif.titulo }}</p>
-                                            <p class="is-size-7 has-text-grey mb-1">{{ notif.mensaje }}</p>
+                                            <p class="is-size-7 has-text-grey mb-1">{{ notif.contenido }}</p>
                                         </div>
                                         {% if not notif.leida %}<div class="unread-dot ml-2 mt-2"></div>{% endif %}
+                                        <!--OJO-->
                                     </a>
                                 {% else %}
                                     <div class="has-text-centered p-5">
@@ -190,9 +191,10 @@
                                                     <div class="icon is-medium has-text-info mr-3 mt-1"><i class="{{ notif.icono | default('fas fa-circle') }}"></i></div>
                                                     <div class="notification-content is-flex-grow-1">
                                                         <p class="has-text-weight-semibold is-size-6 mb-0">{{ notif.titulo }}</p>
-                                                        <p class="is-size-7 has-text-grey mb-1">{{ notif.mensaje }}</p>
-                                                        <p class="is-size-7 has-text-grey-light">{{ notif.tiempo }}</p>
+                                                        <p class="is-size-7 has-text-grey mb-1">{{ notif.contenido }}</p>
+                                                        <p class="is-size-7 has-text-grey-light">{{ notif.fecha_creacion.replace(microsecond=0) }}</p>
                                                     </div>
+                                                    <!--OJO-->
                                                     {% if not notif.leida %}<div class="unread-dot ml-2 mt-2"></div>{% endif %}
                                                 </a>
                                             {% else %}
