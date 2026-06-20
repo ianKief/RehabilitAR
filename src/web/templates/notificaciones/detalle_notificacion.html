@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+
+{% block title %} Detalle de notificación {% endblock %}
+
+{% block content %}
+
+<div class="container mt-5 mb-6 px-3" style="max-width: 700px;">
+
+    <div class="box notification-detail-card p-0">
+        
+        <div class="detail-header p-5 is-flex is-align-items-center">
+            <div class="icon is-large has-text-info mr-4 detail-icon-wrapper">
+                <i class="{{ notificaciones.icono | default('fas fa-bell') }} fa-2x"></i>
+            </div>
+            <div>
+                <h1 class="title is-4 mb-1">{{ notificacion.titulo }}</h1>
+                <p class="subtitle is-6 has-text-grey mt-0">
+                    <span class="icon is-small"><i class="far fa-clock"></i></span>
+                    {{ notificacion.fecha_creacion.replace(microsecond=0) }}
+                </p>
+            </div>
+        </div>
+
+        <div class="detail-body p-5 content">
+            <p class="is-size-5" style="line-height: 1.6;">
+                {{ notificacion.contenido | replace('\n', '<br>') | safe }}
+            </p>
+        </div>
+        
+    </div>
+
+    <style>
+        /* --- VISTA DE DETALLE DE NOTIFICACIÓN --- */
+
+        .notification-detail-card {
+            border-radius: 12px;
+            overflow: hidden; /* Para que el footer gris no se salga de los bordes redondeados */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(128, 128, 128, 0.1);
+        }
+
+        .detail-header {
+            border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+            background-color: var(--bulma-scheme-main, #ffffff);
+        }
+
+        .detail-icon-wrapper {
+            background-color: rgba(62, 142, 208, 0.1); /* Fondo azulito claro para el ícono */
+            border-radius: 50%;
+            height: 60px;
+            width: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .detail-body {
+            background-color: var(--bulma-scheme-main, #ffffff);
+            min-height: 150px; /* Para que no se vea aplastado si el mensaje es corto */
+        }
+
+        .detail-footer {
+            border-top: 1px solid rgba(128, 128, 128, 0.1);
+            border-radius: 0 0 12px 12px;
+        }
+
+        /* Mejora la legibilidad del texto largo en dispositivos móviles */
+        @media screen and (max-width: 768px) {
+            .detail-body p {
+                font-size: 1rem !important; /* Achicamos a is-size-6 equivalente en móvil */
+            }
+            
+            .detail-icon-wrapper {
+                height: 50px;
+                width: 50px;
+            }
+            
+            .detail-header h1 {
+                font-size: 1.25rem !important;
+            }
+        }
+    </style>
+</div>
+
+{% endblock %}

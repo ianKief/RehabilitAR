@@ -122,14 +122,19 @@
 
                             <div class="panel-body">
                                 {% for notif in notificaciones %}
-                                    <a href="{{ notif.url }}" class="notification-item is-flex p-3 {{ 'is-unread' if not notif.leida else '' }}">
+                                    <a href="{{ url_for('notificaciones.detalle', id_notificacion=notif.id) }}" class="notification-item is-flex p-3 {{ 'is-unread' if not notif.leido else '' }}">
                                         <div class="icon is-medium has-text-info mr-3 mt-1"><i class="{{ notif.icono | default('fas fa-circle') }}"></i></div>
                                         <div class="notification-content is-flex-grow-1">
                                             <p class="has-text-weight-semibold is-size-6 mb-0">{{ notif.titulo }}</p>
                                             <p class="is-size-7 has-text-grey mb-1 truncate-1-line">{{ notif.contenido }}</p>
                                         </div>
-                                        {% if not notif.leida %}<a class="unread-dot ml-2 mt-2" href="{{ 'url_for(notificaciones.marcar_como_leido, id_notificacion=notif.id)'}}"></a>{% endif %}
-                                        <!--OJO-->
+                                        {% if not notif.leido %}
+                                            <button class="button is-small is-ghost js-mark-read mt-2 ml-2" data-id="{{ notif.id }}" title="Marcar como leída">
+                                                <span class="icon has-text-grey-light hover-success">
+                                                    <i class="fas fa-check-circle"></i>
+                                                </span>
+                                            </button>
+                                        {% endif %}
                                     </a>
                                 {% else %}
                                     <div class="has-text-centered p-5">
@@ -187,7 +192,7 @@
 
                                         <div class="panel-body">
                                             {% for notif in notificaciones %}
-                                                <a href="{{ notif.url }}" class="notification-item is-flex p-3 {{ 'is-unread' if not notif.leida else '' }}">
+                                                <a href="{{ url_for('notificaciones.detalle', id_notificacion=notif.id) }}" class="notification-item is-flex p-3 {{ 'is-unread' if not notif.leido else '' }}">
                                                     <div class="icon is-medium has-text-info mr-3 mt-1"><i class="{{ notif.icono | default('fas fa-circle') }}"></i></div>
                                                     <div class="notification-content is-flex-grow-1">
                                                         <p class="has-text-weight-semibold is-size-6 mb-0">{{ notif.titulo }}</p>
@@ -195,7 +200,7 @@
                                                         <p class="is-size-7 has-text-grey-light">{{ notif.fecha_creacion.replace(microsecond=0) }}</p>
                                                     </div>
 
-                                                    {% if not notif.leida %}
+                                                    {% if not notif.leido %}
                                                         <button class="button is-small is-ghost js-mark-read mt-2 ml-2" data-id="{{ notif.id }}" title="Marcar como leída">
                                                             <span class="icon has-text-grey-light hover-success">
                                                                 <i class="fas fa-check-circle"></i>
