@@ -23,7 +23,7 @@ class TipoNotificacion (enum.Enum):
     VENCIMIENTO_APTO_FISICO = "vencimiento_apto_fisico"
     ESTADO_APTO_FISICO = "estado_apto_fisico" # Rechazado o aceptado
     FALTA_DE_PAGO = "falta_de_pago" # Se envía los 10 del mes
-    PAGO_REALIZADO = "pago_realizado" # aplica para los abonos y para las clases en sí
+    PAGOS = "pagos" # aplica para los abonos y para las clases en sí
     NUEVO_BENEFICIO = "nuevo_beneficio"
 
     # Tipos del profesor

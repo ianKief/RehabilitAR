@@ -4,7 +4,7 @@ from src.core.usuarios import Usuario, Cliente, Profesor, Administrador
 from src.core.notificaciones.notificaciones import ConfiguracionNotificacion, TipoNotificacion
 
 CONFIG_POR_CLASE = {
-    Cliente: [TipoNotificacion.OTRO, TipoNotificacion.ROL_MODIFICADO, TipoNotificacion.ESTADO_BLOQUEO, TipoNotificacion.CLASE_SUSPENDIDA, TipoNotificacion.ENTRADA_A_CLASE_DESDE_COLA, TipoNotificacion.VENCIMIENTO_APTO_FISICO, TipoNotificacion.ESTADO_APTO_FISICO, TipoNotificacion.FALTA_DE_PAGO, TipoNotificacion.PAGO_REALIZADO, TipoNotificacion.NUEVO_BENEFICIO],
+    Cliente: [TipoNotificacion.OTRO, TipoNotificacion.ROL_MODIFICADO, TipoNotificacion.ESTADO_BLOQUEO, TipoNotificacion.CLASE_SUSPENDIDA, TipoNotificacion.ENTRADA_A_CLASE_DESDE_COLA, TipoNotificacion.VENCIMIENTO_APTO_FISICO, TipoNotificacion.ESTADO_APTO_FISICO, TipoNotificacion.FALTA_DE_PAGO, TipoNotificacion.PAGOS, TipoNotificacion.NUEVO_BENEFICIO],
     Administrador: [TipoNotificacion.OTRO, TipoNotificacion.ROL_MODIFICADO, TipoNotificacion.ESTADO_BLOQUEO, TipoNotificacion.CLASE_COLAPSADA, TipoNotificacion.NUEVA_CLASE_SUGERIDA],
     Profesor: [TipoNotificacion.OTRO, TipoNotificacion.ROL_MODIFICADO, TipoNotificacion.ESTADO_BLOQUEO, TipoNotificacion.CLASE_SUSPENDIDA, TipoNotificacion.ESTADO_CLASE_APELADA, TipoNotificacion.ESTADO_POSTULACION_CLASE]
 }
@@ -28,7 +28,7 @@ def crear_configuraciones_notificacion(mapper, connection, target):
         )
 
 # --- EVENTO 2: Cambio de Rol (before_flush) ---
-
+"""
 def detectar_cambio_de_rol(session, flush_context, instances):
     for obj in session.dirty:
         if isinstance(obj, Usuario):
@@ -60,8 +60,8 @@ def detectar_cambio_de_rol(session, flush_context, instances):
                     )
                     
                     session.execute(upsert_stmt)
-
+"""
 def init_events(db):
     event.listen(Usuario, 'after_insert', crear_configuraciones_notificacion, propagate=True)
     
-    event.listen(db.session, 'before_flush', detectar_cambio_de_rol)
+    # event.listen(db.session, 'before_flush', detectar_cambio_de_rol) ACTUALMENTE FUERA DE USO

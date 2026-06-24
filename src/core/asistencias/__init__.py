@@ -203,7 +203,7 @@ def finalizar_clase_y_penalizar(id_clase):
         
         if porcentaje_inasistencia >= 50 and total_clases >= 4:
             try:
-                bloquear_usuario(reserva.id_cliente)
+                bloquear_usuario(reserva.id_cliente, motivo="Su porcentaje de asistencias ha llegado a menos del 50%. Se le ha bloqueado la cuenta indefinidamente. Para más información acérquese a la administración.")
                 bloqueados += 1
             except Exception as e:
                 print(f"Error al bloquear al usuario {reserva.id_cliente}: {e}")

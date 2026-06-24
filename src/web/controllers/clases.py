@@ -6,6 +6,7 @@ from src.core.salas import listar_salas_habilitadas, obtener_sala
 from src.core.clases.clases import Clase, PostulacionClase
 from src.core.clases import obtener_clases_dictadas_por_profesor, obtener_clases_disponibles_para_profesor, obtener_postulaciones_de_profesor
 from src.web.helpers.decorator import requiere_rol
+from src.core.notificaciones import TipoNotificacion, enviar_notificaciones
 from sqlalchemy import select
 
 bp = Blueprint("clases", __name__, url_prefix="/clases")
@@ -192,6 +193,7 @@ def responder_postulacion(postu_id, accion):
     if exito:
         if accion == "aceptar":
             flash("¡Postulación aceptada con éxito! El profesor fue asignado y se liberó la cartelera.", "success")
+            enviar_notificaciones()
         else:
             flash("La postulación ha sido rechazada correctamente.", "info")
     else:

@@ -198,7 +198,7 @@ def subir_apto():
 @requiere_rol(['ADMINISTRADOR'])
 def ruta_bloquear_usuario(id):
     try:
-        bloquear_usuario(id)
+        bloquear_usuario(id, motivo="La administración ha bloqueado su usuario. Para más información acérquese a la administración.")
         flash("El usuario ha sido bloqueado y ya no tiene acceso al sistema.", "success")
     except Exception as e:
         db.session.rollback()

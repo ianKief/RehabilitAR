@@ -47,6 +47,8 @@ def crear_notificacion (destinatario, titulo, contenido, tipo_notificacion):
             contenido = contenido,
             usuario = destinatario
         )
+        db.session.add(nueva_notificacion)
+        db.session.flush()
 
 def enviar_notificaciones (destinatarios, titulo, contenido, tipo_notificacion=TipoNotificacion.OTRO):
     """Las comprobaciones de funciones hacer en su respectiva función. Envía las notificaciones y mails correspondientes"""
