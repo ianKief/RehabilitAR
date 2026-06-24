@@ -3,7 +3,7 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy import func, select, exists
 
 from src.core.database import db
-from src.core.notificaciones.notificaciones import Notificacion
+from src.core.notificaciones.notificaciones import Notificacion, TipoNotificacion
 
 def obtener_notificaciones_del_usuario (usuario_id):
     query = (db.session.query(Notificacion)
@@ -35,3 +35,8 @@ def core_marcar_como_leido (id_usuario, id_notificacion):
     notificacion = conseguir_notificacion_por_id (id_notificacion)
     notificacion.leido = True
     db.session.commit()
+
+def enviar_notificaciones (destinatarios, asunto, contenido):
+    """Usar con responsabilidad, dado que no hace comprobaciones de a quién le puede llegar qué notificación"""
+    """mails:"""
+    pass

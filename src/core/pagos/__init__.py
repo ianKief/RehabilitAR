@@ -11,7 +11,6 @@ from src.core.database import db
 from src.core.reservas import crear_reserva, crear_espera_en_cola
 from src.core.clases import comprobar_alta_demanda, Clase
 from src.core.functions import filtro_cliente_abonado
-from src.core.notificaciones.notificaciones import Notificacion
 
 from datetime import timedelta
 

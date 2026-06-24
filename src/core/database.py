@@ -2,7 +2,6 @@ from flask_sqlalchemy_lite import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import text
 
-
 db = SQLAlchemy()
 
 def init_db(app):
@@ -22,6 +21,7 @@ def reset_db():
     from src.core.usuarios import Usuario
     from src.core.reservas.reservas import Reserva, Comentario
     from src.core.pagos.pagos import Pago, DetallePago, Beneficio, PrecioClase, Abono
+    from src.core import events
     
     """Reinicia la base de datos eliminando todas las tablas y volviéndolas a crear."""
     print("Reiniciando la base de datos...")
@@ -35,8 +35,8 @@ def reset_db():
 def seed_db():
     """Pobla la base de datos con datos de prueba."""
     from src.core.database import db
-    from src.core.seeds.salas_seeds import SalaSeeder
 
+    from src.core.seeds.salas_seeds import SalaSeeder
     #from src.core.seeds.profesores_seeds import ProfesorSeeder
     #from src.core.seeds.postulacionSeeder import PostulacionSeeder
     #from src.core.seeds.clases_seeds2 import ClaseSeeder2
@@ -47,6 +47,7 @@ def seed_db():
     from src.core.seeds.sprint1_8 import SeedAsistenciaYSeguimientoSprint1
     from src.core.seeds.sprint1_9 import SeedListaDeEspera
     from src.core.seeds.notificaciones_seeds import NotificacionesSeeder
+    from src.core import events
 
     # Definimos el orden lógico de ejecución de los seeders
     seeders = [

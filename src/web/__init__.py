@@ -1,11 +1,13 @@
 import os
 from flask import Flask, request,render_template,session, request
-from flask_mail import Mail
+from flask_mail import Mail, Message
+import threading
 from src.web.config import config
 from src.core.database import init_db, reset_db, seed_db, seed_db_admin
 import mercadopago
 from src.web.handlers import error
 from src.core.pagos import estado_abono_usuario
+from src.core.events import init_events
 
 """
 Las importaciones de src.web.controllers deben hacerse dentro de create_app() para evitar problemas de importación circular. 
@@ -25,7 +27,7 @@ def create_app():
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
     app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME')
 
-    init_db(app)
+    db = init_db(app)
     
     # Inicializar extensión de correo
     mail.init_app(app)
@@ -43,7 +45,7 @@ def create_app():
     from src.web.controllers.notificaciones import bp as notificaciones_bp
 
     app.register_blueprint(salas_bp)
-    app.register_blueprint (profesor_bp)
+    app.register_blueprint(profesor_bp)
     app.register_blueprint(clases_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(usuarios_bp)
@@ -69,23 +71,22 @@ def create_app():
         """Pobla la base de datos con unicamente un admin de prueba."""
         seed_db_admin()
 
+    with app.app_context():
+        init_events(db)
+
     @app.context_processor
     def notificaciones():
         from src.core.notificaciones import obtener_notificaciones_del_usuario, contar_notificaciones_no_leidas
         current_user_id = session.get('usuario_id')
-        # Solo buscamos notificaciones si el usuario inició sesión
         if current_user_id != None:
-            # Aquí llamas a tus funciones de base de datos
             notificaciones = obtener_notificaciones_del_usuario(current_user_id)
             unread_count = contar_notificaciones_no_leidas(current_user_id)
             
-            # Retornas un diccionario con las variables que Jinja necesita
             return dict(
                 notificaciones=notificaciones,
                 unread_count=unread_count
             )
         
-        # Si no está logueado, enviamos datos vacíos para que no falle el HTML
         return dict(notificaciones=[], unread_count=0)
 
     # Registrar manejadores de errores
@@ -93,6 +94,25 @@ def create_app():
     app.register_error_handler(401, error.unauthorized)
     app.register_error_handler(403, error.forbidden)
     app.register_error_handler(500, error.internal_server_error)
+
+    def enviar_email_asincrono(app, msg):
+        with app.app_context():
+            mail.send(msg)
+
+    @app.route('/enviar')
+    def enviar_correo(subject="Asunto", recipients=["destino@correo.com"], body="Contenido"):
+        """IMPORTAR DENTRO DEL MÓDULO O FUNCIÓN PARA EVITAR IMPORTACIÓN CIRCULAR.
+        Enviar el correo con []. Insertar varios correos de ser necesario."""
+        msg = Message(
+            subject=subject,
+            recipients=recipients,
+            body=body,
+            bcc=recipients
+        )
+        # Este sistema no está adaptado para enviar múltiples correos con contenido personalizado (por ejemplo, nombre del receptor). Esto es así porque no me pareció necesario hacerlo. Asumo que no se envía contenido que no sea texto
+        threading.Thread(target=enviar_email_asincrono, args=(app, msg)).start()
+        
+        return "El correo se está enviando en segundo plano."
 
     @app.route("/")
     def home():

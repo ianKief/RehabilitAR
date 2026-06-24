@@ -98,52 +98,53 @@
                     
                     {% if session.get('usuario_id') %}
                         <!--Campana en dispositivos móviles-->
-                        
-                        <a class="navbar-item py-3 px-4 is-flex is-align-items-center is-justify-content-space-between js-mobile-bell-trigger" href="javascript:void(0);">
-                            <div class="is-flex is-align-items-center">
-                                <span class="icon is-medium has-text-grey mr-2"><i class="fas fa-bell"></i></span>
-                                <span class="has-text-weight-medium">Notificaciones</span>
-                            </div>
-                            {% if unread_count and unread_count > 0 %}
-                            <span class="tag is-danger is-rounded has-text-weight-bold" id="count_mobile">{{ unread_count }}</span>
-                            {% endif %}
-                        </a>
-
-                        <div class="mobile-overlay is-hidden js-mobile-overlay"></div>
-
-                        <div class="box mobile-bottom-panel is-hidden js-mobile-panel">
-                            <div class="panel-header is-flex is-align-items-center is-justify-content-space-between p-3">
+                        {% if session.get('rol') != 'RECEPCIONISTA' %}
+                            <a class="navbar-item py-3 px-4 is-flex is-align-items-center is-justify-content-space-between js-mobile-bell-trigger" href="javascript:void(0);">
                                 <div class="is-flex is-align-items-center">
-                                    <a href="/configuracion/notificaciones" class="icon has-text-grey hover-gear mr-2"><i class="fas fa-cog"></i></a>
-                                    <h3 class="title is-6 mb-0">Notificaciones</h3>
+                                    <span class="icon is-medium has-text-grey mr-2"><i class="fas fa-bell"></i></span>
+                                    <span class="has-text-weight-medium">Notificaciones</span>
                                 </div>
-                                <button class="delete js-mobile-close"></button>
-                            </div>
+                                {% if unread_count and unread_count > 0 %}
+                                <span class="tag is-danger is-rounded has-text-weight-bold" id="count_mobile">{{ unread_count }}</span>
+                                {% endif %}
+                            </a>
 
-                            <div class="panel-body">
-                                {% for notif in notificaciones %}
-                                    <a href="{{ url_for('notificaciones.detalle', id_notificacion=notif.id) }}" class="notification-item is-flex p-3 {{ 'is-unread' if not notif.leido else '' }}">
-                                        <div class="icon is-medium has-text-info mr-3 mt-1"><i class="{{ notif.icono | default('fas fa-circle') }}"></i></div>
-                                        <div class="notification-content is-flex-grow-1">
-                                            <p class="has-text-weight-semibold is-size-6 mb-0">{{ notif.titulo }}</p>
-                                            <p class="is-size-7 has-text-grey mb-1 truncate-1-line">{{ notif.contenido }}</p>
-                                        </div>
-                                        {% if not notif.leido %}
-                                            <button class="button is-small is-ghost js-mark-read mt-2 ml-2" data-id="{{ notif.id }}" title="Marcar como leída">
-                                                <span class="icon has-text-grey-light hover-success">
-                                                    <i class="fas fa-check-circle"></i>
-                                                </span>
-                                            </button>
-                                        {% endif %}
-                                    </a>
-                                {% else %}
-                                    <div class="has-text-centered p-5">
-                                        <span class="icon is-large has-text-grey-light mb-2"><i class="fas fa-bell-slash fa-2x"></i></span>
-                                        <p class="has-text-grey">No tienes notificaciones.</p>
+                            <div class="mobile-overlay is-hidden js-mobile-overlay"></div>
+
+                            <div class="box mobile-bottom-panel is-hidden js-mobile-panel">
+                                <div class="panel-header is-flex is-align-items-center is-justify-content-space-between p-3">
+                                    <div class="is-flex is-align-items-center">
+                                        <a href="/configuracion/notificaciones" class="icon has-text-grey hover-gear mr-2"><i class="fas fa-cog"></i></a>
+                                        <h3 class="title is-6 mb-0">Notificaciones</h3>
                                     </div>
-                                {% endfor %}
+                                    <button class="delete js-mobile-close"></button>
+                                </div>
+
+                                <div class="panel-body">
+                                    {% for notif in notificaciones %}
+                                        <a href="{{ url_for('notificaciones.detalle', id_notificacion=notif.id) }}" class="notification-item is-flex p-3 {{ 'is-unread' if not notif.leido else '' }}">
+                                            <div class="icon is-medium has-text-info mr-3 mt-1"><i class="{{ notif.icono | default('fas fa-circle') }}"></i></div>
+                                            <div class="notification-content is-flex-grow-1">
+                                                <p class="has-text-weight-semibold is-size-6 mb-0">{{ notif.titulo }}</p>
+                                                <p class="is-size-7 has-text-grey mb-1 truncate-1-line">{{ notif.contenido }}</p>
+                                            </div>
+                                            {% if not notif.leido %}
+                                                <button class="button is-small is-ghost js-mark-read mt-2 ml-2" data-id="{{ notif.id }}" title="Marcar como leída">
+                                                    <span class="icon has-text-grey-light hover-success">
+                                                        <i class="fas fa-check-circle"></i>
+                                                    </span>
+                                                </button>
+                                            {% endif %}
+                                        </a>
+                                    {% else %}
+                                        <div class="has-text-centered p-5">
+                                            <span class="icon is-large has-text-grey-light mb-2"><i class="fas fa-bell-slash fa-2x"></i></span>
+                                            <p class="has-text-grey">No tienes notificaciones.</p>
+                                        </div>
+                                    {% endfor %}
+                                </div>
                             </div>
-                        </div>
+                        {% endif %}
 
                         <!--Cierre de sesión-->
                         <a class="navbar-item py-3 px-4 has-text-danger" href="{{ url_for('auth.logout') }}">
@@ -173,50 +174,52 @@
                                 <!-- SI EL USUARIO ESTÁ LOGUEADO -->
 
                                 <!--Campana-->
-                                <div class="desktop-notifications-wrapper" style="position: relative; display: inline-block;">
-    
-                                    <button class="button is-ghost notification-bell js-pc-bell-trigger" aria-label="Notificaciones">
-                                        <span class="icon is-medium has-text-grey-dark"><i class="fas fa-bell fa-lg"></i></span>
-                                        {% if unread_count and unread_count > 0 %}
-                                        <span class="notification-badge" id="count_desktop">{{ unread_count }}</span>
-                                        {% endif %}
-                                    </button>
+                                {% if session.get('rol') != 'RECEPCIONISTA' %}
+                                    <div class="desktop-notifications-wrapper" style="position: relative; display: inline-block;">
+        
+                                        <button class="button is-ghost notification-bell js-pc-bell-trigger" aria-label="Notificaciones">
+                                            <span class="icon is-medium has-text-grey-dark"><i class="fas fa-bell fa-lg"></i></span>
+                                            {% if unread_count and unread_count > 0 %}
+                                            <span class="notification-badge" id="count_desktop">{{ unread_count }}</span>
+                                            {% endif %}
+                                        </button>
 
-                                    <div class="box notifications-panel js-pc-panel is-hidden">
-                                        <div class="panel-header is-flex is-align-items-center is-justify-content-space-between p-3">
-                                            <div class="is-flex is-align-items-center">
-                                                <a href="/configuracion/notificaciones" class="icon has-text-grey hover-gear mr-2"><i class="fas fa-cog"></i></a>
-                                                <h3 class="title is-6 mb-0">Notificaciones</h3>
+                                        <div class="box notifications-panel js-pc-panel is-hidden">
+                                            <div class="panel-header is-flex is-align-items-center is-justify-content-space-between p-3">
+                                                <div class="is-flex is-align-items-center">
+                                                    <a href="/configuracion/notificaciones" class="icon has-text-grey hover-gear mr-2"><i class="fas fa-cog"></i></a>
+                                                    <h3 class="title is-6 mb-0">Notificaciones</h3>
+                                                </div>
+                                            </div>
+
+                                            <div class="panel-body">
+                                                {% for notif in notificaciones %}
+                                                    <a href="{{ url_for('notificaciones.detalle', id_notificacion=notif.id) }}" class="notification-item is-flex p-3 {{ 'is-unread' if not notif.leido else '' }}">
+                                                        <div class="icon is-medium has-text-info mr-3 mt-1"><i class="{{ notif.icono | default('fas fa-circle') }}"></i></div>
+                                                        <div class="notification-content is-flex-grow-1">
+                                                            <p class="has-text-weight-semibold is-size-6 mb-0">{{ notif.titulo }}</p>
+                                                            <p class="is-size-7 has-text-grey mb-1 truncate-1-line">{{ notif.contenido }}</p>
+                                                            <p class="is-size-7 has-text-grey-light">{{ notif.fecha_creacion.replace(microsecond=0) }}</p>
+                                                        </div>
+
+                                                        {% if not notif.leido %}
+                                                            <button class="button is-small is-ghost js-mark-read mt-2 ml-2" data-id="{{ notif.id }}" title="Marcar como leída">
+                                                                <span class="icon has-text-grey-light hover-success">
+                                                                    <i class="fas fa-check-circle"></i>
+                                                                </span>
+                                                            </button>
+                                                        {% endif %}
+                                                    </a>
+                                                {% else %}
+                                                    <div class="has-text-centered p-5">
+                                                        <span class="icon is-large has-text-grey-light mb-2"><i class="fas fa-bell-slash fa-2x"></i></span>
+                                                        <p class="has-text-grey">No tienes notificaciones.</p>
+                                                    </div>
+                                                {% endfor %}
                                             </div>
                                         </div>
-
-                                        <div class="panel-body">
-                                            {% for notif in notificaciones %}
-                                                <a href="{{ url_for('notificaciones.detalle', id_notificacion=notif.id) }}" class="notification-item is-flex p-3 {{ 'is-unread' if not notif.leido else '' }}">
-                                                    <div class="icon is-medium has-text-info mr-3 mt-1"><i class="{{ notif.icono | default('fas fa-circle') }}"></i></div>
-                                                    <div class="notification-content is-flex-grow-1">
-                                                        <p class="has-text-weight-semibold is-size-6 mb-0">{{ notif.titulo }}</p>
-                                                        <p class="is-size-7 has-text-grey mb-1 truncate-1-line">{{ notif.contenido }}</p>
-                                                        <p class="is-size-7 has-text-grey-light">{{ notif.fecha_creacion.replace(microsecond=0) }}</p>
-                                                    </div>
-
-                                                    {% if not notif.leido %}
-                                                        <button class="button is-small is-ghost js-mark-read mt-2 ml-2" data-id="{{ notif.id }}" title="Marcar como leída">
-                                                            <span class="icon has-text-grey-light hover-success">
-                                                                <i class="fas fa-check-circle"></i>
-                                                            </span>
-                                                        </button>
-                                                    {% endif %}
-                                                </a>
-                                            {% else %}
-                                                <div class="has-text-centered p-5">
-                                                    <span class="icon is-large has-text-grey-light mb-2"><i class="fas fa-bell-slash fa-2x"></i></span>
-                                                    <p class="has-text-grey">No tienes notificaciones.</p>
-                                                </div>
-                                            {% endfor %}
-                                        </div>
                                     </div>
-                                </div>
+                                {% endif %}
                                 
                                 <!--Mi perfil-->
                                 <a href="{{ url_for('usuarios.perfil') }}" class="button is-primary is-rounded px-5">
