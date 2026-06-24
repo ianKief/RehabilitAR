@@ -111,8 +111,6 @@ def create_app():
         )
         # Este sistema no está adaptado para enviar múltiples correos con contenido personalizado (por ejemplo, nombre del receptor). Esto es así porque no me pareció necesario hacerlo. Asumo que no se envía contenido que no sea texto
         threading.Thread(target=enviar_email_asincrono, args=(app, msg)).start()
-        
-        return "El correo se está enviando en segundo plano."
 
     @app.route("/")
     def home():

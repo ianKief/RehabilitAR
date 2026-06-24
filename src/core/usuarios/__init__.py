@@ -10,6 +10,7 @@ from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reservas.reservas import Reserva, AsistenciaReserva
 from src.core.usuarios.usuarios import Usuario, Cliente, Profesor, Administrador, Recepcionista, RolUsuario
 from src.core.pagos import Pago, ConceptoPago
+from src.core.notificaciones import enviar_notificaciones, TipoNotificacion
 
 from src.core.functions import filtro_clase_actual, devolver_fecha_hora_actual
 
@@ -172,6 +173,10 @@ def actualizar_rol_usuario(usuario_id, nuevo_rol):
 
     usuario.rol = RolUsuario(nuevo_rol)
     db.session.commit()
+
+    # Enviar notificación
+    enviar_notificaciones(usuario, "Se ha cambiado su rol", "Un administrador ha cambiado su rol. Para más información contacte con la administración", TipoNotificacion.ROL_MODIFICADO)
+
     return usuario
 
 def bloquear_usuario(usuario_id):
