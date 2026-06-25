@@ -68,3 +68,26 @@ def enviar_notificaciones (destinatarios, titulo, contenido, tipo_notificacion=T
         print ("Error en las notificaciones:", str(e))
     # Enviar mails
         # Enviar datos en forma de solicitud :P NOTA: al enviar mail, agregar "RehabilitAR -"
+
+def conseguir_notificaciones_habilitadas (id_usuario):
+    query = (db.session.query(ConfiguracionNotificacion)
+        .filter(ConfiguracionNotificacion.id_usuario == id_usuario)
+        .filter (ConfiguracionNotificacion.habilitado == True)
+        .order_by(ConfiguracionNotificacion.tipo.asc())
+    )
+    return db.session.scalars(query).all()
+
+def conseguir_configuracion_notificacion_por_id (id_config):
+    return db.session.scalar(select(ConfiguracionNotificacion).filter(ConfiguracionNotificacion.id == id_config))
+
+def switch_configuracion_notificacion (id_config):
+    config = conseguir_configuracion_notificacion_por_id (id_config)
+    if config.habilitado:
+        if config.activado:
+            config.activado = False
+        else:
+            config.activado = True
+        db.session.commit()
+    else:
+        raise ValueError("La configuración no está habilitada")
+    db.session.commit()

@@ -72,3 +72,4 @@ class ConfiguracionNotificacion(Base):
     __table_args__ = (
         UniqueConstraint('id_usuario', 'tipo', name='uq_usuario_tipo_notificacion'),
     )
+    
