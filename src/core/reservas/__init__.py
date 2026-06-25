@@ -9,8 +9,6 @@ from datetime import date, timedelta, datetime
 import calendar
 from src.core.salas.salas import Sala
 from src.core.functions import filtro_cliente_abonado
-from flask_mail import Message
-from src.core.mail import send_mail
 from src.core.notificaciones import enviar_notificaciones, TipoNotificacion
 
 def _filtro_clase_futura():

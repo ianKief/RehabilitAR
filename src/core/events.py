@@ -5,7 +5,7 @@ from src.core.notificaciones.notificaciones import ConfiguracionNotificacion, Ti
 
 CONFIG_POR_CLASE = {
     Cliente: [TipoNotificacion.OTRO, TipoNotificacion.ROL_MODIFICADO, TipoNotificacion.ESTADO_BLOQUEO, TipoNotificacion.CLASE_SUSPENDIDA, TipoNotificacion.ENTRADA_A_CLASE_DESDE_COLA, TipoNotificacion.VENCIMIENTO_APTO_FISICO, TipoNotificacion.ESTADO_APTO_FISICO, TipoNotificacion.FALTA_DE_PAGO, TipoNotificacion.PAGOS, TipoNotificacion.NUEVO_BENEFICIO],
-    Administrador: [TipoNotificacion.OTRO, TipoNotificacion.ROL_MODIFICADO, TipoNotificacion.ESTADO_BLOQUEO, TipoNotificacion.CLASE_COLAPSADA, TipoNotificacion.NUEVA_CLASE_SUGERIDA],
+    Administrador: [TipoNotificacion.OTRO, TipoNotificacion.ROL_MODIFICADO, TipoNotificacion.ESTADO_BLOQUEO, TipoNotificacion.CLASE_COLAPSADA, TipoNotificacion.NUEVA_CLASE_SUGERIDA, TipoNotificacion.NUEVA_APELACION_A_CLASE],
     Profesor: [TipoNotificacion.OTRO, TipoNotificacion.ROL_MODIFICADO, TipoNotificacion.ESTADO_BLOQUEO, TipoNotificacion.CLASE_SUSPENDIDA, TipoNotificacion.ESTADO_CLASE_APELADA, TipoNotificacion.ESTADO_POSTULACION_CLASE]
 }
 

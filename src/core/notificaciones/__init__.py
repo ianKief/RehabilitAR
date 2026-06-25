@@ -3,12 +3,12 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy import func, select, exists
 
 from src.core.database import db
-from src.core.usuarios import Usuario
 from src.core.notificaciones.notificaciones import Notificacion, TipoNotificacion, ConfiguracionNotificacion
 
 def obtener_notificaciones_del_usuario (usuario_id):
     query = (db.session.query(Notificacion)
         .filter(Notificacion.id_usuario == usuario_id)
+        .order_by(Notificacion.fecha_creacion.desc())
     )
     return db.session.scalars(query).all()
 
@@ -39,6 +39,7 @@ def core_marcar_como_leido (id_usuario, id_notificacion):
 
 def crear_notificacion (destinatario, titulo, contenido, tipo_notificacion):
     """Solo lo usa enviar_notificaciones"""
+    print ("Llegué a crear_notificacion")
     configuracion = db.session.query(ConfiguracionNotificacion).filter(ConfiguracionNotificacion.tipo == tipo_notificacion).filter(ConfiguracionNotificacion.id_usuario == destinatario.id).scalar()
     if configuracion.habilitado and configuracion.activado:
         nueva_notificacion = Notificacion (
@@ -52,8 +53,18 @@ def crear_notificacion (destinatario, titulo, contenido, tipo_notificacion):
 
 def enviar_notificaciones (destinatarios, titulo, contenido, tipo_notificacion=TipoNotificacion.OTRO):
     """Las comprobaciones de funciones hacer en su respectiva función. Envía las notificaciones y mails correspondientes"""
-    for destinatario in destinatarios:
-        crear_notificacion(destinatario, titulo, contenido, tipo_notificacion)
+    try:
+        if isinstance(destinatarios, list):
+            iterable = destinatarios
+        else:
+            iterable = [destinatarios]
 
+        for destinatario in iterable:
+            print ("Así se ve un destinatario:", destinatario)
+            crear_notificacion(destinatario, titulo, contenido, tipo_notificacion)
+
+        db.session.commit()
+    except Exception as e:
+        print ("Error en las notificaciones:", str(e))
     # Enviar mails
-        # Enviar datos en forma de solicitud :P
+        # Enviar datos en forma de solicitud :P NOTA: al enviar mail, agregar "RehabilitAR -"

@@ -218,6 +218,7 @@ def ruta_habilitar_usuario(id):
     except Exception as e:
         db.session.rollback()
         flash("Ocurrió un error inesperado.", "danger")
+        print (str(e))
         
     return redirect(url_for('usuarios.detalle_usuario', id=id))
 

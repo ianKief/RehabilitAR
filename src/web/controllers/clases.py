@@ -193,7 +193,6 @@ def responder_postulacion(postu_id, accion):
     if exito:
         if accion == "aceptar":
             flash("¡Postulación aceptada con éxito! El profesor fue asignado y se liberó la cartelera.", "success")
-            enviar_notificaciones()
         else:
             flash("La postulación ha sido rechazada correctamente.", "info")
     else:
@@ -231,6 +230,7 @@ def ver_clases_para_postularse():
 @bp.route("/mis-postulaciones/postularse", methods=["POST"])
 @requiere_rol(['PROFESOR'])  
 def postularse():
+    from src.core.usuarios import conseguir_administrativos, obtener_usuario_por_id_core
     user_id = session.get('usuario_id')
     if not user_id:
         flash("Debes iniciar sesión para postularte a las clases.", "warning")
@@ -284,6 +284,8 @@ def postularse():
                 estado="PENDIENTE"
             )
             db.session.add(nueva_postulacion)
+            usuario = obtener_usuario_por_id_core(profesor_id)
+            enviar_notificaciones(conseguir_administrativos(), "Nueva postulación", f"Se ha recibido una nueva postulación: {usuario.nombre}, {usuario.apellido} se ha anotado a la clase {clase_existe.nombre}. Para más información revise la casilla de clases", TipoNotificacion.NUEVA_APELACION_A_CLASE)
         
         db.session.commit()
         flash("Usted fue asignado correctamente, puede ver sus clases en la seccion 'Mis clases'.", "success")

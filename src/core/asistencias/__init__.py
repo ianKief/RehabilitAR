@@ -3,7 +3,7 @@ from sqlalchemy.orm import joinedload, selectinload, contains_eager, aliased
 from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reservas.reservas import Comentario, Reserva, AsistenciaReserva
-from src.core.usuarios.usuarios import Usuario, RolUsuario, Cliente, Profesor
+from src.core.usuarios.usuarios import Usuario, RolUsuario, Cliente
 
 from src.core.functions import filtro_clase_actual
 

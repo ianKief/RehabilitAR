@@ -1,13 +1,11 @@
 import calendar
 from datetime import date, datetime, time, timedelta
-from sqlalchemy import or_, select, func, case, and_, extract
+from sqlalchemy import or_, select, func, case, and_
 from sqlalchemy.orm import aliased
 
 
 from src.core.database import db
-from src.core.usuarios import obtener_usuario_por_id_core
 from src.core.clases.clases import Clase, ProfesorDictaClase, ClaseBloque, PostulacionClase
-from src.core.clases import obtener_clase_por_id
 from src.core.reservas.reservas import Reserva, AsistenciaReserva
 from src.core.notificaciones import TipoNotificacion, enviar_notificaciones
 
@@ -471,6 +469,8 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
     Si pertenece a una clase fija (bloque), aplica la acción (aceptar o rechazar) 
     en cascada a todas las instancias de dicho bloque para ese profesor.
     """
+    from src.core.usuarios import obtener_usuario_por_id_core
+    
     postulacion = db.session.get(PostulacionClase, postulacion_id)
     if not postulacion or postulacion.estado != "PENDIENTE":
         return False  # No existe o ya fue resuelta
@@ -520,7 +520,8 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
             if not existe_dicta:
                 db.session.add(ProfesorDictaClase(id_profesor=postulacion.profesor_id, id_clase=clase_id))
         
-        enviar_notificaciones(obtener_usuario_por_id_core(postulacion.profesor_id), f"¡Se ha aprobado la postulación de la clase!", "Se ha aprobado su participación en la clase {clase.nombre}. Para más información vaya a la sección 'Mis clases' en el navegador de profesores.", TipoNotificacion.ESTADO_POSTULACION_CLASE)
+        enviar_notificaciones(obtener_usuario_por_id_core(postulacion.profesor_id), "¡Se ha aprobado la postulación de la clase!", f"Se ha aprobado su participación en la clase {clase.nombre}. Para más información vaya a la sección 'Mis clases' en el navegador de profesores.", TipoNotificacion.ESTADO_POSTULACION_CLASE)
+        
         # ❌ RECHAZAR EN CASCADA A LOS COMPETIDORES
         otras_postulaciones = db.session.scalars(
             select(PostulacionClase)
@@ -534,7 +535,7 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
         for otra in otras_postulaciones:
             otra.estado = "RECHAZADA"
         
-        enviar_notificaciones(obtener_usuario_por_id_core(postulacion.profesor_id), f"Se ha rechazado su postulación a clase", "Se ha rechazado su participación en la clase {clase.nombre}.", TipoNotificacion.ESTADO_POSTULACION_CLASE)
+        enviar_notificaciones(otras_postulaciones, "Se ha rechazado su postulación a clase", f"Se ha rechazado su participación en la clase {clase.nombre}.", TipoNotificacion.ESTADO_POSTULACION_CLASE)
             
     elif accion == "rechazar":
         # ❌ RECHAZAR EN CASCADA AL MISMO PROFESOR EN TODO EL BLOQUE
@@ -550,7 +551,7 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
         for p_a_rechazar in postulaciones_a_rechazar:
             p_a_rechazar.estado = "RECHAZADA"
         
-        enviar_notificaciones(obtener_usuario_por_id_core(postulacion.profesor_id), f"Se ha rechazado su postulación a clase", "Se ha rechazado su participación en la clase {clase.nombre}.", TipoNotificacion.ESTADO_POSTULACION_CLASE)
+        enviar_notificaciones(obtener_usuario_por_id_core(postulacion.profesor_id), "Se ha rechazado su postulación a clase", f"Se ha rechazado su participación en la clase {clase.nombre}.", TipoNotificacion.ESTADO_POSTULACION_CLASE)
             
     else:
         return False

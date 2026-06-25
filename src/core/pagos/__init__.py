@@ -239,7 +239,6 @@ def registrar_pago_desde_payment(payment_id, payment):
         contenido_mensaje = f"Se ha confirmado su nueva reserva para la clase fija {clase.nombre}. Puedes ver más información del pago en la sección de pagos y la reserva ya se encuentra activa."
     
     if tipo == "reserva_individual":
-        print ("PASÉ POR ACÁ")
         external_ref = payment.get("external_reference")
         if not external_ref:
             return
@@ -274,7 +273,6 @@ def registrar_pago_desde_payment(payment_id, payment):
         )
 
         db.session.add(pago)
-
 
         # 3. crear reserva REAL
         reserva = crear_reserva(usuario_id, id_clase)

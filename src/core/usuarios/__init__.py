@@ -1,4 +1,4 @@
-from sqlalchemy import func, text, or_, select, and_, case, exists
+from sqlalchemy import func, or_, select, and_, case, exists
 from sqlalchemy.orm import aliased
 
 from flask_mail import Message
@@ -9,7 +9,6 @@ from src.core.usuarios.usuarios import AptoFisico, EstadoAptoFisico, Usuario, Ro
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reservas.reservas import Reserva, AsistenciaReserva
 from src.core.usuarios.usuarios import Usuario, Cliente, Profesor, Administrador, Recepcionista, RolUsuario
-from src.core.pagos import Pago, ConceptoPago
 from src.core.notificaciones import enviar_notificaciones, TipoNotificacion
 
 from src.core.functions import filtro_clase_actual, devolver_fecha_hora_actual

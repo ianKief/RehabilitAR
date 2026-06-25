@@ -7,7 +7,6 @@ from src.core.auth import registrar_cliente as registrar_cliente_core, confirmar
 from src.core.usuarios import obtener_usuario_por_id_core
 from src.core.database import db
 
-from src.core.pagos import estado_abono_usuario
 from src.web import mail
 from src.web.bypass import correos_bypass
 
