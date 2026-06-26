@@ -51,8 +51,15 @@ def crear_notificacion (destinatario, titulo, contenido, tipo_notificacion):
         db.session.add(nueva_notificacion)
         db.session.flush()
 
+def conseguir_mails (iterable):
+    list = []
+    for user in iterable:
+        list.append(user.email)
+    return list
+
 def enviar_notificaciones (destinatarios, titulo, contenido, tipo_notificacion=TipoNotificacion.OTRO):
     """Las comprobaciones de funciones hacer en su respectiva función. Envía las notificaciones y mails correspondientes"""
+    from src.core.mail import enviar_correo
     try:
         if isinstance(destinatarios, list):
             iterable = destinatarios
@@ -66,8 +73,11 @@ def enviar_notificaciones (destinatarios, titulo, contenido, tipo_notificacion=T
         db.session.commit()
     except Exception as e:
         print ("Error en las notificaciones:", str(e))
-    # Enviar mails
-        # Enviar datos en forma de solicitud :P NOTA: al enviar mail, agregar "RehabilitAR -"
+    
+    try:
+        enviar_correo(subject= f"RehabilitAR - {titulo}", recipients=conseguir_mails(iterable), body=contenido)
+    except Exception as e:
+        print ("Error en el envío de mail:", str(e))
 
 def conseguir_notificaciones_habilitadas (id_usuario):
     query = (db.session.query(ConfiguracionNotificacion)

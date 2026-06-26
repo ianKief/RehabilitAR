@@ -1,7 +1,6 @@
 import os
 from flask import Flask, request,render_template,session, request
-from flask_mail import Mail, Message
-import threading
+from flask_mail import Mail
 from src.web.config import config
 from src.core.database import init_db, reset_db, seed_db, seed_db_admin
 import mercadopago
@@ -94,23 +93,6 @@ def create_app():
     app.register_error_handler(401, error.unauthorized)
     app.register_error_handler(403, error.forbidden)
     app.register_error_handler(500, error.internal_server_error)
-
-    def enviar_email_asincrono(app, msg):
-        with app.app_context():
-            mail.send(msg)
-
-    @app.route('/enviar')
-    def enviar_correo(subject="Asunto", recipients=["destino@correo.com"], body="Contenido"):
-        """IMPORTAR DENTRO DEL MÓDULO O FUNCIÓN PARA EVITAR IMPORTACIÓN CIRCULAR.
-        Enviar el correo con []. Insertar varios correos de ser necesario."""
-        msg = Message(
-            subject=subject,
-            recipients=recipients,
-            body=body,
-            bcc=recipients
-        )
-        # Este sistema no está adaptado para enviar múltiples correos con contenido personalizado (por ejemplo, nombre del receptor). Esto es así porque no me pareció necesario hacerlo. Asumo que no se envía contenido que no sea texto
-        threading.Thread(target=enviar_email_asincrono, args=(app, msg)).start()
 
     @app.route("/")
     def home():
