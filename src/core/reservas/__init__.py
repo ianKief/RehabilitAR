@@ -9,8 +9,7 @@ from datetime import date, timedelta, datetime
 import calendar
 from src.core.salas.salas import Sala
 from src.core.functions import filtro_cliente_abonado
-from flask_mail import Message
-from src.core.mail import send_mail
+from src.core.notificaciones import enviar_notificaciones, TipoNotificacion
 
 def _filtro_clase_futura():
     ahora = datetime.now()
@@ -119,15 +118,11 @@ def cancelar_cola_core(cola):
     cola.estado = EstadoCola.EN_RESERVA
     db.session.commit()
 
-def crear_reserva(id_cliente, id_clase, session=None):
+def crear_reserva(id_cliente, id_clase):
     """Crea y registra una nueva reserva con estado 'ausente' para el cliente y la clase indicados."""
     nueva_reserva = Reserva(id_cliente=id_cliente, id_clase=id_clase, asiste=AsistenciaReserva.AUSENTE)
-    if session == None:
-        db.session.add(nueva_reserva)
-        db.session.commit()
-    else:
-        session.add(nueva_reserva)
-        session.flush()
+    db.session.add(nueva_reserva)
+    db.session.flush()
     return nueva_reserva
 
 def crear_espera_en_cola (id_cliente, id_clase):
@@ -365,6 +360,9 @@ def dar_acceso_segun_orden_cola (id_clase):
             )
             db.session.add(nueva_reserva)
         db.session.commit()
+        
+        enviar_notificaciones(proximo, "¡Has entrado en la clase!", ("Se le informa que la clase", clase.nombre, "de la especialidad", clase.especialidad, "ha generado una reserva para usted. En caso de no asistir informe su baja, caso contrario se le harán cargos."), TipoNotificacion.ENTRADA_A_CLASE_DESDE_COLA)
+
     except ValueError as e:
         db.session.rollback()
         raise e
@@ -373,22 +371,9 @@ def dar_acceso_segun_orden_cola (id_clase):
         import traceback
         traceback.print_exc()
         raise ValueError("Ha habido un error con la base de datos") from e
-
-    # Sección de enviado de mail
-    try:
-        body = f"Hola {proximo.nombre},\n\nSe le informa que la clase {clase.nombre} de la especialidad {clase.especialidad} ha generado una reserva para usted. En caso de no asistir informe su baja, caso contrario se le harán cargos."
-        msg = Message(
-            subject="RehabilitAR - Aviso de alta demanda",
-            recipients=[proximo.email]
-        )
-        msg.body = body
-        send_mail(msg)
-    except Exception as e:
-        print(f"No mandé el mail che: {e}")
         
     return proximo
 
-# Esto lo generé con ChatGPT y se ve pesado. Acepto cambios de optimización
 def cliente_tiene_conflicto_horario(clase, id_cliente):
     """Dada una clase y el id_cliente, comprueba si existe otra clase que se de a la vez que la primera. En caso de no existir clase devuelve false, caso contrario devuelve un texto preparado para meter en flash()"""
     clases_cliente = []

@@ -5,6 +5,7 @@ from src.core.pagos import estado_abono_usuario, procesar_mercado_pago_webhook,c
 from flask import session
 from src.web.helpers.decorator import requiere_rol
 from src.core.database import db
+from src.core.notificaciones import enviar_notificaciones
 
 from src.core.pagos import PrecioClase, Pago, TipoBeneficio, devolver_pagos_de_reservas_de_usuarios, devolver_abonos_de_usuarios, conseguir_precio_actual, tiene_beneficios, calcular_descuento_maximo
 
@@ -52,11 +53,12 @@ def pago_exitoso():
 def pago_fallido():
 
     tipo = request.args.get("tipo")
-
-    datos = {
-        "mensaje": "No se pudo completar el pago del abono mensual.",
-        "url_reintento": url_for("pagos.suscripcion")
-    }
+    
+    if tipo == "cola":
+        datos = {
+            "mensaje": "No se pudo completar el pago del abono mensual.",
+            "url_reintento": url_for("pagos.suscripcion")
+        }
 
     if tipo == "reserva_fija":
 
@@ -77,6 +79,17 @@ def pago_fallido():
             "mensaje": "No se pudo completar el pago de la clase individual.",
             "url_reintento": url_for(
                 "reservas.abonar_individual",
+                id_clase=id_clase
+            )
+        }
+
+    if tipo == "cola":
+        id_clase = request.args.get("id_clase")
+
+        datos = {
+            "mensaje": "No se pudo completar el pago de la reserva de espera.",
+            "url_reintento": url_for(
+                "reservas.abonar_cola",
                 id_clase=id_clase
             )
         }

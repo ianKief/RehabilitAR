@@ -6,6 +6,7 @@ from src.core.salas import listar_salas_habilitadas, obtener_sala
 from src.core.clases.clases import Clase, PostulacionClase
 from src.core.clases import obtener_clases_dictadas_por_profesor, obtener_clases_disponibles_para_profesor, obtener_postulaciones_de_profesor
 from src.web.helpers.decorator import requiere_rol
+from src.core.notificaciones import TipoNotificacion, enviar_notificaciones
 from sqlalchemy import select
 
 bp = Blueprint("clases", __name__, url_prefix="/clases")
@@ -229,6 +230,7 @@ def ver_clases_para_postularse():
 @bp.route("/mis-postulaciones/postularse", methods=["POST"])
 @requiere_rol(['PROFESOR'])  
 def postularse():
+    from src.core.usuarios import conseguir_administrativos, obtener_usuario_por_id_core
     user_id = session.get('usuario_id')
     if not user_id:
         flash("Debes iniciar sesión para postularte a las clases.", "warning")
@@ -282,6 +284,8 @@ def postularse():
                 estado="PENDIENTE"
             )
             db.session.add(nueva_postulacion)
+            usuario = obtener_usuario_por_id_core(profesor_id)
+            enviar_notificaciones(conseguir_administrativos(), "Nueva postulación", f"Se ha recibido una nueva postulación: {usuario.nombre}, {usuario.apellido} se ha anotado a la clase {clase_existe.nombre}. Para más información revise la casilla de clases", TipoNotificacion.NUEVA_APELACION_A_CLASE)
         
         db.session.commit()
         flash("Usted fue asignado correctamente, puede ver sus clases en la seccion 'Mis clases'.", "success")
