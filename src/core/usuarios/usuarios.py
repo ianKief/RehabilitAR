@@ -78,7 +78,7 @@ class Usuario(Base):
     bloqueado_hasta: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     notificaciones: Mapped[list["Notificacion"]] = relationship("Notificacion", back_populates="usuario")
-    configuracion_notificaciones: Mapped[List["ConfiguracionNotificacion"]] = relationship("ConfiguracionNotificacion", back_populates="usuario")
+    configuracion_notificaciones: Mapped[List["ConfiguracionNotificacion"]] = relationship("ConfiguracionNotificacion", back_populates="usuario", cascade="all, delete-orphan")
 
     fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),

@@ -27,41 +27,5 @@ def crear_configuraciones_notificacion(mapper, connection, target):
             )
         )
 
-# --- EVENTO 2: Cambio de Rol (before_flush) ---
-"""
-def detectar_cambio_de_rol(session, flush_context, instances):
-    for obj in session.dirty:
-        if isinstance(obj, Usuario):
-            state = event.inspect(obj) # db
-            attr = state.attrs.get('rol')
-            if attr and attr.history.has_changes():
-                session.execute(
-                    ConfiguracionNotificacion.__table__.update()
-                    .where(ConfiguracionNotificacion.__table__.c.id_usuario == obj.id)
-                    .values(habilitado=False)
-                )
-                nuevo_rol = attr.history.added[0]
-                tipos_nuevos = CONFIG_POR_CLASE.get(nuevo_rol, [])
-                for tipo in tipos_nuevos:
-                    tabla_config = ConfiguracionNotificacion.__table__
-                    
-                    # Intentamos hacer la inserción base
-                    stmt = insert(tabla_config).values(
-                        id_usuario=obj.id,
-                        tipo=tipo,
-                        activado=True,
-                        habilitado=True
-                    )
-                    
-                    # Si hay conflicto en las columnas especificadas, actualiza en su lugar
-                    upsert_stmt = stmt.on_conflict_do_update(
-                        index_elements=['id_usuario', 'tipo'], # Nombre de las columnas de la restricción
-                        set_=dict(habilitado=True, activado=True) # Campos a modificar si ya existe
-                    )
-                    
-                    session.execute(upsert_stmt)
-"""
 def init_events(db):
     event.listen(Usuario, 'after_insert', crear_configuraciones_notificacion, propagate=True)
-    
-    # event.listen(db.session, 'before_flush', detectar_cambio_de_rol) ACTUALMENTE FUERA DE USO

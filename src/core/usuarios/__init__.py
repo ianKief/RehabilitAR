@@ -173,7 +173,7 @@ def actualizar_rol_usuario(usuario_id, nuevo_rol):
     usuario.rol = RolUsuario(nuevo_rol)
     db.session.commit()
 
-    # Enviar notificación
+    # TODO no testeado porque odio esta HU
     enviar_notificaciones(usuario, "Se ha cambiado su rol", "Un administrador ha cambiado su rol. Para más información contacte con la administración", TipoNotificacion.ROL_MODIFICADO)
 
     return usuario

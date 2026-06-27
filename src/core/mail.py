@@ -9,8 +9,6 @@ def enviar_email_asincrono(app, msg):
 def enviar_correo(subject="Asunto", recipients=["destino@correo.com"], body="Contenido"):
     """Recipients recibe SOLO MAILS, uno o varios"""
     from flask import current_app
-    print(type(current_app))
-    print(current_app)
     # Esta comprobación se hace en las notificaciones, pero la dejo por si se llega a usar la función desde otra parte del sistema
     if isinstance(recipients, list):
         iterable = recipients
