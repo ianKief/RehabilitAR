@@ -72,11 +72,11 @@ def conseguir_lista_alumnos_clase_actual (id_profesor, filtro_nombre = None):
 
     return db.session.scalars(query).all()
 
-def conseguir_perfil_alumno (dni_alumno):
-    """Consigue el perfil del alumno con solo el DNI"""
+def conseguir_perfil_alumno (dni_alumno, id_profesor):
+    """Consigue el perfil del alumno con solo el DNI. Además consigue el porcentaje de asistencias a las clases del profesor indicado"""
 
+    Profesor = aliased(Usuario)
     Cliente = aliased(Usuario)
-
     query = (
         db.session.query(Cliente, func.avg(
             case (
@@ -84,8 +84,12 @@ def conseguir_perfil_alumno (dni_alumno):
                 else_=0
             )).label("promedio_asistencia"))
         .join(Reserva, Reserva.id_cliente == Cliente.id)
+        .join(Clase, Clase.id == Reserva.id_clase)
+        .join(ProfesorDictaClase, ProfesorDictaClase.id_clase == Clase.id)
+        .join(Profesor, Profesor.id == ProfesorDictaClase.id_profesor)
         .filter(Cliente.dni == dni_alumno)
-        .filter(Cliente.rol == RolUsuario.CLIENTE)
+        .filter(ProfesorDictaClase.id_profesor == id_profesor)
+        .filter(Reserva.asiste != AsistenciaReserva.CANCELADA)
         .group_by(Cliente.id)
     )
 
