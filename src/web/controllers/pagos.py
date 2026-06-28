@@ -126,8 +126,18 @@ def precio_clase():
         if not nuevo_precio:
             flash("Debes ingresar un precio", "danger")
             return redirect(url_for("pagos.precio_clase"))
+        
+        try:
+            precio = int(nuevo_precio)
+        except Exception:
+            flash ("No se ha ingresado un número", "danger")
+            return redirect(url_for("pagos.precio_clase"))
 
-        precio = PrecioClase(precio=int(nuevo_precio))
+        if precio <= 1:
+            flash("El precio debe ser un número positivo", "danger")
+            return redirect(url_for("pagos.precio_clase"))
+        
+        precio = PrecioClase(precio=precio)
         db.session.add(precio)
         db.session.commit()
 
