@@ -1,0 +1,213 @@
+{% extends "layout.html" %}
+
+{% block title %} RehabilitAR - Configuración de notificaciones {% endblock %}
+
+{% block content %}
+
+    <div class="container mt-5 mb-6 px-3" style="max-width: 600px;">
+        
+        <div class="mb-5">
+            <a href="javascript:history.back()" class="button is-ghost has-text-grey px-0 hover-opacity">
+                <span class="icon is-medium"><i class="fas fa-arrow-left fa-lg"></i></span>
+                <span class="has-text-weight-medium is-size-5">Atrás</span>
+            </a>
+        </div>
+
+        <h1 class="title is-3 mb-6">Configuración de Notificaciones</h1>
+
+        <div class="mb-6">
+            <h2 class="title is-6 has-text-grey is-uppercase tracking-wide mb-4">Personalizables</h2>
+            <div class="box p-0 settings-card">
+                
+                {% for config in modificables %}
+                <div class="setting-item p-4 is-flex is-align-items-center is-justify-content-space-between">
+                    <div>
+                        <p class="has-text-weight-medium is-size-6 m-0">
+                            {{ config.tipo.value | replace('_', ' ') | capitalize }}
+                        </p>
+                        <p class="is-size-7 has-text-grey mt-1">{{ config.descripcion }}</p>
+                    </div>
+                    
+                    <label class="custom-switch ml-4">
+                        <input type="checkbox" 
+                            class="js-config-toggle" 
+                            data-id="{{ config.id }}" 
+                            {% if config.activado %}checked{% endif %}>
+                        <span class="switch-slider"></span>
+                    </label>
+                </div>
+                {% endfor %}
+                
+            </div>
+        </div>
+
+        <div>
+            <h2 class="title is-6 has-text-grey is-uppercase tracking-wide mb-4">Esenciales del Sistema</h2>
+            <div class="box p-0 settings-card">
+                
+                {% for config in fijas %}
+                <div class="setting-item p-4 is-flex is-align-items-center is-justify-content-space-between opacity-75">
+                    <div>
+                        <p class="has-text-weight-medium is-size-6 m-0">
+                            {{ config.tipo.value | replace('_', ' ') | capitalize }}
+                        </p>
+                        <p class="is-size-7 has-text-grey mt-1">Obligatoria para el funcionamiento del sistema.</p>
+                    </div>
+                    
+                    <label class="custom-switch ml-4" title="No se puede desactivar">
+                        <input type="checkbox" checked disabled>
+                        <span class="switch-slider is-disabled"></span>
+                    </label>
+                </div>
+                {% endfor %}
+                
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Seleccionamos todos los botones de "marcar como leída"
+        const configuracionActual = document.querySelectorAll('.js-config-toggle');
+
+        configuracionActual.forEach(button => {
+            button.addEventListener('click', async (e) => {
+                // Estas dos líneas son CRÍTICAS. 
+                // Evitan que el click se propague a la etiqueta <a> padre y te cambie de página.
+                e.stopPropagation();
+
+                // Obtenemos el ID de la notificación desde el HTML
+                const notifId = button.getAttribute('data-id');
+
+                try {
+                    // Hacemos la petición POST a nuestra nueva ruta de Flask
+                    const response = await fetch(`/notificaciones/configuracion/switch/${notifId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    // Si Flask responde que todo salió bien (código 200)
+                    if (response.ok) {
+                        console.log("Cambio registrado exitosamente")
+                    } else {
+                        console.error("Error en el servidor al marcar como leída");
+                    }
+                } catch (error) {
+                    console.error("Error de red:", error);
+                }
+            });
+        });
+    </script>
+
+    <style>
+        /* --- TARJETAS DE CONFIGURACIÓN --- */
+        .settings-card {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(128, 128, 128, 0.15);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+        }
+
+        .setting-item {
+            border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+            transition: background-color 0.2s ease;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-item:hover {
+            background-color: rgba(128, 128, 128, 0.02);
+        }
+
+        .tracking-wide {
+            letter-spacing: 1px;
+        }
+
+        .opacity-75 {
+            opacity: 0.75;
+        }
+
+        .hover-opacity:hover {
+            opacity: 0.7;
+        }
+
+        /* --- CUSTOM SWITCH (INTERRUPTOR) --- */
+        .custom-switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+
+        /* Ocultar el checkbox nativo */
+        .custom-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        /* El fondo del switch */
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #d1d5db; /* Gris claro por defecto (apagado) */
+            transition: .3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            border-radius: 34px;
+        }
+
+        /* El círculo del switch */
+        .switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* ESTADO: ENCENDIDO (Verde agua claro) */
+        .custom-switch input:checked + .switch-slider {
+            background-color: #4fd1c5; /* Color verde agua claro */
+        }
+
+        /* Movimiento del círculo al encender */
+        .custom-switch input:checked + .switch-slider:before {
+            transform: translateX(22px);
+        }
+
+        /* ESTADO: DESHABILITADO (Notificaciones fijas) */
+        .custom-switch input:disabled + .switch-slider.is-disabled {
+            background-color: rgba(128, 128, 128, 0.3); /* Gris estático */
+            cursor: not-allowed;
+        }
+        .custom-switch input:disabled + .switch-slider.is-disabled:before {
+            box-shadow: none;
+            background-color: #f3f4f6;
+        }
+
+        /* --- ADAPTACIÓN A MODO OSCURO --- */
+        /* Si usas variables nativas de Bulma o una clase .is-dark en el body, ajusta esto: */
+        @media (prefers-color-scheme: dark) {
+            .switch-slider {
+                background-color: #4b5563; /* Gris más oscuro para el fondo apagado en dark mode */
+            }
+            
+            .custom-switch input:disabled + .switch-slider.is-disabled {
+                background-color: #374151; /* Gris oscuro para el switch fijo */
+            }
+            
+            .custom-switch input:disabled + .switch-slider.is-disabled:before {
+                background-color: #9ca3af;
+            }
+        }
+    </style>
+{% endblock %}

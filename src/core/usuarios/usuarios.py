@@ -76,7 +76,10 @@ class Usuario(Base):
 
     intentos_login: Mapped[int] = mapped_column(Integer, default=0, nullable=True)
     bloqueado_hasta: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    
+
+    notificaciones: Mapped[list["Notificacion"]] = relationship("Notificacion", back_populates="usuario")
+    configuracion_notificaciones: Mapped[List["ConfiguracionNotificacion"]] = relationship("ConfiguracionNotificacion", back_populates="usuario", cascade="all, delete-orphan")
+
     fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
         nullable=False
@@ -102,9 +105,10 @@ class Usuario(Base):
 class Cliente(Usuario):
     __tablename__ = "clientes"
     id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), primary_key=True)
+    fecha_ultima_verificacion: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     # Relaciones
-    apto_fisico: Mapped["AptoFisico"] = relationship(back_populates="cliente", uselist=False)
+    apto_fisico: Mapped["AptoFisico"] = relationship(back_populates="cliente", uselist=False, cascade="all, delete-orphan")
     reservas: Mapped[List["Reserva"]] = relationship(back_populates="cliente", cascade="all, delete-orphan")
     colas: Mapped[list["Cola"]] = relationship(back_populates="cliente", cascade="all, delete-orphan")
 

@@ -1,4 +1,4 @@
-from sqlalchemy import func, text, or_, select, and_, case, exists
+from sqlalchemy import func, or_, select, and_, case, exists
 from sqlalchemy.orm import aliased
 
 from flask_mail import Message
@@ -9,7 +9,7 @@ from src.core.usuarios.usuarios import AptoFisico, EstadoAptoFisico, Usuario, Ro
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reservas.reservas import Reserva, AsistenciaReserva
 from src.core.usuarios.usuarios import Usuario, Cliente, Profesor, Administrador, Recepcionista, RolUsuario
-from src.core.pagos import Pago, ConceptoPago
+from src.core.notificaciones import enviar_notificaciones, TipoNotificacion
 
 from src.core.functions import filtro_clase_actual, devolver_fecha_hora_actual
 
@@ -72,11 +72,11 @@ def conseguir_lista_alumnos_clase_actual (id_profesor, filtro_nombre = None):
 
     return db.session.scalars(query).all()
 
-def conseguir_perfil_alumno (dni_alumno):
-    """Consigue el perfil del alumno con solo el DNI"""
+def conseguir_perfil_alumno (dni_alumno, id_profesor):
+    """Consigue el perfil del alumno con solo el DNI. Además consigue el porcentaje de asistencias a las clases del profesor indicado"""
 
+    Profesor = aliased(Usuario)
     Cliente = aliased(Usuario)
-
     query = (
         db.session.query(Cliente, func.avg(
             case (
@@ -84,8 +84,12 @@ def conseguir_perfil_alumno (dni_alumno):
                 else_=0
             )).label("promedio_asistencia"))
         .join(Reserva, Reserva.id_cliente == Cliente.id)
+        .join(Clase, Clase.id == Reserva.id_clase)
+        .join(ProfesorDictaClase, ProfesorDictaClase.id_clase == Clase.id)
+        .join(Profesor, Profesor.id == ProfesorDictaClase.id_profesor)
         .filter(Cliente.dni == dni_alumno)
-        .filter(Cliente.rol == RolUsuario.CLIENTE)
+        .filter(ProfesorDictaClase.id_profesor == id_profesor)
+        .filter(Reserva.asiste != AsistenciaReserva.CANCELADA)
         .group_by(Cliente.id)
     )
 
@@ -172,22 +176,29 @@ def actualizar_rol_usuario(usuario_id, nuevo_rol):
 
     usuario.rol = RolUsuario(nuevo_rol)
     db.session.commit()
+
+    # TODO no testeado porque odio esta HU
+    enviar_notificaciones(usuario, "Se ha cambiado su rol", "Un administrador ha cambiado su rol. Para más información contacte con la administración", TipoNotificacion.ROL_MODIFICADO)
+
     return usuario
 
-def bloquear_usuario(usuario_id):
+def bloquear_usuario(usuario_id, motivo="Se le ha bloqueado la cuenta. Para más información consulte a la administración"):
     usuario = db.session.get(Usuario, usuario_id)
     if not usuario:
         raise ValueError("El usuario no existe.")
         
     usuario.estado = EstadoUsuario.BLOQUEADO
+
     db.session.commit()
+    enviar_notificaciones(usuario, "Usted está bloqueado", motivo, TipoNotificacion.ESTADO_BLOQUEO)
     return usuario
 
 def habilitar_usuario(usuario_id):
     usuario = db.session.get(Usuario, usuario_id)
     if not usuario:
         raise ValueError("El usuario no existe.")
-        
+    
+    # TODO
     # REGLA DE NEGOCIO: Verificar que no tenga deudas pendientes.
     # Cuando se implemente el módulo de pagos se reemplaza "False" por la función real.
     # Ejemplo: tiene_deuda = verificar_deuda_core(usuario_id)
@@ -197,6 +208,7 @@ def habilitar_usuario(usuario_id):
         raise ValueError("Actualización fallida: El usuario posee deudas pendientes")
         
     usuario.estado = EstadoUsuario.ACTIVO
+    enviar_notificaciones(usuario, "Se le ha desbloqueado del sistema", "La administración ha decidido desbloquearle del sistema.", TipoNotificacion.ESTADO_BLOQUEO)
     db.session.commit()
     return usuario
 
@@ -204,8 +216,10 @@ def eliminar_usuario(usuario_id):
     usuario = db.session.get(Usuario, usuario_id)
     if not usuario:
         raise ValueError("El usuario no existe.")
-        
-    db.session.delete(usuario)
+
+    usuario.estado = EstadoUsuario.BLOQUEADO
+    usuario.email = f"eliminado_{usuario.id}_{usuario.email}"  
+    # db.session.delete(usuario)
     db.session.commit()
     return True
 
@@ -220,23 +234,8 @@ def conseguir_administrativos ():
     return db.session.scalars(db.session.query(Administrador)).all()
 
 def informar_alta_demanda (clase):
-    from src.web import mail
     try:
-        print ("Entré al try :P")
-        print ("Datos de la clase:", clase.nombre, clase.especialidad)
-        administrativos = conseguir_administrativos ()
-        for admin in administrativos:
-            print ("Acabo de informar a", admin.nombre)
-            body = f"""Hola {admin.nombre},
-
-                    Se le informa que la clase {clase.nombre} de la especialidad {clase.especialidad} está teniendo picos de demanda, habiendo superado recientemente las 10 esperas en cola.
-                    Se le aconseja considerar más clases de este estilo para un futuro."""
-            msg = Message(
-                        subject="RehabilitAR - Aviso de alta demanda",
-                        recipients=[admin.email]
-                    )
-            msg.body = body
-            mail.send(msg)
+        enviar_notificaciones (conseguir_administrativos(), "RehabilitAR - Aviso de alta demanda", f"Hola. Se le informa que la clase {clase.nombre} de la especialidad {clase.especialidad} está teniendo picos de demanda, habiendo alcanzado recientemente las 10 esperas en cola. Se le aconseja considerar más clases de este estilo para un futuro.", TipoNotificacion.CLASE_COLAPSADA)
     except:
         clase.aviso_alta_demanda = False
         print ("Hubo un intento de informar alta demanda, pero falló")
@@ -271,6 +270,8 @@ def revisar_y_aprobar_apto(db_session, id_apto):
 
     apto.estado = EstadoAptoFisico.ACEPTADO
     apto.comentario = None  # Al aceptar, removemos motivos de rechazos viejos
+    cliente = obtener_usuario_por_id_core(apto.id_cliente)
+    enviar_notificaciones(cliente, "Apto físico", (f"Estimado {cliente.nombre}: se ha aprobado su apto físico. El mismo estará habilitado por 365 días."))
     
     db_session.commit()
     return apto
@@ -294,6 +295,8 @@ def revisar_y_rechazar_apto(db_session, id_apto, comentario_motivo):
 
     apto.estado = EstadoAptoFisico.RECHAZADO
     apto.comentario = comentario_motivo.strip()
+    cliente = obtener_usuario_por_id_core(apto.id_cliente)
+    enviar_notificaciones(cliente, "Apto físico", (f"Estimado {cliente.nombre}: se ha rechazado su apto físico. Motivo: {comentario_motivo}"))
     
     db_session.commit()
     return apto

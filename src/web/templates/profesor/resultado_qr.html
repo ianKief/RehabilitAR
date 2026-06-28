@@ -1,0 +1,110 @@
+{% extends "layout.html" %}
+
+{% block title %} Usuarios - QR {% endblock %}
+
+{% block content %}
+
+    <div class="is-flex is-align-items-center is-justify-content-center" style="min-height: 80vh; padding: 1rem;">
+        <div class="box has-text-centered result-card" style="width: 100%; max-width: 450px;">
+            
+            {% if estado == 'exito' %}
+            <div class="result-content animate-pop">
+                <span class="icon is-large has-text-success mb-4 result-icon">
+                    <i class="fas fa-check-circle fa-4x"></i>
+                </span>
+                <h1 class="title is-3 mb-2">¡Asistencia registrada!</h1>
+                <p class="subtitle is-5 has-text-grey mt-2">Te has puesto presente exitosamente en la clase.</p>
+            </div>
+
+            {% elif estado == 'duplicado' %}
+            <div class="result-content animate-pop">
+                <span class="icon is-large has-text-info mb-4 result-icon">
+                    <i class="fas fa-info-circle fa-4x"></i>
+                </span>
+                <h1 class="title is-3 mb-2">Asistencia confirmada</h1>
+                <p class="subtitle is-5 has-text-grey mt-2">Tu presente ya había sido registrado anteriormente para esta clase.</p>
+            </div>
+
+            {% elif estado == 'no_pertenece' %}
+            <div class="result-content animate-pop">
+                <span class="icon is-large has-text-warning mb-4 result-icon">
+                    <i class="fas fa-exclamation-triangle fa-4x"></i>
+                </span>
+                <h1 class="title is-3 mb-2">Acceso denegado</h1>
+                <p class="subtitle is-5 has-text-grey mt-2">No se ha podido verificar que estés inscripto en la clase actual. Verifica tus datos.</p>
+            </div>
+
+            {% elif estado == 'suspendido' %}
+            <div class="result-content animate-pop">
+                <span class="icon is-large has-text-danger mb-4 result-icon">
+                    <i class="fas fa-ban fa-4x"></i>
+                </span>
+                <h1 class="title is-3 mb-2">Clase suspendida</h1>
+                <p class="subtitle is-5 has-text-grey mt-2">Tienes una suspensión activa para esta clase.</p>
+                
+                <div class="notification is-danger is-light mt-4 p-3 rounded-notification">
+                    <span class="icon is-small mr-1"><i class="fas fa-user-tie"></i></span>
+                    Por favor, acércate a la administración para realizar tu consulta.
+                </div>
+            </div>
+
+            {% else %}
+            <div class="result-content">
+                <span class="icon is-large has-text-grey-light mb-4 result-icon">
+                    <i class="fas fa-question-circle fa-4x"></i>
+                </span>
+                <h1 class="title is-3 mb-2">Estado desconocido</h1>
+                <p class="subtitle is-5 has-text-grey mt-2">Ha ocurrido un error al procesar el código QR. Intenta nuevamente.</p>
+            </div>
+            {% endif %}
+
+            <div class="mt-6">
+                <a href="/" class="button is-ghost has-text-grey">
+                    <span class="icon"><i class="fas fa-home"></i></span>
+                    <span>Volver al inicio</span>
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <style>
+        .result-card {
+            border-radius: 16px; /* Bordes un poco más redondeados, muy estilo app móvil */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(128, 128, 128, 0.1); /* Seguro para modo oscuro */
+            padding: 3rem 1.5rem !important; /* Más espacio vertical para que respire */
+        }
+
+        /* Tamaño personalizado para el ícono principal para que destaque mucho en el celular */
+        .result-icon i {
+            font-size: 5rem;
+        }
+
+        /* Suavizado para la notificación del caso "Suspendido" */
+        .rounded-notification {
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        /* --- ANIMACIÓN DE ENTRADA (POP) --- */
+        /* Cuando el alumno escanee el QR y cargue la web, la tarjeta hará un pequeño "salto" hacia arriba y aparecerá.
+        Esto da una sensación inmediata de "respuesta" al escaneo. */
+        .animate-pop {
+            animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            opacity: 0;
+            transform: scale(0.9);
+        }
+
+        @keyframes pop-in {
+            0% {
+                opacity: 0;
+                transform: scale(0.9) translateY(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+    </style>
+{% endblock %}

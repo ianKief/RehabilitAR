@@ -21,7 +21,7 @@ def registrar_cliente(nombre, apellido, dni, telefono, fecha_nacimiento, direcci
 
     nuevo_apto = None
     if nombre_archivo_apto:
-        nuevo_apto = AptoFisico(ruta_archivo=nombre_archivo_apto, fecha_carga=datetime.now(), estado=EstadoAptoFisico.SIN_CARGAR)
+        nuevo_apto = AptoFisico(ruta_archivo=nombre_archivo_apto, fecha_carga=datetime.now(), estado=EstadoAptoFisico.EN_REVISION)
     # Si todo está libre, creamos el usuario
     nuevo_cliente = Cliente(
         nombre=nombre,
@@ -62,6 +62,7 @@ def login(email, password):
 
     # 3. Cuenta bloqueada y todavia no paso el tiempo de bloqueo
     if usuario.estado == EstadoUsuario.BLOQUEADO:
+        # TODO este valueError está mal, no se llega a leer
         raise ValueError("Inicio de sesión fallido: Cuenta bloqueada por motivos de seguridad. Vuelva a intentar en {} minutos."
                          .format(int((usuario.bloqueado_hasta - datetime.now()).total_seconds() // 60) + 1))
 
@@ -88,14 +89,25 @@ def login(email, password):
     # Si pasó todas las validaciones, se loguea exitosamente y se resetean los intentos de login
     usuario.intentos_login = 0
     usuario.bloqueado_hasta = None
-    db.session.commit()        
 
-    codigo_verificacion = str(random.randint(100000, 999999))
-    tiempo_expiracion = datetime.now() + timedelta(minutes=15)
+    necesita_verificacion = True
+    if usuario.rol == RolUsuario.CLIENTE:
+        fecha_ult = getattr(usuario, "fecha_ultima_verificacion", None)
+        if fecha_ult and datetime.now() <= fecha_ult +timedelta(days=30):
+            necesita_verificacion = False
+    
+    if necesita_verificacion:
+        codigo_verificacion = str(random.randint(100000, 999999))
+        tiempo_expiracion = datetime.now() + timedelta(minutes=15)
 
-    usuario.codigo_verificacion = codigo_verificacion
-    usuario.codigo_verificacion_expira = tiempo_expiracion
-    usuario.intentos_codigo = 0
+        usuario.codigo_verificacion = codigo_verificacion
+        usuario.codigo_verificacion_expira = tiempo_expiracion
+        usuario.intentos_codigo = 0
+    else:
+        usuario.codigo_verificacion = None
+        usuario.codigo_verificacion_expira = None
+
+    db.session.commit()
 
     db.session.flush()
 
@@ -133,6 +145,9 @@ def confirmar_codigo(user_id, codigo_ingresado):
     usuario.codigo_verificacion_expira = None
     usuario.intentos_codigo = 0
     usuario.estado = EstadoUsuario.ACTIVO
+
+    if usuario.rol == RolUsuario.CLIENTE:
+        usuario.fecha_ultima_verificacion = datetime.now()
 
     db.session.commit()
 

@@ -1,13 +1,13 @@
 import calendar
 from datetime import date, datetime, time, timedelta
-from sqlalchemy import or_, select, func, case, and_, extract
+from sqlalchemy import or_, select, func, case, and_
 from sqlalchemy.orm import aliased
 
 
 from src.core.database import db
-
 from src.core.clases.clases import Clase, ProfesorDictaClase, ClaseBloque, PostulacionClase
 from src.core.reservas.reservas import Reserva, AsistenciaReserva
+from src.core.notificaciones import TipoNotificacion, enviar_notificaciones
 
 # <VER CLASES ADMIN>
 def listar_clases():
@@ -469,10 +469,16 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
     Si pertenece a una clase fija (bloque), aplica la acción (aceptar o rechazar) 
     en cascada a todas las instancias de dicho bloque para ese profesor.
     """
+    from src.core.usuarios import obtener_usuario_por_id_core
+    
     postulacion = db.session.get(PostulacionClase, postulacion_id)
     if not postulacion or postulacion.estado != "PENDIENTE":
         return False  # No existe o ya fue resuelta
 
+    clase = db.session.scalar(
+        select(Clase).filter(Clase.id == postulacion.clase_id)
+    )
+    
     # 1. 🔍 DETECTAR EL ALCANCE (¿Es clase fija/bloque o individual?)
     registro_bloque = db.session.scalar(
         select(ClaseBloque).filter(ClaseBloque.id_clase == postulacion.clase_id)
@@ -514,6 +520,8 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
             if not existe_dicta:
                 db.session.add(ProfesorDictaClase(id_profesor=postulacion.profesor_id, id_clase=clase_id))
         
+        enviar_notificaciones(obtener_usuario_por_id_core(postulacion.profesor_id), "¡Se ha aprobado la postulación de la clase!", f"Se ha aprobado su participación en la clase {clase.nombre}. Para más información vaya a la sección 'Mis clases' en el navegador de profesores.", TipoNotificacion.ESTADO_POSTULACION_CLASE)
+        
         # ❌ RECHAZAR EN CASCADA A LOS COMPETIDORES
         otras_postulaciones = db.session.scalars(
             select(PostulacionClase)
@@ -526,6 +534,8 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
         
         for otra in otras_postulaciones:
             otra.estado = "RECHAZADA"
+        
+        enviar_notificaciones(otras_postulaciones, "Se ha rechazado su postulación a clase", f"Se ha rechazado su participación en la clase {clase.nombre}.", TipoNotificacion.ESTADO_POSTULACION_CLASE)
             
     elif accion == "rechazar":
         # ❌ RECHAZAR EN CASCADA AL MISMO PROFESOR EN TODO EL BLOQUE
@@ -540,6 +550,8 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
 
         for p_a_rechazar in postulaciones_a_rechazar:
             p_a_rechazar.estado = "RECHAZADA"
+        
+        enviar_notificaciones(obtener_usuario_por_id_core(postulacion.profesor_id), "Se ha rechazado su postulación a clase", f"Se ha rechazado su participación en la clase {clase.nombre}.", TipoNotificacion.ESTADO_POSTULACION_CLASE)
             
     else:
         return False
@@ -561,19 +573,23 @@ def conseguir_clase_actual (id_profesor):
     Profesor = aliased(Usuario)
     
     query = (
-        db.session.query(Clase, func.count(
-            Reserva.id
-        ).label("reservas_totales"), func.coalesce(
-            func.sum(case(
-                (Reserva.asiste == AsistenciaReserva.PRESENTE, 1),
-                else_=0
-            )), 0
-        ).label("asistencias_actuales"))
+        db.session.query(Clase, func.coalesce(
+                func.sum(case(
+                    (Reserva.asiste != AsistenciaReserva.CANCELADA, 1),
+                    else_=0
+                )), 0
+            ).label("reservas_totales"),
+            func.coalesce
+                (func.sum(case(
+                    (Reserva.asiste == AsistenciaReserva.PRESENTE, 1),
+                    else_=0
+                )), 0
+            ).label("asistencias_actuales")
+        )
 
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
         .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
-        # Las reglas de negocio no permiten que se de una clase sin alumnos, pero, dado el caso, outerjoin prepara el escenario
-        .outerjoin(Reserva, Reserva.id_clase == Clase.id)
+        .join(Reserva, Reserva.id_clase == Clase.id)
 
         .filter(Profesor.id == id_profesor)
         .filter(Profesor.rol == RolUsuario.PROFESOR)
@@ -581,6 +597,7 @@ def conseguir_clase_actual (id_profesor):
 
         .group_by(Clase.id)
     )
+    print (db.session.execute(query).one_or_none())
 
     return db.session.execute(query).one_or_none()
 
@@ -627,3 +644,12 @@ def comprobar_alta_demanda (clase):
         db.session.commit()
         return True
     return False
+
+def tiene_qr (clase_actual):
+    query = (db.session.query(Clase)
+        .filter (Clase.id == clase_actual.id)
+        .filter (Clase.token_qr != None)
+    )
+    return db.session.query(
+        query.exists()
+    ).scalar()

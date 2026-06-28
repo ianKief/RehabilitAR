@@ -1,7 +1,6 @@
 from flask_sqlalchemy_lite import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
-
-
+from sqlalchemy import text
 
 db = SQLAlchemy()
 
@@ -17,21 +16,27 @@ class Base(DeclarativeBase):
 def reset_db():
     from src.core.salas import Sala
     from src.core.clases.clases import Clase, ProfesorDictaClase
+    from src.core.notificaciones.notificaciones import Notificacion
+    print(Notificacion)
     from src.core.usuarios import Usuario
     from src.core.reservas.reservas import Reserva, Comentario
-    from src.core.pagos.pagos import Pago, DetallePago, DetallePagoReserva, Beneficio, PrecioClase, Abono
+    from src.core.pagos.pagos import Pago, DetallePago, Beneficio, PrecioClase, Abono
+    from src.core import events
     
     """Reinicia la base de datos eliminando todas las tablas y volviéndolas a crear."""
     print("Reiniciando la base de datos...")
-    Base.metadata.drop_all(bind=db.engine)
+    with db.engine.connect() as conn:
+        conn.execute(text("DROP SCHEMA public CASCADE;"))
+        conn.execute(text("CREATE SCHEMA public;"))
+        conn.commit()
     Base.metadata.create_all(bind=db.engine)
     print("Base de datos reiniciada.")
 
 def seed_db():
     """Pobla la base de datos con datos de prueba."""
     from src.core.database import db
-    from src.core.seeds.salas_seeds import SalaSeeder
 
+    from src.core.seeds.salas_seeds import SalaSeeder
     #from src.core.seeds.profesores_seeds import ProfesorSeeder
     #from src.core.seeds.postulacionSeeder import PostulacionSeeder
     #from src.core.seeds.clases_seeds2 import ClaseSeeder2
@@ -41,6 +46,8 @@ def seed_db():
     from src.core.seeds.sprint1_5 import SeedPagosSprint1
     from src.core.seeds.sprint1_8 import SeedAsistenciaYSeguimientoSprint1
     from src.core.seeds.sprint1_9 import SeedListaDeEspera
+    from src.core.seeds.notificaciones_seeds import NotificacionesSeeder
+    from src.core import events
 
     # Definimos el orden lógico de ejecución de los seeders
     seeders = [
@@ -50,10 +57,11 @@ def seed_db():
         #ProfesorSeeder(db),
         #ClaseSeeder(db),
         #PostulacionSeeder(db),
-        #ProfesorDictaClaseSeeder(db),
-        #SeedPagosSprint1(db),
-        #SeedAsistenciaYSeguimientoSprint1(db),
-        #SeedListaDeEspera (db),
+        ProfesorDictaClaseSeeder(db),
+        SeedPagosSprint1(db),
+        SeedAsistenciaYSeguimientoSprint1(db),
+        SeedListaDeEspera (db),
+        NotificacionesSeeder (db)
     ]
 
     for seeder in seeders:

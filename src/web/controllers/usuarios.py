@@ -7,8 +7,7 @@ from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 from src.core.database import db
 from flask_mail import Message
-from src.core.mail import send_mail
-#from src.web import mail
+from src.web import mail
 
 users_bp = Blueprint('usuarios', __name__, url_prefix='/usuarios')
 
@@ -199,7 +198,7 @@ def subir_apto():
 @requiere_rol(['ADMINISTRADOR'])
 def ruta_bloquear_usuario(id):
     try:
-        bloquear_usuario(id)
+        bloquear_usuario(id, motivo="La administración ha bloqueado su usuario. Para más información acérquese a la administración.")
         flash("El usuario ha sido bloqueado y ya no tiene acceso al sistema.", "success")
     except Exception as e:
         db.session.rollback()
@@ -219,6 +218,7 @@ def ruta_habilitar_usuario(id):
     except Exception as e:
         db.session.rollback()
         flash("Ocurrió un error inesperado.", "danger")
+        print (str(e))
         
     return redirect(url_for('usuarios.detalle_usuario', id=id))
 
@@ -253,13 +253,14 @@ Si crees que esto es un error o tenés alguna duda, por favor contactate con la 
 Saludos,
 El equipo de RehabilitAR."""
 
-        send_mail(msg)
+        mail.send(msg)
         
         # 4. Mostramos el mensaje exacto que pide tu HU
         flash("Cuenta eliminada con éxito.", "success")
         
     except Exception as e:
         db.session.rollback()
+        print(f"Error al eliminar usuario o enviar correo: {e}")
         flash("Ocurrió un error inesperado al intentar eliminar la cuenta.", "danger")
         
     # 5. Redirigimos al listado porque el detalle del usuario ya no existe

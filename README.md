@@ -27,6 +27,8 @@ Repositorio para el proyecto "RehabilitAR" de la materia Ingeniería de Software
 - psycopg2-binary
 - flask-sqlalchemy-lite
 - tzdata
+- pillow
+- qrcode
 
 ## Dependencias de desarrollo
 
@@ -124,6 +126,13 @@ Repositorio para el proyecto "RehabilitAR" de la materia Ingeniería de Software
 		- MAIL_USE_TLS=True
 		- MAIL_USERNAME=tu_correo@gmail.com
 		- MAIL_PASSWORD=las_16_letras_que_te_dio_google
+
+## Agregar una nueva notificación
+
+1. Agregar el tipo de notificación en la clase TipoNotificacion `src/core/notificaciones/notificaciones.py`
+2. En `src/core/events.py`, agregar TipoNotificacion.NUEVA_NOTIFICACION en la lista de cliente, profesor o administrador, según donde se quiera que se use. Esto hará que se cree la configuración de la notificación automáticamente.
+3. Si la notificación se puede configurar, agregar a devolver_notificaciones_configurables en `src/web/controllers/notificaciones.py`
+4. Para usar la notificación, importar el método `enviar_notificaciones` en `src/core/notificaciones/__init__.py`. El mismo puede recibir uno o varios usuarios y también se encarga del envío de mails.
 
 ## Arquitectura del Frontend: Bulma y Puntos de Extensión
 

@@ -133,7 +133,7 @@
                             {% endif %}
 
                             <!--Comprueba si tiene que mostrar la opción de reservar de manera mensual-->
-                            {% if clase.tipo == 'Fija' and es_abonado %}
+                            {% if clase.tipo == 'Fija' and es_abonado and clase.id not in ids_clases_reservadas %}
                                 <a href="{{ url_for('reservas.reservar_mensual', id_clase=clase.id) }}" class="button is-small is-info is-light is-rounded has-text-weight-bold shadow-button">Reservar Mes</a>
                             {% endif %}
                             

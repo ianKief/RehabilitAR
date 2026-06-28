@@ -19,19 +19,18 @@ def listar_salas_habilitadas():
     """Retorna los objetos completos de las salas habilitadas (para sacar ID y Puerta en el HTML)."""
     query = select(Sala).filter(Sala.estado == EstadoSala.HABILITADA)
     return db.session.scalars(query).all()
+
 def crear_sala(**kwargs):
     """Crea una nueva sala en la base de datos."""
     numero_puerta = kwargs.get("numero_puerta")
     descripcion = kwargs.get("descripcion")
     capacidad = kwargs.get("capacidad")
 
-    # Escenario 3: Agregar sala fallida por campo incompleto
-    if not numero_puerta or not str(numero_puerta).strip() or not descripcion or not str(descripcion).strip() or not capacidad or not str(capacidad).strip():
+    if not numero_puerta or not str(numero_puerta).strip() or not capacidad or not str(capacidad).strip():
         raise ValueError("Por favor, complete todos los campos obligatorios")
 
     numero_puerta_str = str(numero_puerta).strip()
 
-    # Escenario 4: Agregar sala fallida por datos numéricos fuera de rango
     try:
         cap_val = int(capacidad)
         if cap_val <= 0:

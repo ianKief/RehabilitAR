@@ -7,26 +7,35 @@ from src.core.usuarios.usuarios import Usuario, RolUsuario, Cliente
 
 from src.core.functions import filtro_clase_actual
 
-def alumno_tiene_asistencia (dni_alumno):
+def alumno_tiene_asistencia (dni_alumno=None, id_alumno=None):
     """Devuelve True si el alumno tiene asistencia en la clase actual, False si no.
     Si no existe clase actual, devuleve None"""
 
-    query = (
-        db.session.query(Reserva.asiste)
-        .join(Cliente, Reserva.id_cliente == Cliente.id)
-        .join(Clase, Reserva.id_clase == Clase.id)
+    if dni_alumno != None:
+        query = (
+            db.session.query(Reserva.asiste)
+            .join(Cliente, Reserva.id_cliente == Cliente.id)
+            .join(Clase, Reserva.id_clase == Clase.id)
 
-        .filter(Cliente.dni == dni_alumno)
-        .filter(*filtro_clase_actual())
-    )
+            .filter(Cliente.dni == dni_alumno)
+            .filter(*filtro_clase_actual())
+        )
+    elif id_alumno != None:
+        query = (
+            db.session.query(Reserva.asiste)
+            .join(Cliente, Reserva.id_cliente == Cliente.id)
+            .join(Clase, Reserva.id_clase == Clase.id)
+
+            .filter(Cliente.id == id_alumno)
+            .filter(*filtro_clase_actual())
+        )
+    else:
+        raise ValueError("registrar_presente_alumno necesita un parámetro de alumno (DNI o ID)")
 
     return db.session.scalars(query).one_or_none()
 
 def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos', fecha="", solo_comentarios=False):
     """Devuelve todas las asistencias basado en una serie de filtros. Si no encuentra nada, devuelve una lista vacía"""
-
-    Profesor = aliased(Usuario)
-    Cliente = aliased(Usuario)
 
     # Inicializaciones necesarias
     filters = []
@@ -48,27 +57,47 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
     if (fecha != ""):
         filters.append(fecha == Clase.fecha_clase)
 
+    if solo_comentarios:
+        reservas_faltantes_sin_comentarios = []
+    else:
+        reservas_faltantes_sin_comentarios = (
+            db.session.query(Reserva.id)
+            .join(Clase, Clase.id == Reserva.id_clase)
+            .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
+                        
+            .filter(ProfesorDictaClase.id_profesor == id_profesor)
+            .filter(Reserva.asiste == AsistenciaReserva.AUSENTE)
+            .filter(*filtro_clase_actual())
+            .filter(~Reserva.comentarios.any()) 
+            
+            .subquery()
+        )
+    
     # query en sí
     query = (
         db.session.query(Reserva)
 
         .join(Clase, Clase.id == Reserva.id_clase)
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
-        .join(Profesor, ProfesorDictaClase.id_profesor == Profesor.id)
         .join(Cliente, Reserva.id_cliente == Cliente.id)
 
-        .filter(Profesor.id == id_profesor)
-        .filter(Profesor.rol == RolUsuario.PROFESOR)
+        .filter(ProfesorDictaClase.id_profesor == id_profesor)
         .filter(Reserva.asiste != AsistenciaReserva.CANCELADA)
+
         .filter(*filters)
+
+        # filtramos los alumnos que no tienen comentarios y están ausentes, dado que son alumnos que aún no llegaron
+
+        .filter(Reserva.id.notin_(reservas_faltantes_sin_comentarios))
 
         .order_by(Reserva.fecha_modificacion.desc())
     )
 
-    if solo_comentarios or busqueda != "":
+    if solo_comentarios:
         query = query.join(Comentario, Comentario.id_reserva == Reserva.id)
     else:
         query = query.outerjoin(Comentario, Comentario.id_reserva == Reserva.id)
+
 
     if cliente_filtrado:
         query = query.options(
@@ -84,7 +113,6 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
         )
 
     return query.distinct().all()
-        
 
 def subir_comentario (dni_alumno, comentario):
     """Sube un comentario del alumno en la clase actual según su DNI.
@@ -110,23 +138,34 @@ def subir_comentario (dni_alumno, comentario):
     db.session.add(nuevo_comentario)
     db.session.commit()
 
-def registrar_presente_alumno (dni_alumno):
+def registrar_presente_alumno (dni_alumno=None, id_alumno=None):
     """Registra el presente de un alumno. En caso de que ya tenga el presente devuelve una excepción."""
 
-    query = (
-        db.session.query(Reserva)
-        .join (Cliente, Cliente.id == Reserva.id_cliente)
-        .join (Clase, Clase.id == Reserva.id_clase)
+    if dni_alumno != None:
+        query = (
+            db.session.query(Reserva)
+            .join (Cliente, Cliente.id == Reserva.id_cliente)
+            .join (Clase, Clase.id == Reserva.id_clase)
 
-        .filter(Cliente.dni == dni_alumno)
-        .filter(*filtro_clase_actual())
-    )
+            .filter(Cliente.dni == dni_alumno)
+            .filter(*filtro_clase_actual())
+        )
+    elif id_alumno != None:
+        query = (
+            db.session.query(Reserva)
+            .join (Cliente, Cliente.id == Reserva.id_cliente)
+            .join (Clase, Clase.id == Reserva.id_clase)
+
+            .filter(Cliente.id == id_alumno)
+            .filter(*filtro_clase_actual())
+        )
+    else:
+        raise ValueError("registrar_presente_alumno necesita un parámetro de alumno (DNI o ID)")
 
     reserva_a_actualizar = db.session.scalars(query).one()
     if (reserva_a_actualizar.asiste != AsistenciaReserva.AUSENTE):
         print ("No deberíamos haber llegado acá.")
-        #TODO agregar excepción
-        return False
+        raise ValueError("Ya se ha registrado el presente del alumno") # Esta condición debería comprobarse antes, por ende nunca debería llegarse acá
     reserva_a_actualizar.asiste = AsistenciaReserva.PRESENTE
 
     db.session.commit()
@@ -164,7 +203,7 @@ def finalizar_clase_y_penalizar(id_clase):
         
         if porcentaje_inasistencia >= 50 and total_clases >= 4:
             try:
-                bloquear_usuario(reserva.id_cliente)
+                bloquear_usuario(reserva.id_cliente, motivo="Su porcentaje de asistencias ha llegado a menos del 50%. Se le ha bloqueado la cuenta indefinidamente. Para más información acérquese a la administración.")
                 bloqueados += 1
             except Exception as e:
                 print(f"Error al bloquear al usuario {reserva.id_cliente}: {e}")
@@ -198,3 +237,16 @@ def calcular_porcentaje_inasistencia(id_cliente):
 
     # 3. Calculamos el porcentaje
     return (total_ausencias / total_clases) * 100, total_clases
+
+def buscar_clase_por_token (token):
+    query = (db.session.query(Clase)
+        .filter (Clase.token_qr == token)
+    )
+    return query.scalar()
+
+def clase_sucediendo_actualmente_por_id (id_clase):
+    query = (db.session.query(Clase)
+        .filter(Clase.id == id_clase)
+        .filter(*filtro_clase_actual())
+    )
+    return db.session.scalars(query).one_or_none

@@ -7,7 +7,6 @@ from src.core.auth import registrar_cliente as registrar_cliente_core, confirmar
 from src.core.usuarios import obtener_usuario_por_id_core
 from src.core.database import db
 
-from src.core.pagos import estado_abono_usuario
 from src.web import mail
 from src.web.bypass import correos_bypass
 
@@ -146,10 +145,12 @@ def login():
             usuario = login_core(email, password)
 
             # Bypass de verificación de dos pasos para las cuentas de prueba
-            if usuario.email in correos_bypass():
-                usuario.codigo_verificacion = None
-                usuario.codigo_verificacion_expira = None
-                db.session.commit()
+            if usuario.email in correos_bypass() or not usuario.codigo_verificacion:
+                if usuario.email in correos_bypass():
+                    usuario.codigo_verificacion = None
+                    usuario.codigo_verificacion_expira = None
+                    db.session.commit()
+                    
                 session.permanent = True
                 session['usuario_id'] = usuario.id
                 session['rol'] = usuario.rol.name

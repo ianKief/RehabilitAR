@@ -1,5 +1,5 @@
 from flask import render_template, session, redirect, url_for, flash
-from src.core.clases import conseguir_clase_actual
+from src.core.clases import conseguir_clase_actual, tiene_qr
 from sqlalchemy.exc import MultipleResultsFound
 
 from src.web.functions import devolver_hora_fin
@@ -23,7 +23,8 @@ def renderizar_index_profesor ():
         asistencias = datos.asistencias_actuales
         return render_template('/profesor/index.html', clase_actual = clase_actual,
                                reservas = reservas, asistencias = asistencias,
-                               hora_fin = devolver_hora_fin (clase_actual.horario, clase_actual.duracion)
+                               hora_fin = devolver_hora_fin (clase_actual.horario, clase_actual.duracion),
+                               qr_generado=tiene_qr(clase_actual)
                                )
     
     except ValueError as e: 
