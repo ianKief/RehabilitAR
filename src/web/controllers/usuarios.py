@@ -327,7 +327,7 @@ def editar_perfil():
         return redirect(url_for('auth.login'))
     
     # Obtenemos el usuario de la base de datos
-    usuario = db.session.get(Cliente, user_id)
+    usuario = db.session.get(Usuario, user_id)
     if not usuario:
         session.clear()
         return redirect(url_for('auth.login'))
@@ -352,10 +352,11 @@ def editar_perfil():
             
             # === Validamos paso a paso que no sea None ===
             dias_restantes = 0
-            if usuario.apto_fisico and usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
-                if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
-                    fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
-                    dias_restantes = (fecha_vencimiento - datetime.now()).days
+            if isinstance(usuario, Cliente):
+                if usuario.apto_fisico and usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
+                    if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
+                        fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
+                        dias_restantes = (fecha_vencimiento - datetime.now()).days
                     
             return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes, editando=True)
     
@@ -363,7 +364,7 @@ def editar_perfil():
     dias_restantes = 0
     
     # === 'if usuario.apto_fisico' antes de evaluar sus propiedades ===
-    if usuario.apto_fisico and usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
+    if isinstance(usuario, Cliente) and usuario.apto_fisico and usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
         if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
             fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
             dias_restantes = (fecha_vencimiento - datetime.now()).days
