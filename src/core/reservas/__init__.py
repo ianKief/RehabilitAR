@@ -26,6 +26,7 @@ def listar_clases_disponibles_para_cliente(fecha=None, tipo=None, especialidad=N
     query = select(Clase).filter(
         Clase.suspendida == False,
         Clase.aprobada == True,
+        Clase.aviso_alta_demanda == False,
         _filtro_clase_futura()
     )
     

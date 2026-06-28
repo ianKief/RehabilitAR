@@ -235,7 +235,7 @@ def conseguir_administrativos ():
 
 def informar_alta_demanda (clase):
     try:
-        enviar_notificaciones (conseguir_administrativos(), "RehabilitAR - Aviso de alta demanda", f"Hola. Se le informa que la clase {clase.nombre} de la especialidad {clase.especialidad} está teniendo picos de demanda, habiendo alcanzado recientemente las 10 esperas en cola. Se le aconseja considerar más clases de este estilo para un futuro.", TipoNotificacion.CLASE_COLAPSADA)
+        enviar_notificaciones (conseguir_administrativos(), "RehabilitAR - Aviso de alta demanda", f"Hola. Se le informa que la clase {clase.nombre} de la especialidad {clase.especialidad} está teniendo picos de demanda, habiendo alcanzado recientemente las 10 esperas en cola. Se le aconseja considerar más clases de este estilo para un futuro. Para evitar que se llene más la clase, se ha deshabilitado la posibilidad de anotarse a la misma", TipoNotificacion.CLASE_COLAPSADA)
     except:
         clase.aviso_alta_demanda = False
         print ("Hubo un intento de informar alta demanda, pero falló")
