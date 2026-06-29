@@ -22,7 +22,7 @@ def cargar_perfil_alumno (dni):
         flash ("El DNI del alumno no corresponde a la clase del profesor o no existe", "warning")
         return redirect(url_for("profesor.listado_alumnos"))
 
-    datos = conseguir_perfil_alumno(dni)
+    datos = conseguir_perfil_alumno(dni, id_profesor)
 
     if datos == None:
         flash ("ERROR: el DNI ingresado no existe", "warning")

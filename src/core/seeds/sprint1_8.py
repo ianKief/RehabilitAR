@@ -2,7 +2,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from src.core.usuarios import Usuario, Profesor, Cliente, EstadoUsuario
-from src.core.reservas.reservas import Reserva, Comentario
+from src.core.reservas.reservas import Reserva, Comentario, AsistenciaReserva
 from src.core.clases import Clase, ProfesorDictaClase
 from src.core.salas.salas import Sala
 
@@ -156,5 +156,25 @@ class SeedAsistenciaYSeguimientoSprint1 ():
             id_reserva = reservas[3].id
         )
         self.db.session.add(comentario3)
+
+        # Del sprint 2: alguien con la clase cancelada :P
+
+        cliente_cancelada = Cliente(
+            nombre="cancelado",
+            apellido="ays",
+            dni="80000004",
+            password="123456",
+            estado = EstadoUsuario.ACTIVO,
+            email="clienteclasecanceladaays@gmail.com"
+        )
+        self.db.session.add(cliente_cancelada)
+        self.db.session.flush()
+
+        reserva = Reserva(
+            cliente = cliente_cancelada,
+            clase = clase1,
+            asiste = AsistenciaReserva.CANCELADA
+        )
+        self.db.session.add(reserva)
 
         self.db.session.commit()

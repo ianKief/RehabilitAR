@@ -80,6 +80,9 @@ class Usuario(Base):
     reset_token: Mapped[str] = mapped_column(String(100), unique=True, nullable=True)
     reset_token_expira: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     
+    notificaciones: Mapped[list["Notificacion"]] = relationship("Notificacion", back_populates="usuario")
+    configuracion_notificaciones: Mapped[List["ConfiguracionNotificacion"]] = relationship("ConfiguracionNotificacion", back_populates="usuario", cascade="all, delete-orphan")
+
     fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),
         nullable=False

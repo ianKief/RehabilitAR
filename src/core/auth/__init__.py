@@ -63,6 +63,7 @@ def login(email, password):
 
     # 3. Cuenta bloqueada y todavia no paso el tiempo de bloqueo
     if usuario.estado == EstadoUsuario.BLOQUEADO:
+        # TODO este valueError está mal, no se llega a leer
         raise ValueError("Inicio de sesión fallido: Cuenta bloqueada por motivos de seguridad. Vuelva a intentar en {} minutos."
                          .format(int((usuario.bloqueado_hasta - datetime.now()).total_seconds() // 60) + 1))
 

@@ -33,11 +33,13 @@
                             style="background: transparent; border: none;">
                             <span class="icon"><i class="far fa-moon"></i></span>
                         </button>
+
                         {% if session.get('usuario_id') %}
-                        <a class="button is-primary is-outlined is-small ml-2" href="{{ url_for('usuarios.perfil') }}"
-                            style="padding-left: 0.75rem; padding-right: 0.75rem;">
-                            <span class="icon"><i class="far fa-user"></i></span>
-                        </a>
+                            <!--Botón de usuarios-->
+                            <a class="button is-primary is-outlined is-small ml-2" href="{{ url_for('usuarios.perfil') }}"
+                                style="padding-left: 0.75rem; padding-right: 0.75rem;">
+                                <span class="icon"><i class="far fa-user"></i></span>
+                            </a>
                         {% endif %}
                     </div>
                 </div>
@@ -95,6 +97,56 @@
                     <hr class="navbar-divider" style="background-color: var(--bulma-border-weak); opacity: 0.5;">
                     
                     {% if session.get('usuario_id') %}
+                        <!--Campana en dispositivos móviles-->
+                        {% if session.get('rol') != 'RECEPCIONISTA' %}
+                            <a class="navbar-item py-3 px-4 is-flex is-align-items-center is-justify-content-space-between js-mobile-bell-trigger" href="javascript:void(0);">
+                                <div class="is-flex is-align-items-center">
+                                    <span class="icon is-medium has-text-grey mr-2"><i class="fas fa-bell"></i></span>
+                                    <span class="has-text-weight-medium">Notificaciones</span>
+                                </div>
+                                {% if unread_count and unread_count > 0 %}
+                                <span class="tag is-danger is-rounded has-text-weight-bold" id="count_mobile">{{ unread_count }}</span>
+                                {% endif %}
+                            </a>
+
+                            <div class="mobile-overlay is-hidden js-mobile-overlay"></div>
+
+                            <div class="box mobile-bottom-panel is-hidden js-mobile-panel">
+                                <div class="panel-header is-flex is-align-items-center is-justify-content-space-between p-3">
+                                    <div class="is-flex is-align-items-center">
+                                        <a href="{{ url_for('notificaciones.configuracion')}}" class="icon has-text-grey hover-gear mr-2"><i class="fas fa-cog"></i></a>
+                                        <h3 class="title is-6 mb-0">Notificaciones</h3>
+                                    </div>
+                                    <button class="delete js-mobile-close"></button>
+                                </div>
+
+                                <div class="panel-body">
+                                    {% for notif in notificaciones %}
+                                        <a href="{{ url_for('notificaciones.detalle', id_notificacion=notif.id) }}" class="notification-item is-flex p-3 {{ 'is-unread' if not notif.leido else '' }}">
+                                            <div class="icon is-medium has-text-info mr-3 mt-1"><i class="{{ notif.icono | default('fas fa-circle') }}"></i></div>
+                                            <div class="notification-content is-flex-grow-1">
+                                                <p class="has-text-weight-semibold is-size-6 mb-0">{{ notif.titulo }}</p>
+                                                <p class="is-size-7 has-text-grey mb-1 truncate-1-line">{{ notif.contenido }}</p>
+                                            </div>
+                                            {% if not notif.leido %}
+                                                <button class="button is-small is-ghost js-mark-read mt-2 ml-2" data-id="{{ notif.id }}" title="Marcar como leída">
+                                                    <span class="icon has-text-grey-light hover-success">
+                                                        <i class="fas fa-check-circle"></i>
+                                                    </span>
+                                                </button>
+                                            {% endif %}
+                                        </a>
+                                    {% else %}
+                                        <div class="has-text-centered p-5">
+                                            <span class="icon is-large has-text-grey-light mb-2"><i class="fas fa-bell-slash fa-2x"></i></span>
+                                            <p class="has-text-grey">No tienes notificaciones.</p>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!--Cierre de sesión-->
                         <a class="navbar-item py-3 px-4 has-text-danger" href="{{ url_for('auth.logout') }}">
                             <span class="icon mr-2"><i class="fas fa-sign-out-alt"></i></span>Cerrar Sesión
                         </a>
@@ -120,7 +172,56 @@
                             <!-- Lógica de Sesión -->
                             {% if session.get('usuario_id') %}
                                 <!-- SI EL USUARIO ESTÁ LOGUEADO -->
+
+                                <!--Campana-->
+                                {% if session.get('rol') != 'RECEPCIONISTA' %}
+                                    <div class="desktop-notifications-wrapper" style="position: relative; display: inline-block;">
+        
+                                        <button class="button is-ghost notification-bell js-pc-bell-trigger" aria-label="Notificaciones">
+                                            <span class="icon is-medium has-text-grey-dark"><i class="fas fa-bell fa-lg"></i></span>
+                                            {% if unread_count and unread_count > 0 %}
+                                            <span class="notification-badge" id="count_desktop">{{ unread_count }}</span>
+                                            {% endif %}
+                                        </button>
+
+                                        <div class="box notifications-panel js-pc-panel is-hidden">
+                                            <div class="panel-header is-flex is-align-items-center is-justify-content-space-between p-3">
+                                                <div class="is-flex is-align-items-center">
+                                                    <a href="{{ url_for('notificaciones.configuracion')}}" class="icon has-text-grey hover-gear mr-2"><i class="fas fa-cog"></i></a>
+                                                    <h3 class="title is-6 mb-0">Notificaciones</h3>
+                                                </div>
+                                            </div>
+
+                                            <div class="panel-body">
+                                                {% for notif in notificaciones %}
+                                                    <a href="{{ url_for('notificaciones.detalle', id_notificacion=notif.id) }}" class="notification-item is-flex p-3 {{ 'is-unread' if not notif.leido else '' }}">
+                                                        <div class="icon is-medium has-text-info mr-3 mt-1"><i class="{{ notif.icono | default('fas fa-circle') }}"></i></div>
+                                                        <div class="notification-content is-flex-grow-1">
+                                                            <p class="has-text-weight-semibold is-size-6 mb-0">{{ notif.titulo }}</p>
+                                                            <p class="is-size-7 has-text-grey mb-1 truncate-1-line">{{ notif.contenido }}</p>
+                                                            <p class="is-size-7 has-text-grey-light">{{ notif.fecha_creacion.replace(microsecond=0) }}</p>
+                                                        </div>
+
+                                                        {% if not notif.leido %}
+                                                            <button class="button is-small is-ghost js-mark-read mt-2 ml-2" data-id="{{ notif.id }}" title="Marcar como leída">
+                                                                <span class="icon has-text-grey-light hover-success">
+                                                                    <i class="fas fa-check-circle"></i>
+                                                                </span>
+                                                            </button>
+                                                        {% endif %}
+                                                    </a>
+                                                {% else %}
+                                                    <div class="has-text-centered p-5">
+                                                        <span class="icon is-large has-text-grey-light mb-2"><i class="fas fa-bell-slash fa-2x"></i></span>
+                                                        <p class="has-text-grey">No tienes notificaciones.</p>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
                                 
+                                <!--Mi perfil-->
                                 <a href="{{ url_for('usuarios.perfil') }}" class="button is-primary is-rounded px-5">
                                     <span class="icon mr-2"><i class="far fa-user"></i></span>
                                     <span>Mi Perfil</span>
@@ -403,6 +504,168 @@
             }
         }
     </script>
+
+    <script>
+        // Seleccionamos todos los botones de "marcar como leída"
+        const markReadButtons = document.querySelectorAll('.js-mark-read');
+
+        markReadButtons.forEach(button => {
+            button.addEventListener('click', async (e) => {
+                // Estas dos líneas son CRÍTICAS. 
+                // Evitan que el click se propague a la etiqueta <a> padre y te cambie de página.
+                e.preventDefault(); 
+                e.stopPropagation();
+
+                // Obtenemos el ID de la notificación desde el HTML
+                const notifId = button.getAttribute('data-id');
+
+                try {
+                    // Hacemos la petición POST a nuestra nueva ruta de Flask
+                    const response = await fetch(`/notificaciones/${notifId}/marcar_como_leido`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    // Si Flask responde que todo salió bien (código 200)
+                    if (response.ok) {
+                        // 1. Buscamos el contenedor padre de esta notificación
+                        const notifItem = button.closest('.notification-item');
+                        
+                        // 2. Le quitamos la clase del fondo rosado
+                        notifItem.classList.remove('is-unread');
+                        
+                        // 3. Hacemos desaparecer el botón de "check" porque ya está leída
+                        button.remove();
+
+                        // (Opcional) Aquí podrías restar 1 al contador de la campanita principal
+                        const countMobile = document.getElementById("count_mobile")                        
+                        let mobileValue = parseInt(countMobile.textContent);
+                        mobileValue--;
+                        countMobile.textContent = mobileValue
+
+                        const countDesktop = document.getElementById("count_desktop")
+                        let desktopValue = parseInt(countDesktop.textContent);
+                        desktopValue--;
+                        countDesktop.textContent = desktopValue
+
+                        if (mobileValue == 0 || desktopValue == 0) {
+                            countDesktop.classList.toggle("is-hidden")
+                            countMobile.classList.toggle("is-hidden")
+                        }
+                    } else {
+                        console.error("Error en el servidor al marcar como leída");
+                    }
+                } catch (error) {
+                    console.error("Error de red:", error);
+                }
+            });
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // === LÓGICA PARA PC ===
+            const pcWrapper = document.querySelector('.desktop-notifications-wrapper');
+            if (pcWrapper) {
+                const pcBtn = pcWrapper.querySelector('.js-pc-bell-trigger');
+                const pcPanel = pcWrapper.querySelector('.js-pc-panel');
+
+                pcBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    pcPanel.classList.toggle('is-hidden');
+                });
+
+                // Cierra al hacer click fuera
+                document.addEventListener('click', (e) => {
+                    if (!pcWrapper.contains(e.target)) {
+                        pcPanel.classList.add('is-hidden');
+                    }
+                });
+            }
+
+            // === LÓGICA PARA MÓVILES ===
+            const mobileBtn = document.querySelector('.js-mobile-bell-trigger');
+            const mobilePanel = document.querySelector('.js-mobile-panel');
+            const mobileOverlay = document.querySelector('.js-mobile-overlay');
+            const mobileCloseBtn = document.querySelector('.js-mobile-close');
+
+            if (mobileBtn && mobilePanel && mobileOverlay) {
+                const openMobile = () => {
+                    mobilePanel.classList.remove('is-hidden');
+                    mobileOverlay.classList.remove('is-hidden');
+                    // Timeout pequeño para que la transición CSS (bottom sheet) se anime
+                    setTimeout(() => { mobilePanel.classList.add('is-active-mobile'); }, 10);
+                };
+
+                const closeMobile = () => {
+                    mobilePanel.classList.remove('is-active-mobile');
+                    mobileOverlay.classList.add('is-hidden');
+                    // Espera a que baje para ocultarlo del DOM
+                    setTimeout(() => { mobilePanel.classList.add('is-hidden'); }, 300);
+                };
+
+                mobileBtn.addEventListener('click', (e) => {
+                    e.preventDefault(); // Anula cualquier redirección nativa
+                    openMobile();
+                });
+
+                mobileOverlay.addEventListener('click', closeMobile);
+                if (mobileCloseBtn) mobileCloseBtn.addEventListener('click', closeMobile);
+            }
+        });
+    </script>
+
+    <style>
+        /* --- GLOBOS Y ESTILOS COMUNES --- */
+        .notification-badge {
+            position: absolute; top: 2px; right: 2px; background-color: #f14668; color: white;
+            font-size: 0.65rem; font-weight: bold; padding: 2px 6px; border-radius: 50px;
+        }
+        .panel-body { overflow-y: auto; flex-grow: 1; max-height: 400px; }
+        .panel-header { border-bottom: 1px solid rgba(128, 128, 128, 0.1); }
+        .notification-item { border-bottom: 1px solid rgba(128, 128, 128, 0.05); color: inherit; }
+        .notification-item.is-unread { background-color: rgba(241, 70, 104, 0.06); }
+        .unread-dot { width: 8px; height: 8px; background-color: #f14668; border-radius: 50%; }
+
+        /* --- PANEL PC (DROPDOWN) --- */
+        .notifications-panel {
+            position: absolute; top: calc(100% + 5px); right: 0; width: 360px;
+            padding: 0 !important; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid rgba(128,128,128,0.1); display: flex; flex-direction: column;
+        }
+
+        /* --- PANEL MÓVIL (BOTTOM SHEET) --- */
+        .mobile-bottom-panel {
+            position: fixed; top: auto; bottom: -100%; left: 0; right: 0; width: 100%;
+            max-height: 80vh; padding: 0 !important; border-radius: 20px 20px 0 0;
+            transition: bottom 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 1000;
+            display: flex; flex-direction: column;
+        }
+        .mobile-bottom-panel.is-active-mobile { bottom: 0; }
+        .mobile-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.4); z-index: 999;
+        }
+        .mobile-bottom-panel {
+            /* 1. Anulamos el margen traicionero del .box de Bulma */
+            margin-bottom: 0 !important; 
+            
+            /* 2. Añadimos un padding inteligente que detecta la "zona segura" de los celulares sin botones físicos (como los iPhone nuevos) */
+            padding-bottom: env(safe-area-inset-bottom) !important; 
+            
+            /* Opcional: aseguramos que las esquinas de abajo no queden redondeadas por culpa del .box */
+            border-radius: 20px 20px 0 0 !important; 
+        }
+        .truncate-1-line {
+            display: -webkit-box;
+            -webkit-line-clamp: 1; /* Cambia este número a 1 si quieres una sola línea */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
     {% block scripts %}{% endblock %}
 </body>
 </html>
