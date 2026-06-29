@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from flask_mail import Message
 from datetime import datetime
 from werkzeug.utils import secure_filename
-from src.core.auth import registrar_cliente as registrar_cliente_core, confirmar_codigo as confirmar_codigo_core, login as login_core
+from src.core.auth import registrar_cliente as registrar_cliente_core, confirmar_codigo as confirmar_codigo_core, login as login_core, restablecer_contrasena_core, solicitar_restablecimiento_core
 from src.core.usuarios import obtener_usuario_por_id_core
 from src.core.database import db
 
@@ -230,3 +230,60 @@ def verificar():
             return render_template('auth/verificacion.html', error=str(e))
 
     return render_template('auth/verificacion.html')
+
+@auth_bp.route('/olvide-contrasena', methods=['GET', 'POST'])
+def olvide_contrasena():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        try:
+            usuario, token = solicitar_restablecimiento_core(email)
+            
+            # Generamos el link absoluto con el token
+            link = url_for('auth.restablecer_contrasena', token=token, _external=True)
+            
+            msg = Message(subject="RehabilitAR - Restablecer Contraseña", recipients=[email])
+            msg.body = f"""Hola {usuario.nombre},
+            
+Has solicitado restablecer tu contraseña. Haz clic en el siguiente enlace para crear una nueva (es válido por 5 minutos):
+{link}
+
+Si no solicitaste este cambio, ignora este correo.
+Saludos, El equipo de RehabilitAR."""
+
+            mail.send(msg)
+            flash("Correo enviado, revisa tu bandeja de entrada", "success")
+            return redirect(url_for('auth.login'))
+            
+        except ValueError as e:
+            flash(str(e), "danger")
+            
+    return render_template('auth/olvide_contrasena.html')
+
+
+@auth_bp.route('/restablecer-contrasena/<token>', methods=['GET', 'POST'])
+def restablecer_contrasena(token):
+    # Verificación temprana por GET (Si el link ya venció, lo pateamos antes de mostrar el formulario)
+    from src.core.usuarios.usuarios import Usuario
+    from src.core.database import db
+    from sqlalchemy import select
+    from datetime import datetime
+    
+    stmt = select(Usuario).filter(Usuario.reset_token == token)
+    usuario = db.session.execute(stmt).scalar()
+    
+    if not usuario or not usuario.reset_token_expira or datetime.now() > usuario.reset_token_expira:
+        flash("El link ya expiró, solicite reestablecer contraseña nuevamente", "danger")
+        return redirect(url_for('auth.olvide_contrasena'))
+
+    if request.method == 'POST':
+        nueva_password = request.form.get('password')
+        confirmacion = request.form.get('confirmacion')
+        
+        try:
+            restablecer_contrasena_core(token, nueva_password, confirmacion)
+            flash("Contraseña reestablecida, ya puede iniciar sesión", "success")
+            return redirect(url_for('auth.login'))
+        except ValueError as e:
+            flash(str(e), "danger")
+            
+    return render_template('auth/restablecer_contrasena.html', token=token)

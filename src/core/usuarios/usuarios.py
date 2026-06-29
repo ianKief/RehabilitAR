@@ -77,6 +77,9 @@ class Usuario(Base):
     intentos_login: Mapped[int] = mapped_column(Integer, default=0, nullable=True)
     bloqueado_hasta: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
+    reset_token: Mapped[str] = mapped_column(String(100), unique=True, nullable=True)
+    reset_token_expira: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    
     notificaciones: Mapped[list["Notificacion"]] = relationship("Notificacion", back_populates="usuario")
     configuracion_notificaciones: Mapped[List["ConfiguracionNotificacion"]] = relationship("ConfiguracionNotificacion", back_populates="usuario", cascade="all, delete-orphan")
 

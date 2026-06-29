@@ -92,7 +92,7 @@ class SeedListaDeEspera ():
             cliente = cliente_apto_fisico_viejo,
             ruta_archivo = "",
             estado = EstadoAptoFisico.ACEPTADO,
-            fecha_carga = datetime.now(tz_arg).replace(tzinfo=None).date() - timedelta(days=364),
+            fecha_carga = datetime.now(tz_arg).replace(tzinfo=None) - timedelta(days=362),
             # O sea, para dentro de dos días venció
             comentario = "Apto físico :P"
         )

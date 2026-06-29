@@ -155,6 +155,11 @@
         <div class="mt-5">
             <h3 class="title is-5 mb-4 has-text-grey">Acciones de Administración</h3>
             <div class="buttons">
+
+                <a href="{{ url_for('usuarios.editar_usuario_admin', id=usuario.id) }}" class="button is-info is-light">
+                    <span class="icon"><i class="fas fa-edit"></i></span>
+                    <span>Editar Datos</span>
+                </a>
                 
                 <button class="button is-warning is-light js-modal-trigger" data-target="modal-cambiar-rol">
                     <span class="icon"><i class="fas fa-user-edit"></i></span>

@@ -1,4 +1,5 @@
 import random
+import secrets
 from datetime import datetime, timedelta
 from sqlalchemy import select, or_
 from src.core.database import db
@@ -152,3 +153,45 @@ def confirmar_codigo(user_id, codigo_ingresado):
     db.session.commit()
 
     return True
+
+def solicitar_restablecimiento_core(email):
+    # Escenario 2 (Solicitud): Validar existencia
+    stmt = select(Usuario).filter(Usuario.email == email)
+    usuario = db.session.execute(stmt).scalar()
+    
+    if not usuario:
+        raise ValueError(f"No existe una cuenta asociada a {email}")
+        
+    # Escenario 1 (Solicitud): Generar token y asignar tiempo (5 min)
+    token = secrets.token_urlsafe(32)
+    usuario.reset_token = token
+    usuario.reset_token_expira = datetime.now() + timedelta(minutes=5)
+    
+    db.session.commit()
+    return usuario, token
+
+def restablecer_contrasena_core(token, nueva_password, confirmacion):
+    # Escenario 4 (Restablecimiento): Validar expiración
+    stmt = select(Usuario).filter(Usuario.reset_token == token)
+    usuario = db.session.execute(stmt).scalar()
+    
+    if not usuario or not usuario.reset_token_expira or datetime.now() > usuario.reset_token_expira:
+        raise ValueError("El link ya expiró, solicite reestablecer contraseña nuevamente")
+        
+    # Validaciones de seguridad
+    if nueva_password != confirmacion:
+        raise ValueError("Las contraseñas no coinciden.")
+        
+    # Escenario 2 (Restablecimiento): Contraseña corta
+    if len(nueva_password) < 6:
+        raise ValueError("La contraseña debe tener al menos 6 caracteres")
+        
+    # Escenario 3 (Restablecimiento): Contraseña idéntica
+    if usuario.password == nueva_password:
+        raise ValueError("Debe ingresar una contraseña distinta a la actual")
+        
+    # Escenario 1 (Restablecimiento): Éxito total
+    usuario.password = nueva_password
+    usuario.reset_token = None
+    usuario.reset_token_expira = None
+    db.session.commit()

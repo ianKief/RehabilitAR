@@ -300,3 +300,29 @@ def revisar_y_rechazar_apto(db_session, id_apto, comentario_motivo):
     
     db_session.commit()
     return apto
+
+def modificar_usuario_core(usuario_id, nombre, direccion, email, telefono):
+    """
+    Actualiza los datos permitidos de un usuario.
+    Valida que el email nuevo no esté siendo usado por OTRA cuenta.
+    """
+    # 1. Escenario 4: Validar si el email ya pertenece a OTRO usuario del sistema
+    stmt = select(Usuario).filter(Usuario.email == email, Usuario.id != usuario_id)
+    email_duplicado = db.session.execute(stmt).scalar()
+    
+    if email_duplicado:
+        raise ValueError("El email ingresado ya pertenece a una cuenta en el sistema")
+
+    # 2. Buscamos al usuario a modificar
+    usuario = db.session.get(Usuario, usuario_id)
+    if not usuario:
+        raise ValueError("El usuario solicitado no existe.")
+
+    # 3. Actualizamos solo los campos permitidos (El DNI ni se toca)
+    usuario.nombre = nombre
+    usuario.direccion = direccion
+    usuario.email = email
+    usuario.telefono = telefono
+
+    db.session.commit()
+    return usuario
