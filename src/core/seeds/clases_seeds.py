@@ -6,7 +6,7 @@ from sqlalchemy.orm import aliased
 
 from src.core.clases import Clase, listar_clases  # El import de tu modelo de clases
 from src.core.usuarios import Usuario, ProfesorDictaClase
-from src.core.salas.salas import Sala
+from src.core.salas.salas import Sala, EstadoSala
 from src.core.usuarios.usuarios import RolUsuario
 
 class ClaseSeeder:
@@ -115,6 +115,28 @@ class ClaseSeeder:
                 ))
             print(f"Creada: {clase.nombre} | {clase.fecha_clase} {clase.horario} | {tipo} | Sala: {clase.sala_id} | Prof: {id_profesor}")
 
+        sala_de_clase_sin_profesor = Sala (
+            numero_puerta = "1010",
+            descripcion = "Para alojar una clase sin profesor asignado",
+            capacidad = 10,
+            estado = EstadoSala.HABILITADA,
+            eliminada = False
+        )
+        self.db.session.add(sala_de_clase_sin_profesor)
+        self.db.session.flush()
+
+        clase_sin_profesor = Clase (
+            nombre = "Clase sin profesor",
+            especialidad = "Tren Superior",
+            duracion = 120,
+            descripcion = "Esta es una clase que no tiene un profesor asignado",
+            fecha_clase = date(year=2026, month=7, day=20),
+            horario = time(hour = 10),
+            aprobada = True,
+            tipo = "Individual",
+            sala = sala_de_clase_sin_profesor
+        )
+        self.db.session.add(clase_sin_profesor)
         self.db.session.commit()
         print("¡Se han guardado las clases correctamente!")
 
