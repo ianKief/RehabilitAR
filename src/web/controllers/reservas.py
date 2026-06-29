@@ -148,7 +148,7 @@ def reservar_clase(id_clase):
         return redirect(url_for("reservas.calendario_cliente"))
     
     conflicto_horario = cliente_tiene_conflicto_horario (clase, usuario_id)
-    if conflicto_horario != False:
+    if conflicto_horario:
         flash (f"El cliente ya tiene una clase en el mismo horario: {conflicto_horario}", "warning")
         return redirect(url_for("reservas.calendario_cliente"))
 
