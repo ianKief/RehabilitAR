@@ -25,7 +25,7 @@ def nueva_sala():
             return redirect(url_for("salas.lista_salas"))
         except ValueError as e:
             flash(str(e), "danger") 
-            if str(e) == "El nro de puerta ya se encuentra registrado":
+            if str(e) == "El número de puerta ya se encuentra registrado":
                 datos = None
             return render_template("salas/nueva_sala.html", datos=datos)
             
