@@ -69,6 +69,8 @@ class Usuario(Base):
     
     rol: Mapped[RolUsuario] = mapped_column(Enum(RolUsuario), default=RolUsuario.CLIENTE, nullable=False)
     estado: Mapped[EstadoUsuario] = mapped_column(Enum(EstadoUsuario), default=EstadoUsuario.PENDIENTE, nullable=True)
+    
+    eliminado: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     codigo_verificacion : Mapped[str] = mapped_column(String(6), nullable=True)
     codigo_verificacion_expira : Mapped[datetime] = mapped_column(DateTime, nullable=True)
