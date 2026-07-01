@@ -4,7 +4,6 @@ import json
 import urllib.request
 import os
 
-from src.core.database import db
 from src.web.helpers.decorator import requiere_rol
 from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido
 from src.core.pagos import estado_abono_usuario, obtener_precio_clase_actual, tiene_beneficios, TipoBeneficio, registrar_pago_con_credito
@@ -18,10 +17,9 @@ from src.core.reservas import (
     reactivar_reserva,
     cancelar_reserva_core,
     crear_reserva,
-    verificar_reserva_semanal_existente,
+    contar_reservas_fijas_semanales,
     verificar_limite_reservas_mensuales,
     obtener_clases_mensuales,
-    procesar_reservas_mensuales_automatica,
     obtener_clase_por_id,
     obtener_alternativas_semana_para_clase,
     obtener_reservas_cliente,
@@ -68,7 +66,7 @@ def _obtener_feriados(year: int) -> list:
     return feriados
 
 def _obtener_url_base() -> str:
-    return os.getenv("URL_NGROK")
+    return os.getenv("URL_NGROK", request.url_root).rstrip('/')
 
 @reservas_bp.get("/")
 @requiere_rol(["CLIENTE"])
@@ -83,10 +81,10 @@ def calendario_cliente():
         flash("Tu cuenta debe estar activa para acceder al calendario y realizar reservas.", "warning")
         return redirect(url_for("home"))
 
-    fecha_str = request.args.get("fecha")
+    hoy = date.today()
+    fecha_str = request.args.get("fecha", default=hoy.strftime("%Y-%m-%d"))
     tipo = request.args.get("tipo")
     especialidad = request.args.get("especialidad")
-    hoy = date.today()
     
     feriados = _obtener_feriados(hoy.year)
 
@@ -129,9 +127,12 @@ def calendario_cliente():
     if usuario_id:
         ids_clases_encoladas = obtener_ids_clases_encoladas(usuario_id)
 
+    # Verificamos si el abonado ya tiene un bloque mensual para deshabilitar el botón
+    tiene_bloque_mensual = verificar_limite_reservas_mensuales(usuario_id, None)
+
     fecha_formateada = fecha_seleccionada.strftime("%d/%m/%Y")
     
-    return render_template("reservas/calendario_reservas.html", clases=clases, fecha_seleccionada=fecha_str, fecha_formateada=fecha_formateada, tipo_seleccionado=tipo, especialidad_seleccionada=especialidad, feriados=feriados, fechas_con_clases=fechas_con_clases, ids_clases_reservadas=ids_clases_reservadas, es_abonado=abonado, ids_clases_encoladas=ids_clases_encoladas, ids_clases_llenas_donde_el_cliente_no_tiene_reserva = ids_clases_llenas_donde_el_cliente_no_tiene_reserva)
+    return render_template("reservas/calendario_reservas.html", clases=clases, fecha_seleccionada=fecha_str, fecha_formateada=fecha_formateada, tipo_seleccionado=tipo, especialidad_seleccionada=especialidad, feriados=feriados, fechas_con_clases=fechas_con_clases, ids_clases_reservadas=ids_clases_reservadas, es_abonado=abonado, ids_clases_encoladas=ids_clases_encoladas, ids_clases_llenas_donde_el_cliente_no_tiene_reserva = ids_clases_llenas_donde_el_cliente_no_tiene_reserva, tiene_bloque_mensual=tiene_bloque_mensual)
 
 @reservas_bp.post("/<int:id_clase>/reservar")
 @requiere_rol(["CLIENTE"])
@@ -165,11 +166,24 @@ def reservar_clase(id_clase):
         return redirect(url_for("reservas.abonar_cola", id_clase=id_clase))
         
     if clase.tipo == "Fija":
-        if verificar_reserva_semanal_existente(usuario_id, clase.fecha_clase):
-            flash("Límite alcanzado: solo puedes reservar una clase fija por semana.", "warning")
+        # Contamos cuántas clases fijas tiene el cliente en la semana
+        cantidad_reservas_semanales = contar_reservas_fijas_semanales(usuario_id, clase.fecha_clase)
+        
+        if estado_abono_usuario(usuario_id) == "activo":
+            if cantidad_reservas_semanales >= 2: # Ya tiene su clase del abono + 1 extra
+                flash("Límite alcanzado: como abonado, solo podés reservar una clase fija extra por semana.", "warning")
+                return redirect(url_for("reservas.calendario_cliente"))
+            flash("Como abonado, podés reservar una clase fija extra esta semana. Deberás abonarla de forma individual.", "info")
+            return redirect(url_for("reservas.abonar_clase_fija", id_clase=id_clase))
+
+        # Si no es abonado, solo puede tener 1
+        if estado_abono_usuario(usuario_id) != "activo" and cantidad_reservas_semanales >= 1:
+            flash("Límite alcanzado: solo podés reservar una clase fija por semana.", "warning")
             return redirect(url_for("reservas.calendario_cliente"))
+
         return redirect(url_for("reservas.abonar_clase_fija", id_clase=id_clase))
-    elif clase.tipo == "Individual":
+    
+    if clase.tipo == "Individual":
         return redirect(url_for("reservas.abonar_individual", id_clase=id_clase))
 
     crear_reserva(usuario_id, id_clase)
@@ -192,7 +206,9 @@ def abonar_clase_fija(id_clase):
         flash("El pago de clase fija solo aplica a clases fijas.", "warning")
         return redirect(url_for("reservas.calendario_cliente"))
     
-    if verificar_reserva_semanal_existente(usuario_id, clase.fecha_clase):
+    # Si el usuario NO es abonado, se mantiene el límite estricto de una clase por semana.
+    # Si es abonado, se saltea esta validación porque se le permite pagar una clase extra.
+    if estado_abono_usuario(usuario_id) != "activo" and contar_reservas_fijas_semanales(usuario_id, clase.fecha_clase) >= 1:
         flash("Límite alcanzado: solo puedes reservar una clase fija por semana.", "warning")
         return redirect(url_for("reservas.calendario_cliente"))
         
@@ -204,28 +220,9 @@ def abonar_clase_fija(id_clase):
         flash("No hay lugares disponibles. Próximamente habilitaremos la opción de Inscribirse en lista de espera.", "danger")
         return redirect(url_for("reservas.calendario_cliente"))
 
-    precio = obtener_precio_clase_actual()
+    precio = obtener_precio_clase_actual("Fija")
 
     if request.method == "POST":
-
-        estado_abono = estado_abono_usuario(usuario_id)
-
-    # si tiene abono activo no paga
-        if estado_abono == "activo":
-
-            crear_reserva(usuario_id, id_clase)
-
-            flash(
-                "Reserva confirmada con éxito.",
-                "success"
-            )
-
-            return redirect(
-                url_for("reservas.calendario_cliente")
-            )
-        
-        # --- TODO: IMPLEMENTACIÓN DE MERCADO PAGO ---
-        # 2. Conectamos con Mercado Pago
 
         sdk = current_app.mp_sdk
 
@@ -266,14 +263,19 @@ def abonar_clase_fija(id_clase):
             "auto_return": "approved"
         }
 
-        preference_response = sdk.preference().create(
-            preference_data
-        )
-        print(preference_response)
+        try:
+            preference_response = sdk.preference().create(preference_data)
+            if preference_response and preference_response.get("status") in [200, 201]:
+                return redirect(preference_response["response"]["init_point"])
+            else:
+                print("Error de Mercado Pago (abonar_clase_fija):", preference_response)
+                flash("Hubo un problema al comunicarse con Mercado Pago. Por favor, intentá de nuevo.", "danger")
+                return redirect(url_for("reservas.abonar_clase_fija", id_clase=id_clase))
+        except (KeyError, Exception) as e:
+            print(f"Error al crear preferencia de pago para clase fija: {e}")
+            flash("Ocurrió un error inesperado al procesar el pago. Por favor, contactá a soporte.", "danger")
+            return redirect(url_for("reservas.calendario_cliente"))
 
-        return redirect(
-            preference_response["response"]["init_point"]
-        ) 
     return render_template("pagos/pago_clase_fija.html", clase=clase, precio=precio)
 
 @reservas_bp.route("/<int:id_clase>/abonar_cola", methods=["GET", "POST"])
@@ -321,7 +323,7 @@ def abonar_cola(id_clase):
 
 
 
-    precio = obtener_precio_clase_actual()
+    precio = obtener_precio_clase_actual("Individual")
 
     if request.method == "POST":
         
@@ -361,14 +363,19 @@ def abonar_cola(id_clase):
             "auto_return": "approved"
         }
 
-        preference_response = sdk.preference().create(
-            preference_data
-        )
-        print(preference_response)
+        try:
+            preference_response = sdk.preference().create(preference_data)
+            if preference_response and preference_response.get("status") in [200, 201]:
+                return redirect(preference_response["response"]["init_point"])
+            else:
+                print("Error de Mercado Pago (abonar_cola):", preference_response)
+                flash("Hubo un problema al comunicarse con Mercado Pago. Por favor, intentá de nuevo.", "danger")
+                return redirect(url_for("reservas.abonar_cola", id_clase=id_clase))
+        except (KeyError, Exception) as e:
+            print(f"Error al crear preferencia de pago para cola: {e}")
+            flash("Ocurrió un error inesperado al procesar el pago. Por favor, contactá a soporte.", "danger")
+            return redirect(url_for("reservas.calendario_cliente"))
 
-        return redirect(
-            preference_response["response"]["init_point"]
-        ) 
     return render_template("pagos/pago_esperar_clase.html", clase=clase, precio=precio)
 
 @reservas_bp.route("/<int:id_clase>/abonar_individual", methods=["GET", "POST"])
@@ -394,7 +401,7 @@ def abonar_individual(id_clase):
         flash("No hay lugares disponibles. Intente anotarse a la lista de espera.", "danger")
         return redirect(url_for("reservas.calendario_cliente"))
 
-    precio = obtener_precio_clase_actual()
+    precio = obtener_precio_clase_actual("Individual")
 
     tiene_credito = tiene_beneficios (usuario_id, tipo=TipoBeneficio.CREDITO)
 
@@ -466,8 +473,18 @@ def abonar_individual(id_clase):
         "auto_return": "approved"
     }
 
-    preference_response = sdk.preference().create(preference_data)
-    return redirect(preference_response["response"]["init_point"])
+    try:
+        preference_response = sdk.preference().create(preference_data)
+        if preference_response and preference_response.get("status") in [200, 201]:
+            return redirect(preference_response["response"]["init_point"])
+        else:
+            print("Error de Mercado Pago (abonar_individual):", preference_response)
+            flash("Hubo un problema al comunicarse con Mercado Pago. Por favor, intentá de nuevo.", "danger")
+            return redirect(url_for("reservas.abonar_individual", id_clase=id_clase))
+    except (KeyError, Exception) as e:
+        print(f"Error al crear preferencia de pago para clase individual: {e}")
+        flash("Ocurrió un error inesperado al procesar el pago. Por favor, contactá a soporte.", "danger")
+        return redirect(url_for("reservas.calendario_cliente"))
 
 @reservas_bp.route("/<int:id_clase>/reservar_mensual", methods=["GET", "POST"])
 @requiere_rol(["CLIENTE"])
@@ -484,42 +501,13 @@ def reservar_mensual(id_clase):
     if not _verificar_apto_fisico(cliente, fecha_clase=datetime.combine(clase_base.fecha_clase, datetime.min.time())):
         return redirect(url_for("reservas.calendario_cliente"))
 
-    if estado_abono_usuario(usuario_id) != "activo":
-        flash("Solo los clientes con un abono activo pueden realizar reservas mensuales.", "warning")
-        return redirect(url_for("reservas.calendario_cliente"))
-
     if verificar_limite_reservas_mensuales(usuario_id, clase_base):
-        flash("Límite alcanzado: Ya tienes otra clase fija diferente reservada en este mes.", "warning")
+        flash("Ya tenés un bloque de clases mensuales reservado para este mes.", "warning")
         return redirect(url_for("reservas.calendario_cliente"))
 
-    hoy = date.today()
-    feriados = _obtener_feriados(hoy.year)
-
+    feriados = _obtener_feriados(date.today().year)
     clases_mensuales = obtener_clases_mensuales(id_clase)
     
-    if request.method == "POST":
-        #El template envía qué clases eligió finalmente el usuario
-        clases_seleccionadas_ids = request.form.getlist("clases_seleccionadas")
-        canceladas_con_descuento = int(request.form.get("canceladas_con_descuento", 0))
-
-        clases_a_reservar = []
-        for cid in clases_seleccionadas_ids:
-            clase_elegida = obtener_clase_por_id(int(cid))
-            if clase_elegida and clase_tiene_lugar(clase_elegida):
-                clases_a_reservar.append(clase_elegida)
-
-        reservas_creadas = procesar_reservas_mensuales_automatica(usuario_id, clases_a_reservar)
-
-        if reservas_creadas == 0 and canceladas_con_descuento == 0:
-            flash("No se seleccionó ninguna clase válida para reservar.", "warning")
-        else:
-            mensaje = f"¡Se reservaron {reservas_creadas} clases con éxito!"
-            if canceladas_con_descuento > 0:
-                mensaje += f" Se aplicará descuento en la cuota por {canceladas_con_descuento} clase(s) cancelada(s)."
-            flash(mensaje, "success" if reservas_creadas > 0 else "info")
-                
-        return redirect(url_for("reservas.calendario_cliente"))
-
     # GET: Construir la pantalla de confirmación previa
     conflictos_cupo = []
     conflictos_feriado = []
@@ -536,8 +524,7 @@ def reservar_mensual(id_clase):
                 
             alternativas_db = obtener_alternativas_semana_para_clase(c)
             alternativas_conflictos[c.id] = [
-                alt for alt in alternativas_db 
-                if clase_tiene_lugar(alt) and alt.fecha_clase.strftime("%Y-%m-%d") not in feriados
+                alt for alt in alternativas_db if clase_tiene_lugar(alt) and alt.fecha_clase.strftime("%Y-%m-%d") not in feriados
             ]
         else:
             clases_ok.append(c)
@@ -553,6 +540,33 @@ def reservar_mensual(id_clase):
                            alternativas_conflictos=alternativas_conflictos,
                            mes_nombre=meses_espanol[clase_base.fecha_clase.month],
                            dia_nombre=dias_semana_espanol[clase_base.fecha_clase.weekday()])
+
+@reservas_bp.post("/<int:id_clase>/confirmar-abono")
+@requiere_rol(["CLIENTE"])
+def confirmar_abono(id_clase):
+    """
+    Paso intermedio: recibe la selección de clases, calcula el precio
+    y muestra la página de confirmación antes de pagar.
+    """
+    clases_seleccionadas_ids = request.form.getlist("clases_seleccionadas")
+
+    if not clases_seleccionadas_ids:
+        flash("No seleccionaste ninguna clase para reservar.", "warning")
+        return redirect(url_for('reservas.reservar_mensual', id_clase=id_clase))
+
+    # Calculamos el precio y lo pasamos a la plantilla de confirmación
+    precio_clase_fija = obtener_precio_clase_actual("Fija")
+    valor_abono = len(clases_seleccionadas_ids) * precio_clase_fija
+
+    # Guardamos las clases seleccionadas en la sesión para el siguiente paso (pago)
+    session['reserva_mensual_post_data'] = {'clases_seleccionadas': clases_seleccionadas_ids}
+
+    clase_base = obtener_clase_por_id(id_clase)
+    return render_template(
+        "pagos/confirmar_abono_desde_reserva.html",
+        clase_base=clase_base,
+        valor_abono=valor_abono
+    )
 
 @reservas_bp.get("/mis-clases")
 @requiere_rol(["CLIENTE"])

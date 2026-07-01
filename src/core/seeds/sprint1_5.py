@@ -1,9 +1,9 @@
 from zoneinfo import ZoneInfo
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from src.core.usuarios import Cliente, EstadoUsuario, AptoFisico, EstadoAptoFisico
 from src.core.reservas.reservas import Comentario
-from src.core.pagos import Beneficio, TipoBeneficio, Pago, Abono, EstadoPago, ConceptoPago
+from src.core.pagos import Beneficio, TipoBeneficio, Pago, EstadoPago, ConceptoPago
 
 tz_arg = ZoneInfo("America/Argentina/Buenos_Aires")
 
@@ -52,43 +52,27 @@ class SeedPagosSprint1 ():
 
         print ("Insertando pago de abono vencido para el cliente 2")
 
-        pago = Pago (
+        pago_vencido = Pago (
             id_cliente = cliente_con_abono_terminado.id,
             payment_id = "lol",
             monto_total = 500,
             estado_pago = EstadoPago.COMPLETADO,
-            concepto_pago = ConceptoPago.ABONO
+            concepto_pago = ConceptoPago.ABONO,
+            fecha_creacion = datetime.now() - timedelta(days=40) # Creado hace 40 días, ya venció
         )
-        self.db.session.add(pago)
-        self.db.session.flush()
-
-        abono = Abono (
-            pago = pago,
-            dia_fijo = 0,
-            fecha_inicio = datetime(2026, 5, 2, 0, 0, 0),
-            fecha_fin = datetime(2026, 6, 2, 0, 0, 0)
-        )
-        self.db.session.add(abono)
+        self.db.session.add(pago_vencido)
 
         print ("Insertando pagos de abono super vencidos para el cliente 3")
 
-        pago2 = Pago (
+        pago_muerto = Pago (
             id_cliente = cliente_con_abono_muerto.id,
             payment_id = "lolol",
             monto_total = 500,
             estado_pago = EstadoPago.COMPLETADO,
-            concepto_pago = ConceptoPago.ABONO
+            concepto_pago = ConceptoPago.ABONO,
+            fecha_creacion = datetime.now() - timedelta(days=90) # Creado hace 90 días, está suspendido
         )
-        self.db.session.add(pago2)
-        self.db.session.flush()
-
-        abono2 = Abono (
-            pago = pago2,
-            dia_fijo = 0,
-            fecha_inicio = datetime(2026, 4, 2, 0, 0, 0),
-            fecha_fin = datetime(2026, 5, 2, 0, 0, 0)
-        )
-        self.db.session.add(abono2)
+        self.db.session.add(pago_muerto)
     
         print ("Insertando descuentos de ambos tipos para el cliente 1")
 

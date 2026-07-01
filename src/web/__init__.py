@@ -20,6 +20,12 @@ def create_app():
     app.config.from_object(config)
     app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER')
     app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+    # Configuración de la cookie de sesión para que funcione con Ngrok
+    ngrok_url = os.environ.get("URL_NGROK")
+    if ngrok_url and "ngrok" in ngrok_url:
+        # Extrae solo el hostname, ej: "1a2b-3c4d.ngrok.io"
+        app.config['SERVER_NAME'] = ngrok_url.split('//')[1]
+
     app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS') == 'True'
     app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
@@ -38,8 +44,6 @@ def create_app():
     from src.web.controllers.profesor.routes_profesor import profesor_bp
     from src.web.controllers.reservas import reservas_bp
     from src.web.controllers.pagos import bp as pagos_bp
-    from src.web.controllers.contratar_abono import bp as contratar_abono_bp
-    from src.web.controllers.profesor.asistencia import asistencia_bp
 
     app.register_blueprint(salas_bp)
     app.register_blueprint (profesor_bp)
@@ -48,8 +52,6 @@ def create_app():
     app.register_blueprint(usuarios_bp)
     app.register_blueprint(reservas_bp)
     app.register_blueprint(pagos_bp)
-    app.register_blueprint(contratar_abono_bp)
-    app.register_blueprint(asistencia_bp)
 
     # Registrar CLI commands
     @app.cli.command("reset-db")

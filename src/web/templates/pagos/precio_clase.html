@@ -1,27 +1,39 @@
 {% extends "layout.html" %}
 
+{% block title %}Configurar Precios de Clases{% endblock %}
+
 {% block content %}
 
-<h1 class="title">Precio de clases</h1>
+<h1 class="title">Configuración de Precios de Clases</h1>
 
-{% if precio %}
-    <p class="mb-4">
-        Precio actual: <strong>${{ precio.precio }}</strong>
-    </p>
-{% else %}
-    <p class="mb-4">No hay precio definido todavía.</p>
-{% endif %}
+<div class="notification is-info is-light">
+    Desde aquí podés establecer los valores para los distintos tipos de clases que ofrece el sistema.
+</div>
 
 <form method="POST" class="box">
-    <div class="field">
-        <label class="label">Nuevo precio</label>
-        <div class="control">
-            <input class="input" type="number" name="precio" placeholder="Ej: 5000">
+    <div class="columns">
+        <div class="column">
+            <div class="field">
+                <label class="label">Precio Clase Individual</label>
+                <div class="control has-icons-left">
+                    <input class="input" type="number" name="precio_individual" placeholder="Ej: 7500" value="{{ precio_individual.precio if precio_individual else '' }}" min="1" step="1" required>
+                    <span class="icon is-small is-left">$</span>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="field">
+                <label class="label">Precio Clase Fija</label>
+                <div class="control has-icons-left">
+                    <input class="input" type="number" name="precio_fija" placeholder="Ej: 5000" value="{{ precio_fija.precio if precio_fija else '' }}" min="1" step="1" required>
+                    <span class="icon is-small is-left">$</span>
+                </div>
+            </div>
         </div>
     </div>
 
     <button class="button is-primary" type="submit">
-        Guardar
+        Guardar Precios
     </button>
 </form>
 

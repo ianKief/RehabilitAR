@@ -12,7 +12,7 @@
         <p class="subtitle is-6 mt-2">Estás a punto de suscribirte a <strong>{{ clase_base.nombre }}</strong> todos los {{ dia_nombre }} a las {{ clase_base.horario.strftime('%H:%M') }} para el mes de <strong>{{ mes_nombre }}</strong>.</p>
     </div>
     
-    <form id="form-reserva" action="{{ url_for('reservas.reservar_mensual', id_clase=clase_base.id) }}" method="POST">
+    <form id="form-reserva" action="{{ url_for('reservas.confirmar_abono', id_clase=clase_base.id) }}" method="POST">
         <div class="content">
             <h3 class="title is-5"><span class="icon has-text-success"><i class="fas fa-check-circle"></i></span> Clases disponibles</h3>
             {% if clases_ok %}
