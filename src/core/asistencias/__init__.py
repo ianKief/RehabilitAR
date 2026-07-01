@@ -3,7 +3,7 @@ from sqlalchemy.orm import joinedload, selectinload, contains_eager, aliased
 from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reservas.reservas import Comentario, Reserva, AsistenciaReserva
-from src.core.usuarios.usuarios import Usuario, RolUsuario, Cliente, Profesor
+from src.core.usuarios.usuarios import Usuario, RolUsuario, Cliente
 
 from src.core.functions import filtro_clase_actual
 
@@ -90,7 +90,7 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
 
         .filter(Reserva.id.notin_(reservas_faltantes_sin_comentarios))
 
-        .order_by(Reserva.fecha_modificacion.desc())
+        .order_by(Reserva.fecha_modificacion.asc())
     )
 
     if solo_comentarios:
@@ -203,7 +203,7 @@ def finalizar_clase_y_penalizar(id_clase):
         
         if porcentaje_inasistencia >= 50 and total_clases >= 4:
             try:
-                bloquear_usuario(reserva.id_cliente)
+                bloquear_usuario(reserva.id_cliente, motivo="Su porcentaje de asistencias ha llegado a menos del 50%. Se le ha bloqueado la cuenta indefinidamente. Para más información acérquese a la administración.")
                 bloqueados += 1
             except Exception as e:
                 print(f"Error al bloquear al usuario {reserva.id_cliente}: {e}")

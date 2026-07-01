@@ -7,6 +7,7 @@ from src.core.usuarios.usuarios import AptoFisico, EstadoAptoFisico
 from src.core.clases import Clase
 from src.core.reservas import Reserva, Cola
 from src.core.salas import Sala
+from src.core.pagos import Pago, Abono, EstadoPago, ConceptoPago
 tz_arg = ZoneInfo("America/Argentina/Buenos_Aires")
 
 class SeedListaDeEspera ():
@@ -27,11 +28,50 @@ class SeedListaDeEspera ():
         )
         self.db.session.add(profesor)
 
+        cliente = Cliente (
+            nombre="Cliente con abono",
+            apellido="De cola de espera",
+            dni="90000002",
+            email="clienteespera1@gmail.com",
+            password="123456",
+            estado = EstadoUsuario.ACTIVO
+        )
+        self.db.session.add(cliente)
+        self.db.session.flush()
+
+        pago = Pago (
+            id_cliente = cliente.id,
+            payment_id = "hoigadhogaho1738y191yfheo4f2972h49f2pf",
+            monto_total = 500,
+            estado_pago = EstadoPago.COMPLETADO,
+            concepto_pago = ConceptoPago.ABONO
+        )
+        self.db.session.add(pago)
+
+        apto_fisico = AptoFisico (
+            cliente = cliente,
+            ruta_archivo = "",
+            estado = EstadoAptoFisico.ACEPTADO,
+            fecha_carga = datetime.now(tz_arg).replace(tzinfo=None).date(),
+            comentario = "Apto físico :P"
+        )
+        self.db.session.add(apto_fisico)
+        
+        self.db.session.flush()
+
+        abono = Abono (
+            pago = pago,
+            dia_fijo = 1, # este es martes??
+            fecha_inicio = datetime.now(tz_arg).replace(tzinfo=None).date(),
+            fecha_fin = datetime.now(tz_arg).replace(tzinfo=None).date() + timedelta(days=30)
+        )
+        self.db.session.add(abono)
+    
         cliente_apto_fisico_viejo = Cliente (
             nombre="Apto Viejo",
             apellido="Casi Vence",
-            dni="90000002",
-            email="clienteespera1@gmail.com",
+            dni="90000003",
+            email="clienteespera2@gmail.com",
             password="123456",
             estado = EstadoUsuario.ACTIVO
         )
@@ -40,7 +80,7 @@ class SeedListaDeEspera ():
         profesor2 = Profesor(
             nombre="Profesor2 De",
             apellido="Clase Llena",
-            dni="90000003", 
+            dni="90000004", 
             email="profesorespera2@gmail.com",
             password="123456",
             estado = EstadoUsuario.ACTIVO
@@ -48,15 +88,15 @@ class SeedListaDeEspera ():
         self.db.session.add(profesor2)
         self.db.session.flush()
 
-        apto_fisico = AptoFisico (
+        apto_fisico_viejo = AptoFisico (
             cliente = cliente_apto_fisico_viejo,
             ruta_archivo = "",
             estado = EstadoAptoFisico.ACEPTADO,
-            fecha_carga = datetime.now(tz_arg).replace(tzinfo=None).date() - timedelta(days=364),
+            fecha_carga = datetime.now(tz_arg).replace(tzinfo=None) - timedelta(days=362),
             # O sea, para dentro de dos días venció
             comentario = "Apto físico :P"
         )
-        self.db.session.add(apto_fisico)
+        self.db.session.add(apto_fisico_viejo)
         print("Usuarios creados. Creando clases y reservas")
 
         aula_re_llena = Sala (
@@ -202,15 +242,14 @@ class SeedListaDeEspera ():
         )
         self.db.session.add(reserva2)
 
-        print ("Generando clientes nuevos por si anteriores generados no son suficientes")
+        print ("Generando clientes nuevos para anotar en las colas")
 
-        for i in range(10):
+        for i in range(9):
             nombre = f"Usuario 10{i}"
             apellido = f"Apellido 10{i}"
             dni = f"{random.randint(10000000, 99999999)}"
             email = f"user10{i}@gmail.com"
             password = f"password{i}"
-            rol = RolUsuario.CLIENTE
             estado = EstadoUsuario.ACTIVO
             direccion = f"Direccion {i}"
             telefono = f"123456789{i}"
@@ -224,36 +263,24 @@ class SeedListaDeEspera ():
                 password=password, 
                 estado=estado, 
                 direccion=direccion, 
-                telefono=telefono, 
+                telefono=telefono,
+                fecha_nacimiento = fecha_nacimiento
             )
 
             usuario = Cliente(**datos_usuario)
                 
             self.db.session.add(usuario)
+            self.db.session.flush()
 
-        print ("Agregando gente en la lista de espera")
-
-        query = (self.db.session.query(Cliente)
-            .filter(Cliente.id > 3)
-        )
-        clientes = self.db.session.scalars(query).all()
-
-        i = 0
-        for cliente in clientes:
             nueva_cola = Cola (
-                id_cliente = cliente.id,
+                id_cliente = usuario.id,
                 id_clase = clase_re_llena.id
             )
             self.db.session.add(nueva_cola)
             nueva_cola2 = Cola (
-                id_cliente = cliente.id,
+                id_cliente = usuario.id,
                 id_clase = clase_re_llena2.id
             )
             self.db.session.add(nueva_cola2)
-            i+=1
-            if (i == 9):
-                break
-        if (i != 9):
-            print ("Error: no se pudieron poner 9 clientes en la clase llena. Por favor ingrese más clientes o repita el seed ")
         
         self.db.session.commit()

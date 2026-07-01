@@ -7,6 +7,7 @@ from flask import session
 from src.web.helpers.decorator import requiere_rol
 from src.core.database import db
 from src.core.reservas import obtener_clase_por_id
+from src.core.notificaciones import enviar_notificaciones
 
 from src.core.pagos import devolver_pagos_de_reservas_de_usuarios, devolver_abonos_de_usuarios, conseguir_precio_actual, actualizar_precios_clase
 

@@ -1,0 +1,82 @@
+{% extends "layout.html" %}
+
+{% block title %}Editar Perfil | RehabilitAR{% endblock %}
+
+{% block content %}
+<div class="container py-5 px-3">
+    <div class="box mx-auto" style="max-width: 600px; border-radius: 1rem;">
+        
+        <div class="has-text-centered mb-5">
+            <span class="icon is-large has-text-info mb-2">
+                <i class="fas fa-user-edit fa-2x"></i>
+            </span>
+            <h1 class="title is-3">Editar Perfil de Usuario</h1>
+            <p class="subtitle is-6 has-text-grey">Modifique los datos personales del usuario</p>
+        </div>
+
+        {% if error %}
+            <div class="notification is-danger is-light p-3 mb-4">
+                <button class="delete" onclick="this.parentElement.style.display='none'"></button>
+                <span class="icon mr-1"><i class="fas fa-exclamation-circle"></i></span>
+                {{ error }}
+            </div>
+        {% endif %}
+
+        <form action="{{ url_for('usuarios.editar_usuario_admin', id=usuario.id) }}" method="POST">
+            
+            <div class="field mb-4">
+                <label class="label"><i class="fas fa-id-card mr-2 has-text-grey"></i>DNI (Inmutable)</label>
+                <div class="control">
+                    <input class="input is-static has-text-grey-light" type="text" value="{{ usuario.dni }}" disabled>
+                </div>
+                <p class="help is-size-7 has-text-grey-light">Por normativas del centro, el DNI no puede ser modificado.</p>
+            </div>
+
+            <div class="field mb-4">
+                <label class="label"><i class="fas fa-user mr-2 has-text-info"></i>Nombre Completo</label>
+                <div class="control">
+                    <input class="input" type="text" name="nombre" value="{{ usuario.nombre }}" required placeholder="Ej: Juan Pérez">
+                </div>
+            </div>
+
+            <div class="field mb-4">
+                <label class="label"><i class="fas fa-envelope mr-2 has-text-info"></i>Correo Electrónico</label>
+                <div class="control">
+                    <input class="input" type="email" name="email" value="{{ usuario.email }}" required placeholder="ejemplo@correo.com">
+                </div>
+            </div>
+
+            <div class="field mb-4">
+                <label class="label"><i class="fas fa-phone mr-2 has-text-info"></i>Número de Teléfono</label>
+                <div class="control">
+                    <input class="input" type="tel" name="telefono" value="{{ usuario.telefono if usuario.telefono else '' }}" required placeholder="Ej: 2215555555">
+                </div>
+            </div>
+
+            <div class="field mb-5">
+                <label class="label"><i class="fas fa-map-marker-alt mr-2 has-text-info"></i>Dirección</label>
+                <div class="control">
+                    <input class="input" type="text" name="direccion" value="{{ usuario.direccion if usuario.direccion else '' }}" required placeholder="Ej: Calle 7 nro 123">
+                </div>
+            </div>
+
+            <hr class="my-4" style="opacity: 0.4;">
+
+            <div class="field is-grouped is-grouped-right">
+                <div class="control">
+                    <a href="{{ url_for('usuarios.detalle_usuario', id=usuario.id) }}" class="button is-light">
+                        Cancelar
+                    </a>
+                </div>
+                <div class="control">
+                    <button type="submit" class="button is-info has-text-weight-semibold">
+                        <span class="icon"><i class="fas fa-save"></i></span>
+                        <span>Guardar cambios</span>
+                    </button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+</div>
+{% endblock %}

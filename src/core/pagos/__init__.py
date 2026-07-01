@@ -6,11 +6,12 @@ from sqlalchemy.orm import selectinload
 
 from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago, Beneficio, TipoBeneficio
 from src.core.usuarios.usuarios import Cliente, EstadoUsuario
-from src.core.usuarios import informar_alta_demanda
+from src.core.usuarios import informar_alta_demanda, obtener_usuario_por_id_core
 from src.core.database import db
 from src.core.reservas import crear_reserva, crear_espera_en_cola
-from src.core.clases import comprobar_alta_demanda, Clase
+from src.core.clases import comprobar_alta_demanda, Clase, obtener_clase_por_id
 from src.core.functions import filtro_cliente_abonado
+from src.core.notificaciones import enviar_notificaciones, TipoNotificacion
 
 from datetime import timedelta
 
@@ -81,7 +82,7 @@ def registrar_pago_abono_mensual(payment_id, id_cliente, monto):
 
     return pago
 
-def consumir_descuentos(id_cliente, pago, limite, session=None):
+def consumir_descuentos(id_cliente, pago, limite):
 
     descuentos = devolver_beneficios_activos(id_cliente,tipo=TipoBeneficio.DESCUENTO)
     restante = limite
@@ -108,7 +109,7 @@ def consumir_descuentos(id_cliente, pago, limite, session=None):
                 porcentaje_descuento=sobrante,
                 usado=False
             )
-            session.add(nuevo_beneficio)
+            db.session.add(nuevo_beneficio)
             restante = 0
 
 def registrar_pago_desde_payment(payment_id, payment):
@@ -156,10 +157,11 @@ def registrar_pago_desde_payment(payment_id, payment):
 
         db.session.commit()
 
-        return
+        clase = obtener_clase_por_id(id_clase)
+
+        contenido_mensaje = f"Se ha confirmado su nueva reserva para la clase fija {clase.nombre}. Puedes ver más información del pago en la sección de pagos y la reserva ya se encuentra activa."
     
     if tipo == "reserva_individual":
-        print ("PASÉ POR ACÁ")
         external_ref = payment.get("external_reference")
         if not external_ref:
             return
@@ -195,9 +197,8 @@ def registrar_pago_desde_payment(payment_id, payment):
 
         db.session.add(pago)
 
-
         # 3. crear reserva REAL
-        reserva = crear_reserva(usuario_id, id_clase, session=db.session)
+        reserva = crear_reserva(usuario_id, id_clase)
 
         db.session.flush()
 
@@ -212,8 +213,10 @@ def registrar_pago_desde_payment(payment_id, payment):
         db.session.add(detalle)
 
         db.session.commit()
+    
+        clase = obtener_clase_por_id(id_clase)
 
-        return
+        contenido_mensaje = f"Se ha confirmado su nueva reserva para la clase individual {clase.nombre}. Puedes ver más información del pago en la sección de pagos y la reserva ya se encuentra activa."
 
     if tipo == "cola":
         external_ref = payment.get("external_reference")
@@ -246,6 +249,8 @@ def registrar_pago_desde_payment(payment_id, payment):
         clase = db.session.query(Clase).filter(Clase.id == id_clase).first()
         if comprobar_alta_demanda (clase):
             informar_alta_demanda (clase)
+        
+        clase = obtener_clase_por_id(id_clase)
 
         return
     
@@ -287,7 +292,7 @@ def registrar_pago_con_credito (cliente, clase, precio):
         db.session.rollback()
     
     try:
-        reserva = crear_reserva(cliente.id, clase.id, session=db.session)
+        reserva = crear_reserva(cliente.id, clase.id)
     except:
         raise ValueError("Ha habido un problema al crear la reserva")
         db.session.rollback()
@@ -512,22 +517,53 @@ def devolver_beneficios_activos (id_cliente, tipo=TipoBeneficio.CREDITO):
 
     return db.session.scalars(query).all()
 
-def registrar_beneficio (id_cliente, descripcion = None, tipo = TipoBeneficio.CREDITO, session=None, porcentaje_descuento=0):
+def registrar_beneficio (id_cliente, descripcion = None, tipo = TipoBeneficio.CREDITO, porcentaje_descuento=0):
     """Registra un nuevo beneficio para el cliente
     tipo es un objeto TipoBeneficio. Sus entradas posibles son CREDITO o DESCUENTO
     Puede ingresársele un session en caso de contemplar rollback"""
-    if (session == None):
-        session = db.session
 
-    nuevo_credito = Beneficio (
-        id_cliente = id_cliente,
-        tipo = tipo,
-        descripcion = descripcion,
+    if tipo == TipoBeneficio.CREDITO:
+        nuevo_credito = Beneficio (
+            id_cliente = id_cliente,
+            tipo = tipo,
+            descripcion = descripcion,
+        )
+        texto_adicional = f"Los créditos pueden usarse para reservar una futura clase individual sin costo alguno."
+    else:
+        nuevo_credito = Beneficio (
+            id_cliente = id_cliente,
+            tipo = tipo,
+            descripcion = descripcion,
+            porcentaje_descuento = porcentaje_descuento
+        )
+        texto_adicional = f"Los descuentos pueden usarse para futuros pagos de abono. El descuento actual es del {porcentaje_descuento * 100}%"
+
+    enviar_notificaciones(obtener_usuario_por_id_core(id_cliente), f"¡Nuevo beneficio activo!", "Se ha habilitado un nuevo {tipo.value}. {texto_adicional}", TipoNotificacion.NUEVO_BENEFICIO)
+    db.session.add(nuevo_credito)
+    db.session.flush()
+
+def conseguir_precio_actual ():
+    return (
+        db.session.query(PrecioClase)
+        .order_by(PrecioClase.fecha_creacion.desc())
+        .first()
     )
-    session.add(nuevo_credito)
-    session.flush()
 
-def devolver_credito_y_marcar_como_usado (id_cliente, id_pago, session):
+def calcular_descuento_maximo(id_cliente, dia_semana):
+    fecha = date.today()
+    dias = contar_dias_semana(dia_semana,fecha,duracion_abono_mensual(fecha))
+    descuento_automatico = calcular_descuento_automatico(dias)
+    maximo_usuario = 0.30 - descuento_automatico
+    if maximo_usuario < 0:
+        maximo_usuario = 0
+    descuentos = devolver_beneficios_activos(id_cliente,tipo=TipoBeneficio.DESCUENTO)
+    total = 0
+    for descuento in descuentos:
+        total += descuento.porcentaje_descuento
+    total = min(total, 0.30)
+    return min(total, maximo_usuario)
+
+def devolver_credito_y_marcar_como_usado (id_cliente, id_pago):
     credito = db.session.query(Beneficio).filter(Beneficio.tipo == TipoBeneficio.CREDITO).filter(Beneficio.id_cliente == id_cliente).filter(Beneficio.usado == False).first()
     
     if credito == None:

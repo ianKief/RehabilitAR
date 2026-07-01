@@ -142,14 +142,14 @@ def reservar_clase(id_clase):
     clase = obtener_clase_por_id(id_clase)
     if not clase:
         flash("La clase solicitada no existe.", "danger")
-        return redirect(url_for("reservas.calendario_cliente"))  
+        return redirect(url_for("reservas.calendario_cliente"))
     
     # Verificamos si el apto físico es válido para el momento de la clase
     if not _verificar_apto_fisico(cliente, fecha_clase=datetime.combine(clase.fecha_clase, datetime.min.time())):
         return redirect(url_for("reservas.calendario_cliente"))
     
     conflicto_horario = cliente_tiene_conflicto_horario (clase, usuario_id)
-    if conflicto_horario != False:
+    if conflicto_horario:
         flash (f"El cliente ya tiene una clase en el mismo horario: {conflicto_horario}", "warning")
         return redirect(url_for("reservas.calendario_cliente"))
 
@@ -163,7 +163,12 @@ def reservar_clase(id_clase):
         return redirect(url_for("reservas.calendario_cliente"))
         
     if not clase_tiene_lugar(clase):
-        return redirect(url_for("reservas.abonar_cola", id_clase=id_clase))
+        # Esta situación es totalmente irrisoria y nunca va a suceder
+        if clase.aviso_alta_demanda:
+            flash("No se puede solicitar en la clase solicitada", "danger")
+            return redirect(url_for("reservas.calendario_cliente"))
+        else:
+            return redirect(url_for("reservas.abonar_cola", id_clase=id_clase))
         
     if clase.tipo == "Fija":
         # Contamos cuántas clases fijas tiene el cliente en la semana
@@ -288,7 +293,11 @@ def abonar_cola(id_clase):
     if not clase:
         flash("La clase solicitada no existe.", "danger")
         return redirect(url_for("reservas.calendario_cliente"))
-        
+    
+    if clase.aviso_alta_demanda:
+        flash("No se puede solicitar en la clase solicitada", "danger")
+        return redirect(url_for("reservas.calendario_cliente"))
+
     # Verificamos si el apto físico seguirá habilitado para el momento de la clase
     if not _verificar_apto_fisico(cliente, fecha_clase=datetime.combine(clase.fecha_clase, datetime.min.time())):
         return redirect(url_for("reservas.calendario_cliente"))

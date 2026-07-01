@@ -1,6 +1,6 @@
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, request
-from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_aptos_en_revision, obtener_usuario_por_id_core, actualizar_rol_usuario, bloquear_usuario, habilitar_usuario, eliminar_usuario, revisar_y_aprobar_apto, revisar_y_rechazar_apto
+from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_aptos_en_revision, obtener_usuario_por_id_core, actualizar_rol_usuario, bloquear_usuario, habilitar_usuario, eliminar_usuario, revisar_y_aprobar_apto, revisar_y_rechazar_apto, modificar_usuario_core
 from src.core.usuarios.usuarios import Usuario, EstadoAptoFisico, Cliente, AptoFisico
 from src.web.helpers.decorator import requiere_rol
 from datetime import datetime, timedelta
@@ -198,7 +198,7 @@ def subir_apto():
 @requiere_rol(['ADMINISTRADOR'])
 def ruta_bloquear_usuario(id):
     try:
-        bloquear_usuario(id)
+        bloquear_usuario(id, motivo="La administración ha bloqueado su usuario. Para más información acérquese a la administración.")
         flash("El usuario ha sido bloqueado y ya no tiene acceso al sistema.", "success")
     except Exception as e:
         db.session.rollback()
@@ -218,6 +218,7 @@ def ruta_habilitar_usuario(id):
     except Exception as e:
         db.session.rollback()
         flash("Ocurrió un error inesperado.", "danger")
+        print (str(e))
         
     return redirect(url_for('usuarios.detalle_usuario', id=id))
 
@@ -334,10 +335,21 @@ def editar_perfil():
     
     if request.method == 'POST':
         # 1. Capturamos los datos del formulario eliminando espacios extras
+        nuevo_nombre = request.form.get('nombre', '').strip()
         nuevo_telefono = request.form.get('telefono', '').strip()
         nueva_direccion = request.form.get('direccion', '').strip()
         
+        if not nuevo_nombre:
+            flash("El nombre completo es obligatorio.", "danger")
+            dias_restantes = 0
+            if usuario.apto_fisico and usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
+                if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
+                    fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
+                    dias_restantes = (fecha_vencimiento - datetime.now()).days
+            return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes, editando=True)
+        
         # 2. Actualizamos el modelo permitiendo que queden vacíos (Guardamos None si es un string vacío)
+        usuario.nombre = nuevo_nombre
         usuario.telefono = nuevo_telefono if nuevo_telefono else None
         usuario.direccion = nueva_direccion if nueva_direccion else None
         
@@ -370,3 +382,39 @@ def editar_perfil():
 
     # Reutilizamos tu HTML pasándole el flag 'editando=True'
     return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes, editando=True)
+
+@users_bp.route('/usuarios/<int:id>/editar', methods=['GET', 'POST'])
+@requiere_rol(['ADMINISTRADOR'])
+def editar_usuario_admin(id):
+    # Buscamos al usuario para cargar sus datos actuales en el formulario
+    usuario = obtener_usuario_por_id_core(id)
+    if not usuario:
+        flash("El usuario no existe o fue eliminado.", "danger")
+        return redirect(url_for('usuarios.lista_usuarios'))
+
+    if request.method == 'POST':
+        # Capturamos los datos del formulario
+        nombre = request.form.get('nombre')
+        direccion = request.form.get('direccion')
+        email = request.form.get('email')
+        telefono = request.form.get('telefono')
+
+        try:
+            # Intentamos actualizar mediante el core
+            modificar_usuario_core(
+                usuario_id=id,
+                nombre=nombre,
+                direccion=direccion,
+                email=email,
+                telefono=telefono
+            )
+            # Escenario 2: Cambios guardados con éxito
+            flash("Perfil actualizado con éxito", "success")
+            return redirect(url_for('usuarios.detalle_usuario', id=id)) # Ajustá al nombre de tu ruta de detalle
+            
+        except ValueError as e:
+            # Escenario 4: Captura el error de email duplicado y vuelve a renderizar con el error
+            return render_template('usuarios/editar_usuario.html', usuario=usuario, error=str(e))
+
+    # Escenario 1: Muestra el formulario con los cuadros de texto
+    return render_template('usuarios/editar_usuario.html', usuario=usuario)

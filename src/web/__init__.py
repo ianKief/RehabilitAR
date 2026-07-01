@@ -1,11 +1,12 @@
 import os
-from flask import Flask, request,render_template,session
+from flask import Flask, request,render_template,session, request
 from flask_mail import Mail
 from src.web.config import config
 from src.core.database import init_db, reset_db, seed_db, seed_db_admin
 import mercadopago
 from src.web.handlers import error
 from src.core.pagos import estado_abono_usuario
+from src.core.events import init_events
 
 """
 Las importaciones de src.web.controllers deben hacerse dentro de create_app() para evitar problemas de importación circular. 
@@ -31,7 +32,7 @@ def create_app():
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
     app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME')
 
-    init_db(app)
+    db = init_db(app)
     
     # Inicializar extensión de correo
     mail.init_app(app)
@@ -44,14 +45,18 @@ def create_app():
     from src.web.controllers.profesor.routes_profesor import profesor_bp
     from src.web.controllers.reservas import reservas_bp
     from src.web.controllers.pagos import bp as pagos_bp
+    from src.web.controllers.profesor.asistencia import asistencia_bp
+    from src.web.controllers.notificaciones import bp as notificaciones_bp
 
     app.register_blueprint(salas_bp)
-    app.register_blueprint (profesor_bp)
+    app.register_blueprint(profesor_bp)
     app.register_blueprint(clases_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(usuarios_bp)
     app.register_blueprint(reservas_bp)
     app.register_blueprint(pagos_bp)
+    app.register_blueprint(asistencia_bp)
+    app.register_blueprint(notificaciones_bp)
 
     # Registrar CLI commands
     @app.cli.command("reset-db")
@@ -68,6 +73,24 @@ def create_app():
     def seed_db_admin_command():
         """Pobla la base de datos con unicamente un admin de prueba."""
         seed_db_admin()
+
+    with app.app_context():
+        init_events(db)
+
+    @app.context_processor
+    def notificaciones():
+        from src.core.notificaciones import obtener_notificaciones_del_usuario, contar_notificaciones_no_leidas
+        current_user_id = session.get('usuario_id')
+        if current_user_id != None:
+            notificaciones = obtener_notificaciones_del_usuario(current_user_id)
+            unread_count = contar_notificaciones_no_leidas(current_user_id)
+            
+            return dict(
+                notificaciones=notificaciones,
+                unread_count=unread_count
+            )
+        
+        return dict(notificaciones=[], unread_count=0)
 
     # Registrar manejadores de errores
     app.register_error_handler(404, error.not_found)

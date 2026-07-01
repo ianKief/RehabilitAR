@@ -17,6 +17,7 @@
                 <span class="has-text-weight-bold has-text-success is-size-7 is-uppercase tracking-wide">Clase en curso</span>
             </div>
             
+            <p class="subtitle is-5 has-text-grey mb-5">{{ clase_actual.horario.strftime("%H:%M") }} - {{ hora_fin.strftime("%H:%M") }}</p>
             <h1 class="title is-3 mb-2">{{ clase_actual.nombre }}</h1>
             <p class="subtitle is-5 has-text-grey mb-5">{{ clase_actual.descripcion }}</p>
 
