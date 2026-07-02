@@ -129,7 +129,7 @@ def obtener_usuario_por_id_core(user_id):
 def listar_usuarios(nombre=None, apellido=None, dni=None, email=None, rol=None, estado=None):
     """Devuelve una lista con todos los usuarios registrados.
     Si hay parametros, los filtra."""
-    stmt = select(Usuario).order_by(Usuario.id)
+    stmt = select(Usuario).filter_by(eliminado=False).order_by(Usuario.id)
     if nombre:
         stmt = stmt.where(Usuario.nombre == nombre)
     if apellido:
@@ -217,9 +217,7 @@ def eliminar_usuario(usuario_id):
     if not usuario:
         raise ValueError("El usuario no existe.")
 
-    usuario.estado = EstadoUsuario.BLOQUEADO
-    usuario.email = f"eliminado_{usuario.id}_{usuario.email}"  
-    # db.session.delete(usuario)
+    usuario.eliminado = True
     db.session.commit()
     return True
 

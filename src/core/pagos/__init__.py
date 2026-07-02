@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago,Abono, Beneficio, TipoBeneficio
+from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago, Beneficio, TipoBeneficio
 from src.core.usuarios.usuarios import Cliente, EstadoUsuario
 from src.core.usuarios import informar_alta_demanda, obtener_usuario_por_id_core
 from src.core.database import db
@@ -17,73 +17,30 @@ from datetime import timedelta
 
 from flask import current_app
 
-"contratar abono primera vez"
-#R1: la activacion del abono dura un mes, si la fecha contr. es 31 -> dura hasta el ult. dia del sig. mes 
-def duracion_abono_mensual(fecha_contratacion:date):
-    nueva_fecha=fecha_contratacion+relativedelta(months=1)
-    return nueva_fecha
-
-
-#R2: obtiene 20% de descuento si la cant. dias es 4
-#R3: no obtiene descuento si la cant. dias es superior a 4
-def calcular_descuento_automatico(cantidad_dias):
-    if cantidad_dias == 4:
-        return 0.2
-    return 0.0
-
-#R4: el valor de la clase es dias * valor clase
-def valor_abono_mensual(cantidad_dias,valor_clase):
-    return cantidad_dias*valor_clase
-
-def contar_dias_semana(dia_semana,fecha_inicio:date,fecha_fin:date):
-    contador=0
-    fecha_actual = fecha_inicio
-    while fecha_actual <= fecha_fin:
-        if fecha_actual.weekday() == dia_semana:
-            contador+=1
-        fecha_actual+=timedelta(days=1)
-    return contador
-
-def calcular_valor_abono(dia_semana_elegido):
-    fecha = date.today()
-
-    dias = contar_dias_semana(
-        dia_semana_elegido,
-        fecha,
-        duracion_abono_mensual(fecha)
-    )
-
-    valor = valor_abono_mensual(dias,obtener_precio_clase_actual())*(1-calcular_descuento_automatico(dias))
-
-    return valor
+#crea una preferencia de pago utilizando el SDK de Mercado Pago
+def crear_preferencia_mp(sdk, preference_data):
+    return sdk.preference().create(preference_data)
 
 
 def estado_abono_usuario(user_id):
+    """
+    Determina el estado del abono de un usuario basándose en su último pago de abono.
+    """
+    ultimo_pago_abono = obtener_ultimo_abono(user_id)
 
-    abono = (
-        db.session.query(Abono)
-        .join (Pago)
-        .filter(Pago.id_cliente == user_id)
-        .order_by(Abono.fecha_fin.desc())
-        .first()
-    )
-
-    return estado_abono(abono)
-
-
-def estado_abono(abono):
-
-    if not abono:
+    if not ultimo_pago_abono:
         return "sin_abono"
 
     hoy = datetime.today()
+    fecha_pago = ultimo_pago_abono.fecha_creacion
+    fecha_vencimiento = fecha_pago + relativedelta(months=1)
     
     #opcional futuro (si lo usás más adelante)
-    if abono.fecha_fin < hoy - timedelta(days=10):
+    if fecha_vencimiento < hoy - timedelta(days=10):
         return "suspendido"
 
     # vencido
-    if abono.fecha_fin < hoy:
+    if fecha_vencimiento < hoy:
         return "vencido"
 
     return "activo"
@@ -91,49 +48,17 @@ def estado_abono(abono):
 
 "consultas de abono y precio"
 
-def obtener_precio_clase_actual():
-    stmt = (
-        select(PrecioClase)
-        .order_by(PrecioClase.fecha_creacion.desc())
-        .limit(1)
-    )
-
-    precio = db.session.execute(stmt).scalars().first()
-
-    if not precio:
-        return 100  # fallback
-
-    return precio.precio
-
-
 def obtener_ultimo_abono(user_id):
-
+    """
+    Obtiene el último pago de tipo ABONO realizado por un usuario.
+    """
     stmt = (
-        select(Abono)
-        .join(Pago)
+        select(Pago)
         .where(Pago.id_cliente == user_id)
-        .order_by(Abono.fecha_fin.desc())
+        .where(Pago.concepto_pago == ConceptoPago.ABONO)
+        .order_by(Pago.fecha_creacion.desc())
     )
-
     return db.session.execute(stmt).scalars().first()
-
-
-def registrar_abono(id_pago, dia_fijo):
-    fecha_inicio = datetime.today()
-
-    fecha_fin = fecha_inicio + relativedelta(months=1)
-
-    nuevo_abono = Abono(
-        id_pago=id_pago,
-        dia_fijo=dia_fijo,
-        fecha_inicio=fecha_inicio,
-        fecha_fin=fecha_fin,
-    )
-
-    db.session.add(nuevo_abono)
-    db.session.commit()
-
-    return nuevo_abono
 
 "Pagos"
 
@@ -152,7 +77,6 @@ def registrar_pago_abono_mensual(payment_id, id_cliente, monto):
         estado_pago=EstadoPago.COMPLETADO,
         concepto_pago= ConceptoPago.ABONO
     )
-
     db.session.add(pago)
     db.session.commit()
 
@@ -193,7 +117,6 @@ def registrar_pago_desde_payment(payment_id, payment):
     estado = payment.get("status")
 
     metadata = payment.get("metadata") or {}
-    dia_fijo = metadata.get("dia_fijo")
     
     tipo = metadata.get("tipo") 
 
@@ -254,7 +177,7 @@ def registrar_pago_desde_payment(payment_id, payment):
             return
 
         monto = payment.get("transaction_amount")
-        precio_total = obtener_precio_clase_actual()
+        precio_total = obtener_precio_clase_actual("Individual")
         porcentaje = (monto / precio_total) * 100
         print ("Monto:", monto, "Precio total:", precio_total, "Porcentaje:", porcentaje)
         estado_final = (
@@ -329,32 +252,26 @@ def registrar_pago_desde_payment(payment_id, payment):
         
         clase = obtener_clase_por_id(id_clase)
 
-        contenido_mensaje = f"Se ha confirmado su nuevo espacio en la cola para la clase {clase.nombre}. Puedes ver más información del pago en la sección de pagos y el lugar ya se encuentra activo. En caso de vencer dicho espacio, comuníquese con la administración."
-
+        return
+    
     if tipo == "abono":
-
         if pago_ya_procesado(payment_id):
-            print("Pago duplicado")
+            print("Pago de abono duplicado, ignorando.")
             return
         
-        external_ref = payment.get("external_reference")
-        if not external_ref:
+        user_id = int(payment.get("external_reference"))
+        clases_ids_str = metadata.get("clases_ids", "")
+        
+        if not clases_ids_str:
+            print(f"Webhook para abono del usuario {user_id} sin clases_ids en metadata. No se procesan reservas.")
+            registrar_pago_abono_mensual(payment_id, user_id, monto)
             return
-        usuario_id = int(external_ref)
 
-        descuento = float(metadata.get("descuento_usuario", 0))
-
-        pago = registrar_pago_abono_mensual(payment_id, usuario_id, monto)
-
-        if descuento > 0:
-            consumir_descuentos(usuario_id, pago, descuento)
-
-        registrar_abono (pago.id, dia_fijo)
-
-        contenido_mensaje = "Se ha confirmado su pago del abono. Este pago le permitirá seleccionar una clase fija y reservar todo el mes, además de acceder a múltiples beneficios. Para más información del pago visite la sección pagos."
-
-    enviar_notificaciones(obtener_usuario_por_id_core(usuario_id), "¡Pago realizado exitosamente!", contenido_mensaje, TipoNotificacion.PAGOS)
-    db.session.commit()
+        pago_abono = registrar_pago_abono_mensual(payment_id, user_id, monto)
+        from src.core.reservas import procesar_reservas_mensuales_automatica, obtener_clase_por_id
+        clases_a_reservar_obj = [obtener_clase_por_id(int(cid)) for cid in clases_ids_str.split(',') if cid]
+        procesar_reservas_mensuales_automatica(user_id, clases_a_reservar_obj, id_pago_abono=pago_abono.id)
+        print(f"Abono y {len(clases_a_reservar_obj)} reservas registradas desde webhook para el usuario {user_id}.")
 
 def registrar_pago_con_credito (cliente, clase, precio):
 
@@ -419,21 +336,52 @@ def procesar_mercado_pago_webhook(data,sdk):
 
 
 "precio clase"
-def obtener_precio_actual():
+def conseguir_precio_actual(tipo_clase: str):
+    """
+    Busca el precio vigente para un tipo de clase específico.
+    """
     return (
         db.session.query(PrecioClase)
+        .filter(PrecioClase.tipo_clase == tipo_clase)
+        .filter(PrecioClase.fecha_hasta.is_(None))
         .order_by(PrecioClase.fecha_creacion.desc())
         .first()
     )
 
-def obtener_valor_actual():
-    precio = obtener_precio_actual()
-    return precio.precio if precio else 0
+def obtener_precio_clase_actual(tipo_clase: str):
+    """
+    Devuelve el valor numérico del precio actual para un tipo de clase.
+    """
+    precio_obj = conseguir_precio_actual(tipo_clase)
+    if not precio_obj:
+        # Fallback por si no hay precios definidos
+        return 5000 if tipo_clase == "Fija" else 7500
+    return precio_obj.precio
 
+def actualizar_precios_clase(precio_individual: str, precio_fija: str):
+    """
+    Actualiza los precios para las clases individuales y fijas.
+    Invalida los precios anteriores y crea nuevos registros.
+    """
+    try:
+        nuevo_precio_individual = int(precio_individual)
+        nuevo_precio_fija = int(precio_fija)
+        if nuevo_precio_individual <= 0 or nuevo_precio_fija <= 0:
+            raise ValueError("Los precios deben ser mayores a cero.")
+    except (ValueError, TypeError):
+        raise ValueError("Por favor, ingrese valores numéricos válidos para los precios.")
 
-def actualizar_precio(nuevo_precio):
-    precio = PrecioClase(precio=nuevo_precio)
-    db.session.add(precio)
+    ahora = datetime.now()
+
+    # Invalidar precios anteriores
+    for tipo in ["Individual", "Fija"]:
+        precio_anterior = conseguir_precio_actual(tipo)
+        if precio_anterior:
+            precio_anterior.fecha_hasta = ahora
+
+    # Crear nuevos precios
+    db.session.add(PrecioClase(tipo_clase="Individual", precio=nuevo_precio_individual))
+    db.session.add(PrecioClase(tipo_clase="Fija", precio=nuevo_precio_fija))
     db.session.commit()
 
 
@@ -526,8 +474,7 @@ def notificar_ultimo_dia_de_pago():
 def devolver_abonos_de_usuarios (id_usuario):
     stmt = (
         select(Pago)
-        .where(Pago.concepto_pago == ConceptoPago.ABONO)
-        .options(selectinload(Pago.abono))
+        .filter(Pago.concepto_pago == ConceptoPago.ABONO)
         .where(Pago.id_cliente == id_usuario)
         .order_by(Pago.fecha_creacion.desc())
     )

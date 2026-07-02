@@ -18,8 +18,8 @@ def reset_db():
     from src.core.clases.clases import Clase, ProfesorDictaClase
     from src.core.notificaciones.notificaciones import Notificacion
     from src.core.usuarios import Usuario
-    from src.core.reservas.reservas import Reserva, Comentario
-    from src.core.pagos.pagos import Pago, DetallePago, Beneficio, PrecioClase, Abono
+    from src.core.reservas.reservas import Reserva, Comentario, Cola, Cancelacion
+    from src.core.pagos.pagos import Pago, DetallePago, Beneficio, PrecioClase
     from src.core import events
     
     """Reinicia la base de datos eliminando todas las tablas y volviéndolas a crear."""

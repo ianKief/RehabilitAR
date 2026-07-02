@@ -45,7 +45,7 @@ def crear_sala(**kwargs):
 
     # Escenario 2: Agregar sala fallida por sala existente
     if buscar_sala_por_numero(numero_puerta_str):
-        raise ValueError("El nro de puerta ya se encuentra registrado")
+        raise ValueError("El número de puerta ya se encuentra registrado")
 
     kwargs["numero_puerta"] = numero_puerta_str
     nueva_sala = Sala(**kwargs)

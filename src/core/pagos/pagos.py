@@ -40,14 +40,13 @@ class Pago (Base):
 
     detalle_pago = relationship("DetallePago", back_populates="pago")
     beneficios = relationship("Beneficio", back_populates="pago")
-    abono = relationship("Abono", back_populates="pago")
 
 class DetallePago (Base):
     __tablename__ = "detalle_pago"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     id_pago: Mapped[int] = mapped_column(ForeignKey("pagos.id"))
-    id_reserva: Mapped[int] = mapped_column(ForeignKey("reserva.id"))
+    id_reserva: Mapped[int] = mapped_column(ForeignKey("reserva.id"), nullable=True)
 
     cantidad: Mapped[int] = mapped_column(Integer, nullable=False)
     precio_unitario: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -57,20 +56,6 @@ class DetallePago (Base):
 
     pago = relationship("Pago", back_populates="detalle_pago")
     reserva = relationship("Reserva", back_populates="detalle_pago")
-
-class Abono(Base):
-    __tablename__ = "abonos"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    id_pago: Mapped[int] = mapped_column( ForeignKey("pagos.id"),nullable=False)
-
-    dia_fijo: Mapped[int] = mapped_column(Integer, nullable=False)
-    fecha_inicio: Mapped[datetime] = mapped_column(DateTime,nullable=False, default=lambda: datetime.now(tz_arg).replace(tzinfo=None))
-    fecha_fin: Mapped[datetime] = mapped_column(DateTime,nullable=False)
-
-    # Relationships:
-
-    pago = relationship("Pago", back_populates="abono")
 
 
 
@@ -110,6 +95,7 @@ class Beneficio (Base):
 class PrecioClase(Base):
     __tablename__ = "precio_clase"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    tipo_clase: Mapped[str] = mapped_column(String(50), nullable=False) # Ej: "Individual", "Fija"
     precio: Mapped[int] = mapped_column(Integer,nullable=False,default=100,server_default="100")    
     fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(tz_arg).replace(tzinfo=None),

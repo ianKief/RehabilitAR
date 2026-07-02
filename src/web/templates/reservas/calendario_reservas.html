@@ -133,8 +133,12 @@
                             {% endif %}
 
                             <!--Comprueba si tiene que mostrar la opción de reservar de manera mensual-->
-                            {% if clase.tipo == 'Fija' and es_abonado and clase.id not in ids_clases_reservadas %}
-                                <a href="{{ url_for('reservas.reservar_mensual', id_clase=clase.id) }}" class="button is-small is-info is-light is-rounded has-text-weight-bold shadow-button">Reservar Mes</a>
+                            {% if clase.tipo == 'Fija' and clase.id not in ids_clases_reservadas %}
+                                {% if es_abonado and tiene_bloque_mensual %}
+                                    <button class="button is-small is-info is-light is-rounded has-text-weight-bold" disabled title="Ya tenés un abono mensual activo para este mes.">Reservar Mes</button>
+                                {% else %}
+                                    <a href="{{ url_for('reservas.reservar_mensual', id_clase=clase.id) }}" class="button is-small is-info is-light is-rounded has-text-weight-bold shadow-button">Reservar Mes</a>
+                                {% endif %}
                             {% endif %}
                             
                             <a href="{{ url_for('reservas.detalle_clase', id_clase=clase.id, next=request.url) }}" class="button is-small is-primary is-light is-rounded has-text-weight-semibold">
