@@ -3,7 +3,6 @@ from sqlalchemy import Integer, String, DateTime, Enum, Float, ForeignKey, Boole
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from typing import List
 import enum
 
 tz_arg = ZoneInfo("America/Argentina/Buenos_Aires")

@@ -2,7 +2,7 @@ from typing import List
 from src.core.notificaciones.notificaciones import ConfiguracionNotificacion, Notificacion
 from src.core.reservas.reservas import Cola, Reserva
 from src.core.database import Base
-from sqlalchemy import Integer, String, DateTime, Enum, ForeignKey, UniqueConstraint
+from sqlalchemy import Boolean, Integer, String, DateTime, Enum, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from zoneinfo import ZoneInfo

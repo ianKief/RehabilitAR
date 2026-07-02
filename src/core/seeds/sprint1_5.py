@@ -13,31 +13,6 @@ class SeedPagosSprint1 ():
         self.db = db
 
     def run(self):
-
-        print ("Insertando pago de abono vencido para el cliente 2")
-
-        pago_vencido = Pago (
-            id_cliente = cliente_con_abono_terminado.id,
-            payment_id = "lol",
-            monto_total = 500,
-            estado_pago = EstadoPago.COMPLETADO,
-            concepto_pago = ConceptoPago.ABONO,
-            fecha_creacion = datetime.now() - timedelta(days=40) # Creado hace 40 días, ya venció
-        )
-        self.db.session.add(pago_vencido)
-
-        print ("Insertando pagos de abono super vencidos para el cliente 3")
-
-        pago_muerto = Pago (
-            id_cliente = cliente_con_abono_muerto.id,
-            payment_id = "lolol",
-            monto_total = 500,
-            estado_pago = EstadoPago.COMPLETADO,
-            concepto_pago = ConceptoPago.ABONO,
-            fecha_creacion = datetime.now() - timedelta(days=90) # Creado hace 90 días, está suspendido
-        )
-        self.db.session.add(pago_muerto)
-    
         print("🌱 Poblando datos para la épica Pagos (Sprint 1.5)...")
         try:
             # Si ya existen estos usuarios, no hacemos nada para que sea idempotente

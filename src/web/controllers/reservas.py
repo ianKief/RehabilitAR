@@ -4,6 +4,7 @@ import os
 
 from src.web.helpers.decorator import requiere_rol
 from src.web.helpers.feriados import obtener_dias_no_laborables
+from src.web.functions import devolver_enlace_absoluto_actual
 from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido
 from src.core.pagos import estado_abono_usuario, obtener_precio_clase_actual, tiene_beneficios, TipoBeneficio, registrar_pago_con_credito
 from src.core.clases import clase_tiene_lugar
@@ -42,9 +43,6 @@ def _verificar_apto_fisico(cliente, fecha_clase = datetime.now(), message="Debe 
         flash(message, "warning")
         return False
     return True
-
-def _obtener_url_base() -> str:
-    return os.getenv("URL_NGROK", request.url_root).rstrip('/')
 
 @reservas_bp.get("/")
 @requiere_rol(["CLIENTE"])
@@ -208,7 +206,7 @@ def abonar_clase_fija(id_clase):
 
         sdk = current_app.mp_sdk
 
-        URL = _obtener_url_base()
+        URL = devolver_enlace_absoluto_actual()
         print(URL)
 
         preference_data = {
@@ -318,7 +316,7 @@ def abonar_cola(id_clase):
 
         sdk = current_app.mp_sdk
 
-        URL = _obtener_url_base()
+        URL = devolver_enlace_absoluto_actual()
         print(URL)
 
         preference_data = {
@@ -428,7 +426,7 @@ def abonar_individual(id_clase):
     # MERCADO PAGO
     # =========================
     sdk = current_app.mp_sdk
-    URL = _obtener_url_base()
+    URL = devolver_enlace_absoluto_actual()
 
     preference_data = {
         "items": [{

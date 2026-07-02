@@ -1,40 +1,55 @@
 {% extends "layout.html" %}
 
-{% block title %}Configurar Precios de Clases{% endblock %}
+{% block title %}Configurar Precios de Clases - RehabilitAR{% endblock %}
 
 {% block content %}
-
-<h1 class="title">Configuración de Precios de Clases</h1>
-
-<div class="notification is-info is-light">
-    Desde aquí podés establecer los valores para los distintos tipos de clases que ofrece el sistema.
-</div>
-
-<form method="POST" class="box">
-    <div class="columns">
-        <div class="column">
-            <div class="field">
-                <label class="label">Precio Clase Individual</label>
-                <div class="control has-icons-left">
-                    <input class="input" type="number" name="precio_individual" placeholder="Ej: 7500" value="{{ precio_individual.precio if precio_individual else '' }}" min="1" step="1" required>
-                    <span class="icon is-small is-left">$</span>
-                </div>
-            </div>
-        </div>
-        <div class="column">
-            <div class="field">
-                <label class="label">Precio Clase Fija</label>
-                <div class="control has-icons-left">
-                    <input class="input" type="number" name="precio_fija" placeholder="Ej: 5000" value="{{ precio_fija.precio if precio_fija else '' }}" min="1" step="1" required>
-                    <span class="icon is-small is-left">$</span>
-                </div>
-            </div>
-        </div>
+<div class="box">
+    <div class="mb-5 has-text-centered-mobile">
+        <h1 class="title is-3 is-4-mobile">
+            <span class="icon-text">
+                <span class="icon has-text-primary"><i class="fas fa-dollar-sign"></i></span>
+                <span>Configuración de Precios</span>
+            </span>
+        </h1>
+        <p class="subtitle is-6 has-text-grey-dark">Establecé los valores base para los distintos tipos de clases.</p>
     </div>
 
-    <button class="button is-primary" type="submit">
-        Guardar Precios
-    </button>
-</form>
+    <hr>
 
+    <form action="{{ url_for('pagos.precio_clase') }}" method="POST">
+        <div class="columns is-centered">
+            <div class="column is-5">
+                <div class="field">
+                    <label class="label">Precio Clase Individual</label>
+                    <div class="control has-icons-left">
+                        <input class="input is-medium" type="number" name="precio_individual" placeholder="Ej: 7500" value="{{ precio_individual.precio if precio_individual else '' }}" required>
+                        <span class="icon is-small is-left"><i class="fas fa-user"></i></span>
+                    </div>
+                    <p class="help">Valor para clases de un solo alumno.</p>
+                </div>
+            </div>
+            <div class="column is-5">
+                <div class="field">
+                    <label class="label">Precio Clase Fija (Grupal)</label>
+                    <div class="control has-icons-left">
+                        <input class="input is-medium" type="number" name="precio_fija" placeholder="Ej: 5000" value="{{ precio_fija.precio if precio_fija else '' }}" required>
+                        <span class="icon is-small is-left"><i class="fas fa-users"></i></span>
+                    </div>
+                    <p class="help">Valor por clase para el abono mensual y clases fijas extra.</p>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="field is-grouped is-grouped-right mt-5">
+            <p class="control">
+                <button type="submit" class="button is-primary is-fullwidth-mobile">
+                    <span class="icon"><i class="fas fa-save"></i></span>
+                    <span>Guardar Cambios</span>
+                </button>
+            </p>
+        </div>
+    </form>
+</div>
 {% endblock %}
