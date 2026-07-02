@@ -17,7 +17,6 @@ def reset_db():
     from src.core.salas import Sala
     from src.core.clases.clases import Clase, ProfesorDictaClase
     from src.core.notificaciones.notificaciones import Notificacion
-    print(Notificacion)
     from src.core.usuarios import Usuario
     from src.core.reservas.reservas import Reserva, Comentario
     from src.core.pagos.pagos import Pago, DetallePago, Beneficio, PrecioClase, Abono
