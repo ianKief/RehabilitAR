@@ -542,27 +542,6 @@ def registrar_beneficio (id_cliente, descripcion = None, tipo = TipoBeneficio.CR
     db.session.add(nuevo_credito)
     db.session.flush()
 
-def conseguir_precio_actual ():
-    return (
-        db.session.query(PrecioClase)
-        .order_by(PrecioClase.fecha_creacion.desc())
-        .first()
-    )
-
-def calcular_descuento_maximo(id_cliente, dia_semana):
-    fecha = date.today()
-    dias = contar_dias_semana(dia_semana,fecha,duracion_abono_mensual(fecha))
-    descuento_automatico = calcular_descuento_automatico(dias)
-    maximo_usuario = 0.30 - descuento_automatico
-    if maximo_usuario < 0:
-        maximo_usuario = 0
-    descuentos = devolver_beneficios_activos(id_cliente,tipo=TipoBeneficio.DESCUENTO)
-    total = 0
-    for descuento in descuentos:
-        total += descuento.porcentaje_descuento
-    total = min(total, 0.30)
-    return min(total, maximo_usuario)
-
 def devolver_credito_y_marcar_como_usado (id_cliente, id_pago):
     credito = db.session.query(Beneficio).filter(Beneficio.tipo == TipoBeneficio.CREDITO).filter(Beneficio.id_cliente == id_cliente).filter(Beneficio.usado == False).first()
     

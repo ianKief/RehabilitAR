@@ -1,23 +1,33 @@
-#importo herramientas
-from flask import Blueprint, current_app
-from flask import request,render_template, redirect,url_for, flash
 import os
-from src.core.pagos import procesar_mercado_pago_webhook, obtener_precio_clase_actual, pago_ya_procesado, registrar_pago_abono_mensual, crear_preferencia_mp
-from flask import session
-from src.web.helpers.decorator import requiere_rol
-from src.core.database import db
+
+from flask import (
+    Blueprint,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
+
+from src.core.pagos import (
+    actualizar_precios_clase,
+    conseguir_precio_actual,
+    crear_preferencia_mp,
+    devolver_abonos_de_usuarios,
+    devolver_pagos_de_reservas_de_usuarios,
+    obtener_precio_clase_actual,
+    pago_ya_procesado,
+    procesar_mercado_pago_webhook,
+    registrar_pago_abono_mensual,
+)
 from src.core.reservas import obtener_clase_por_id
-from src.core.notificaciones import enviar_notificaciones
-
-from src.core.pagos import devolver_pagos_de_reservas_de_usuarios, devolver_abonos_de_usuarios, conseguir_precio_actual, actualizar_precios_clase
-
-
-bp = Blueprint("pagos", __name__)
+from src.web.helpers.decorator import requiere_rol
+from src.web.functions import devolver_enlace_absoluto_actual
 
 
-def _obtener_url_base() -> str:
-    """Helper para obtener la URL base de la aplicación, priorizando Ngrok si está disponible."""
-    return os.getenv("URL_NGROK", request.url_root).rstrip('/')
+bp = Blueprint("pagos", __name__, url_prefix="/pagos")
 
 @bp.route("/pagar-abono", methods=["POST"])
 @requiere_rol(["CLIENTE"])
@@ -39,7 +49,7 @@ def pagar_abono():
         flash("El monto a pagar no puede ser cero. Por favor, revisá las clases seleccionadas.", "danger")
         return redirect(url_for("reservas.calendario_cliente"))
 
-    URL_BASE = _obtener_url_base()
+    URL_BASE = devolver_enlace_absoluto_actual()
     url_exito = f"{URL_BASE}{url_for('pagos.pago_exitoso', tipo='abono')}"
 
     preference_data = {

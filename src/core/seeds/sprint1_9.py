@@ -2,12 +2,6 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import random
 
-from src.core.usuarios import Cliente, Profesor, ProfesorDictaClase, EstadoUsuario, RolUsuario, EstadoUsuario
-from src.core.usuarios.usuarios import AptoFisico, EstadoAptoFisico
-from src.core.clases import Clase
-from src.core.reservas import Reserva, Cola
-from src.core.salas import Sala
-from src.core.pagos import Pago, Abono, EstadoPago, ConceptoPago
 tz_arg = ZoneInfo("America/Argentina/Buenos_Aires")
 
 class SeedListaDeEspera ():
@@ -15,6 +9,12 @@ class SeedListaDeEspera ():
         self.db = db
 
     def run(self):
+        from src.core.usuarios import Cliente, Profesor, ProfesorDictaClase, EstadoUsuario
+        from src.core.usuarios.usuarios import AptoFisico, EstadoAptoFisico
+        from src.core.clases import Clase
+        from src.core.reservas import Reserva, Cola
+        from src.core.salas import Sala
+        from src.core.pagos import Pago, EstadoPago, ConceptoPago
 
         print("🌱 Poblando datos para la épica Lista de Espera (Sprint 1.9)...")
         try:
@@ -62,16 +62,6 @@ class SeedListaDeEspera ():
             )
             self.db.session.add(apto_fisico)
             
-            self.db.session.flush()
-
-            abono = Abono (
-                pago = pago,
-                dia_fijo = 1, # este es martes??
-                fecha_inicio = datetime.now(tz_arg).replace(tzinfo=None).date(),
-                fecha_fin = datetime.now(tz_arg).replace(tzinfo=None).date() + timedelta(days=30)
-            )
-            self.db.session.add(abono)
-        
             cliente_apto_fisico_viejo = Cliente (
                 nombre="Apto Viejo",
                 apellido="Casi Vence",
