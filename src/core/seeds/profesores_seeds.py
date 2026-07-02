@@ -4,8 +4,7 @@ from src.core.usuarios.usuarios import Profesor
 class ProfesorSeeder:
     def __init__(self, db):
         self.db = db
-        # Mapeo oficial de especialidades del sistema
-        # Como tu columna es 'id_especialidad' (Integer), usamos directamente los IDs
+      
         self.especialidades_mapeadas = [
             {"id": 1, "nombre": "TREN SUPERIOR"},
             {"id": 2, "nombre": "TREN INFERIOR"},

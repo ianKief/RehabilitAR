@@ -59,8 +59,11 @@ def actualizar_sala(id, **kwargs):
     if not sala:
         return None
 
-    # Validar capacidad mínima y número de puerta no vacío
     capacidad = kwargs.get("capacidad")
+    if capacidad is not None and int(capacidad) != sala.capacidad:
+        if tiene_clases_pendientes(id):
+            raise ValueError("No se puede modificar la capacidad de una sala con clases futuras asignadas.")
+
     if capacidad is not None and int(capacidad) < 1:
         raise ValueError("Verifique los datos ingresados antes de guardar")
         
@@ -81,13 +84,14 @@ def actualizar_sala(id, **kwargs):
 def eliminar_sala(id):
     """Elimina lógicamente una sala de la base de datos."""
     sala = obtener_sala(id)
-    if sala:
-        if tiene_clases_pendientes(id):
-            raise ValueError("Acción bloqueada: la sala tiene actividades programadas")
+    if not sala:
+        return False
+    if tiene_clases_pendientes(id):
+        raise ValueError("Acción bloqueada: la sala tiene clases futuras asignadas y no puede ser eliminada.")
+    else:
         sala.eliminada = True
         db.session.commit()
         return True
-    return False
 
 def buscar_sala_por_numero(numero_puerta):
     """Busca una sala por su número de puerta único."""

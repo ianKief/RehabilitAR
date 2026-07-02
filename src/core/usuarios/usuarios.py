@@ -1,7 +1,8 @@
 from typing import List
+from src.core.notificaciones.notificaciones import ConfiguracionNotificacion, Notificacion
 from src.core.reservas.reservas import Cola, Reserva
 from src.core.database import Base
-from sqlalchemy import Integer, String, DateTime, Enum, ForeignKey, Boolean,Float
+from sqlalchemy import Integer, String, DateTime, Enum, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -60,7 +61,7 @@ class Usuario(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     nombre: Mapped[str] = mapped_column(String(100), nullable=False)
     apellido: Mapped[str] = mapped_column(String(100), nullable=True)
-    dni: Mapped[str] = mapped_column(String(20), unique=True, nullable=True)
+    dni: Mapped[str] = mapped_column(String(20), nullable=True)
     email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     direccion: Mapped[str] = mapped_column(String(255), nullable=True)
@@ -100,8 +101,9 @@ class Usuario(Base):
     
     __mapper_args__ = {
         "polymorphic_on": "rol",
-        "polymorphic_identity": "usuario_base"
+        "polymorphic_identity": "usuario_base",
     }
+    __table_args__ = (UniqueConstraint('dni', 'rol', name='_dni_rol_uc'),)
 
 # ==========================================
 # 2. CLASES HIJAS

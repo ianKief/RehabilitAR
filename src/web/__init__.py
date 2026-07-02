@@ -75,7 +75,7 @@ def create_app():
         seed_db_admin()
 
     with app.app_context():
-        init_events(db)
+        init_events()
 
     @app.context_processor
     def notificaciones():
