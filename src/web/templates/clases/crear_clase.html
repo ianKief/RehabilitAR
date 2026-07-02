@@ -2,45 +2,15 @@
 
 {% block title %}Nueva Clase - RehabilitAR{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/calendario.css') }}">
+{% endblock %}
+
 {% block content %}
-<style>
-    /* Corrección del fondo del Nombre de la Clase (Quitamos el blanco brillante) */
-    .input[type="text"] {
-        background-color: #1f242d !important; 
-        color: #ffffff !important; 
-        border: 1px solid #3f4756;
-    }
-    .input[type="text"]::placeholder {
-        color: #a0aec0 !important; 
-    }
-
-    /* Fuerza a que todo el recuadro del input sea clickeable para abrir el calendario */
-    input[type="date"] {
-        position: relative;
-    }
-    /* Estira el botón nativo del calendario invisible por encima de todo el input */
-    input[type="date"]::-webkit-calendar-picker-indicator {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        width: auto;
-        height: auto;
-        color: transparent;
-        background: transparent;
-        cursor: pointer;
-    }
-
-    /* Ajuste del selector de salas para que el icono no pise el texto */
-    .select select {
-        padding-left: 2.5em !important;
-    }
-</style>
-
 <div class="box">
-    <div class="mb-5">
-        <h1 class="title is-3 has-text-dark">
+    <div class="mb-5 has-text-centered-mobile">
+        <h1 class="title is-3 is-4-mobile">
             <span class="icon-text">
                 <span class="icon has-text-primary mr-2">
                     <i class="fas fa-calendar-plus"></i>
@@ -48,7 +18,7 @@
                 <span>Programar Nueva Clase</span>
             </span>
         </h1>
-        <p class="subtitle is-6 has-text-grey">Completá los datos para dar de alta un nuevo espacio de rehabilitación en la agenda</p>
+        <p class="subtitle is-6 has-text-grey-dark">Completá los datos para dar de alta un nuevo espacio de rehabilitación en la agenda</p>
     </div>
 
     <hr>
@@ -58,7 +28,7 @@
         <div class="columns">
             <div class="column is-6">
                 <div class="field">
-                    <label class="label has-text-dark">Nombre de la Clase</label>
+                    <label class="label">Nombre de la Clase</label>
                     <div class="control has-icons-left">
                         <input class="input" type="text" name="nombre" placeholder="Ej: Estabilidad de Tobillo" required>
                         <span class="icon is-small is-left">
@@ -70,7 +40,7 @@
             
             <div class="column is-6">
                 <div class="field">
-                    <label class="label has-text-dark">Especialidad</label>
+                    <label class="label">Especialidad</label>
                     <div class="control has-icons-left">
                         <div class="select is-fullwidth">
                             <select name="especialidad_id" required>
@@ -97,7 +67,7 @@
         <div class="columns">
             <div class="column is-3">
                 <div class="field">
-                    <label class="label has-text-dark">Tipo de Clase</label>
+                    <label class="label">Tipo de Clase</label>
                     <div class="control has-icons-left">
                         <div class="select is-fullwidth">
                             <select name="tipo_clase" id="tipo_clase_select" required>
@@ -114,7 +84,7 @@
 
             <div class="column is-3">
                 <div class="field">
-                    <label class="label has-text-dark">Sala Asignada</label>
+                    <label class="label">Sala Asignada</label>
                     <div class="control has-icons-left">
                         <div class="select is-fullwidth">
                             <select name="sala_id" id="sala_select" required>
@@ -135,9 +105,9 @@
 
             <div class="column is-3">
                 <div class="field">
-                    <label class="label has-text-dark">Fecha de la Clase</label>
+                    <label class="label">Fecha de la Clase</label>
                     <div class="control has-icons-left">
-                        <input class="input" type="date" id="fecha_input" name="fecha_clase" disabled required>
+                        <input class="input" type="text" id="fecha_input" name="fecha_clase" placeholder="Seleccioná una fecha..." disabled required>
                         <span class="icon is-small is-left">
                             <i class="fas fa-calendar-alt"></i>
                         </span>
@@ -147,7 +117,7 @@
 
             <div class="column is-3">
                 <div class="field">
-                    <label class="label has-text-dark">Duración</label>
+                    <label class="label">Duración</label>
                     <div class="control has-icons-left">
                         <div class="select is-fullwidth">
                             <select name="duracion" id="duracion_select" required>
@@ -168,7 +138,7 @@
         <div class="columns">
             <div class="column is-6">
                 <div class="field">
-                    <label class="label has-text-dark">Horario de Inicio</label>
+                    <label class="label">Horario de Inicio</label>
                     <div class="control has-icons-left">
                         <div class="select is-fullwidth">
                             <select name="horario" id="horario_select" disabled required>
@@ -179,7 +149,7 @@
                             <i class="fas fa-clock"></i>
                         </span>
                     </div>
-                    <p class="help has-text-grey">Solo se listan los bloques libres sin superposiciones en la sala elegida.</p>
+                    <p class="help has-text-grey-dark">Solo se listan los bloques libres sin superposiciones en la sala elegida.</p>
                 </div>
             </div>
             
@@ -187,7 +157,7 @@
         </div>
 
         <div class="field mt-4">
-            <label class="label has-text-dark">Descripción de la Clase</label>
+            <label class="label">Descripción de la Clase</label>
             <div class="control">
                 <textarea class="textarea" name="descripcion" placeholder="Escribí acá los detalles sobre la patología a tratar, ejercicios pautados o indicaciones específicas para los profesionales..." rows="4"></textarea>
             </div>
@@ -197,10 +167,10 @@
 
         <div class="field is-grouped is-grouped-right mt-5">
             <p class="control">
-                <a href="/clases/admin" class="button is-light">Cancelar</a>
+                <a href="/clases/admin" class="button is-light is-fullwidth-mobile">Cancelar</a>
             </p>
             <p class="control">
-                <button type="submit" class="button is-primary">
+                <button type="submit" class="button is-primary is-fullwidth-mobile">
                     <span class="icon">
                         <i class="fas fa-save"></i>
                     </span>
@@ -212,100 +182,95 @@
     </form>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<!-- Flatpickr JS y Localización a Español -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
 <script>
-    const fechaInput = document.getElementById('fecha_input');
-    const duracionSelect = document.getElementById('duracion_select');
-    const horarioSelect = document.getElementById('horario_select');
-    const tipoClaseSelect = document.getElementById('tipo_clase_select');
-    const salaSelect = document.getElementById('sala_select');
-    
-    // --- Configuración de fecha mínima ---
-    const hoy = new Date();
-    const mañana = new Date(hoy);
-    mañana.setDate(hoy.getDate() + 1); 
+    // Pasamos los datos de Jinja a una variable JS de forma directa y segura.
+    // El filtro `tojson` convierte la lista de Python en un array de JavaScript.
+    const diasNoLaborables = {{ dias_no_laborables | default([]) | tojson | safe }};
 
-    const yyyy = mañana.getFullYear();
-    const mm = String(mañana.getMonth() + 1).padStart(2, '0'); 
-    const dd = String(mañana.getDate()).padStart(2, '0');
-    
-    const fechaMinimaString = `${yyyy}-${mm}-${dd}`;
-    fechaInput.min = fechaMinimaString;
+    document.addEventListener('DOMContentLoaded', function() {
+        const fechaInput = document.getElementById('fecha_input');
+        const duracionSelect = document.getElementById('duracion_select');
+        const horarioSelect = document.getElementById('horario_select');
+        const tipoClaseSelect = document.getElementById('tipo_clase_select');
+        const salaSelect = document.getElementById('sala_select');
+        
+        // --- Configuración de Flatpickr ---
+        const mañana = new Date();
+        mañana.setDate(mañana.getDate() + 1);
 
-    // Control de fines de semana interactivo
-    fechaInput.addEventListener('input', function() {
-        const fechaVal = this.value;
-        if (!fechaVal) return;
-
-        const fechaSeleccionada = new Date(fechaVal.replace(/-/g, '\/'));
-        const diaSemana = fechaSeleccionada.getDay(); 
-
-        if (diaSemana === 0 || diaSemana === 6) {
-            alert("El centro de rehabilitación solo atiende de lunes a viernes. Por favor, elegí un día hábil.");
-            this.value = ""; 
-            horarioSelect.disabled = true;
-            horarioSelect.innerHTML = '<option value="">Seleccione primero fecha y duración...</option>';
-        }
-    });
-
-    // Activación dinámica de la fecha al seleccionar la sala
-    salaSelect.addEventListener('change', function() {
-        if (this.value) {
-            fechaInput.disabled = false; 
-        } else {
-            fechaInput.disabled = true;
-            fechaInput.value = "";
-            horarioSelect.disabled = true;
-            horarioSelect.innerHTML = '<option value="">Seleccione fecha, sala y duración primero...</option>';
-        }
-    });
-
-    // Consulta al controlador los horarios libres mediante Fetch
-    async function actualizarHorariosDisponibles() {
-        const fecha = fechaInput.value;
-        const duracion = duracionSelect.value;
-        const sala = salaSelect.value; 
-        const tipo = tipoClaseSelect.value; 
-
-        if (!fecha || !sala) return; 
-
-        const fechaSeleccionada = new Date(fecha.replace(/-/g, '\/'));
-        const diaSemana = fechaSeleccionada.getDay(); 
-
-        if (diaSemana === 0 || diaSemana === 6) {
-            horarioSelect.disabled = true;
-            horarioSelect.innerHTML = '<option value="">Seleccione primero fecha y duración...</option>';
-            return; 
-        }
-
-        horarioSelect.disabled = true;
-        horarioSelect.innerHTML = '<option value="">Cargando horarios libres...</option>';
-
-        try {
-            const response = await fetch(`{{ url_for('clases.api_horarios_disponibles') }}?fecha=${fecha}&duracion=${duracion}&sala_id=${sala}&tipo=${tipo}`);
-            const horariosLibres = await response.json();
-
-            horarioSelect.innerHTML = ''; 
-
-            if (horariosLibres.length === 0) {
-                horarioSelect.innerHTML = '<option value="">No hay horarios libres en esta fecha</option>';
-            } else {
-                horariosLibres.forEach(hora => {
-                    const option = document.createElement('option');
-                    option.value = hora;
-                    option.textContent = `${hora} hs`;
-                    horarioSelect.appendChild(option);
-                });
-                horarioSelect.disabled = false; 
+        const fp = flatpickr(fechaInput, {
+            locale: "es",
+            dateFormat: "Y-m-d",
+            minDate: mañana,
+            disable: diasNoLaborables,
+            onChange: function(selectedDates, dateStr, instance) {
+                // Al cambiar la fecha, actualizamos los horarios.
+                // El evento 'change' se dispara automáticamente por flatpickr.
             }
-        } catch (error) {
-            console.error("Error crítico de comunicación con la API del Core:", error);
-            horarioSelect.innerHTML = '<option value="">Error al conectar con la agenda</option>';
-        }
-    }
+        });
 
-    fechaInput.addEventListener('change', actualizarHorariosDisponibles);
-    duracionSelect.addEventListener('change', actualizarHorariosDisponibles);
-    salaSelect.addEventListener('change', actualizarHorariosDisponibles);
-    tipoClaseSelect.addEventListener('change', actualizarHorariosDisponibles);
+        // Habilitación secuencial del formulario
+        salaSelect.addEventListener('change', function() {
+            if (this.value) {
+                fechaInput.disabled = false;
+            } else {
+                fechaInput.disabled = true;
+                fp.clear(); // Limpiamos la fecha si se deselecciona la sala
+                horarioSelect.disabled = true;
+                horarioSelect.innerHTML = '<option value="">Seleccione fecha, sala y duración primero...</option>';
+            }
+            actualizarHorariosDisponibles();
+        });
+        // Consulta al controlador los horarios libres mediante Fetch
+        async function actualizarHorariosDisponibles() {
+            const fecha = fechaInput.value;
+            const duracion = duracionSelect.value;
+            const sala = salaSelect.value; 
+            const tipo = tipoClaseSelect.value; 
+
+            // Si la sala o la fecha no están seleccionadas, no buscamos horarios.
+            if (!sala || !fecha) {
+                horarioSelect.disabled = true;
+                horarioSelect.innerHTML = '<option value="">Seleccione primero fecha y duración...</option>';
+                return; 
+            }
+
+            horarioSelect.disabled = true;
+            horarioSelect.innerHTML = '<option value="">Cargando horarios libres...</option>';
+
+            try {
+                const response = await fetch(`{{ url_for('clases.api_horarios_disponibles') }}?fecha=${fecha}&duracion=${duracion}&sala_id=${sala}&tipo=${tipo}`);
+                const horariosLibres = await response.json();
+
+                horarioSelect.innerHTML = ''; 
+
+                if (horariosLibres.length === 0) {
+                    horarioSelect.innerHTML = '<option value="">No hay horarios disponibles</option>';
+                } else {
+                    horariosLibres.forEach(hora => {
+                        const option = document.createElement('option');
+                        option.value = hora;
+                        option.textContent = `${hora} hs`;
+                        horarioSelect.appendChild(option);
+                    });
+                    horarioSelect.disabled = false; 
+                }
+            } catch (error) {
+                console.error("Error crítico de comunicación con la API del Core:", error);
+                horarioSelect.innerHTML = '<option value="">Error al conectar con la agenda</option>';
+            }
+        }
+
+        fechaInput.addEventListener('change', actualizarHorariosDisponibles);
+        duracionSelect.addEventListener('change', actualizarHorariosDisponibles);
+        salaSelect.addEventListener('change', actualizarHorariosDisponibles);
+        tipoClaseSelect.addEventListener('change', actualizarHorariosDisponibles);
+    });
 </script>
 {% endblock %}

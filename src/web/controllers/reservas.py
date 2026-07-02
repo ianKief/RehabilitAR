@@ -1,11 +1,10 @@
 from flask import Blueprint, render_template, request, session, flash, redirect, url_for, current_app
 from datetime import datetime, date, timedelta
-import json
-import urllib.request
 import os
 
 from src.core.database import db
 from src.web.helpers.decorator import requiere_rol
+from src.web.helpers.feriados import obtener_dias_no_laborables
 from src.core.usuarios import obtener_usuario_por_id_core, EstadoUsuario, tiene_apto_fisico_valido
 from src.core.pagos import estado_abono_usuario, obtener_precio_clase_actual, tiene_beneficios, TipoBeneficio, registrar_pago_con_credito
 from src.core.clases import clase_tiene_lugar
@@ -39,33 +38,12 @@ from src.core.reservas import (
 
 reservas_bp = Blueprint("reservas", __name__, url_prefix="/reservas")
 
-# Caché en memoria para no saturar la API externa ni enlentecer la carga de la página
-_CACHE_FERIADOS = {}
-
 def _verificar_apto_fisico(cliente, fecha_clase = datetime.now(), message="Debe contar con un apto físico aceptado y vigente para reservar.") -> bool:
     """Helper para validar el apto físico del cliente de forma centralizada."""
     if not tiene_apto_fisico_valido(cliente, fecha_clase):
         flash(message, "warning")
         return False
     return True
-
-def _obtener_feriados(year: int) -> list:
-    """Obtiene los feriados del año desde la API y los cachea en memoria para mejorar el rendimiento."""
-    if year in _CACHE_FERIADOS:
-        return _CACHE_FERIADOS[year]
-    
-    feriados = []
-    try:
-        url = f"https://api.argentinadatos.com/v1/feriados/{year}"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=3) as response:
-            data = json.loads(response.read().decode('utf-8'))
-            feriados = [item.get('fecha') for item in data if 'fecha' in item]
-            _CACHE_FERIADOS[year] = feriados
-    except Exception as e:
-        print(f"Advertencia: No se pudieron cargar los feriados de la API: {e}")
-        feriados = [f"{year}-12-25", f"{year}-01-01"] # Fallback de emergencia
-    return feriados
 
 def _obtener_url_base() -> str:
     return os.getenv("URL_NGROK")
@@ -88,7 +66,8 @@ def calendario_cliente():
     especialidad = request.args.get("especialidad")
     hoy = date.today()
     
-    feriados = _obtener_feriados(hoy.year)
+    # Usamos la nueva función centralizada
+    dias_no_laborables = obtener_dias_no_laborables(hoy.year)
 
     try:
         fecha_seleccionada = datetime.strptime(fecha_str, "%Y-%m-%d").date() if fecha_str else hoy
@@ -102,17 +81,15 @@ def calendario_cliente():
     fechas_con_clases = obtener_fechas_con_clases(tipo=tipo, especialidad=especialidad)
     
     # Filtramos los feriados y fines de semana (Sábado=5, Domingo=6) para que no se puedan seleccionar
-    fechas_con_clases = [
-        f for f in fechas_con_clases 
-        if f not in feriados and datetime.strptime(f, "%Y-%m-%d").date().weekday() < 5
-    ]
+    fechas_con_clases = [f for f in fechas_con_clases if f not in dias_no_laborables]
 
     if fechas_con_clases and fecha_str not in fechas_con_clases:
         fecha_str = fechas_con_clases[0]
         fecha_seleccionada = datetime.strptime(fecha_str, "%Y-%m-%d").date()
 
     clases = listar_clases_disponibles_para_cliente(fecha=fecha_seleccionada, tipo=tipo, especialidad=especialidad)
-    if fecha_str in feriados or fecha_seleccionada.weekday() >= 5:
+    
+    if fecha_str in dias_no_laborables:
         clases = []
     
     ids_clases_llenas_donde_el_cliente_no_tiene_reserva = []
@@ -131,7 +108,7 @@ def calendario_cliente():
 
     fecha_formateada = fecha_seleccionada.strftime("%d/%m/%Y")
     
-    return render_template("reservas/calendario_reservas.html", clases=clases, fecha_seleccionada=fecha_str, fecha_formateada=fecha_formateada, tipo_seleccionado=tipo, especialidad_seleccionada=especialidad, feriados=feriados, fechas_con_clases=fechas_con_clases, ids_clases_reservadas=ids_clases_reservadas, es_abonado=abonado, ids_clases_encoladas=ids_clases_encoladas, ids_clases_llenas_donde_el_cliente_no_tiene_reserva = ids_clases_llenas_donde_el_cliente_no_tiene_reserva)
+    return render_template("reservas/calendario_reservas.html", clases=clases, fecha_seleccionada=fecha_str, fecha_formateada=fecha_formateada, tipo_seleccionado=tipo, especialidad_seleccionada=especialidad, feriados=dias_no_laborables, fechas_con_clases=fechas_con_clases, ids_clases_reservadas=ids_clases_reservadas, es_abonado=abonado, ids_clases_encoladas=ids_clases_encoladas, ids_clases_llenas_donde_el_cliente_no_tiene_reserva = ids_clases_llenas_donde_el_cliente_no_tiene_reserva)
 
 @reservas_bp.post("/<int:id_clase>/reservar")
 @requiere_rol(["CLIENTE"])
@@ -502,7 +479,7 @@ def reservar_mensual(id_clase):
         return redirect(url_for("reservas.calendario_cliente"))
 
     hoy = date.today()
-    feriados = _obtener_feriados(hoy.year)
+    dias_no_laborables = obtener_dias_no_laborables(hoy.year)
 
     clases_mensuales = obtener_clases_mensuales(id_clase)
     
@@ -537,17 +514,14 @@ def reservar_mensual(id_clase):
 
     for c in clases_mensuales:
         fecha_str = c.fecha_clase.strftime("%Y-%m-%d")
-        if fecha_str in feriados or not clase_tiene_lugar(c):
-            if fecha_str in feriados:
+        if fecha_str in dias_no_laborables or not clase_tiene_lugar(c):
+            if fecha_str in dias_no_laborables:
                 conflictos_feriado.append(c)
             else:
                 conflictos_cupo.append(c)
                 
             alternativas_db = obtener_alternativas_semana_para_clase(c)
-            alternativas_conflictos[c.id] = [
-                alt for alt in alternativas_db 
-                if clase_tiene_lugar(alt) and alt.fecha_clase.strftime("%Y-%m-%d") not in feriados
-            ]
+            alternativas_conflictos[c.id] = [alt for alt in alternativas_db if clase_tiene_lugar(alt) and alt.fecha_clase.strftime("%Y-%m-%d") not in dias_no_laborables]
         else:
             clases_ok.append(c)
             

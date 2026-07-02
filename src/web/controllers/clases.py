@@ -3,6 +3,7 @@ from src.core.database import db
 from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, session, url_for
 from src.core.clases import crear_clases_agenda, listar_clases, listar_especialidades_activas, obtener_clase_por_id, obtener_horarios_disponibles, obtener_postulantes_clase, resolver_postulacion_clase
 from src.core.salas import listar_salas_habilitadas, obtener_sala
+from src.web.helpers.feriados import obtener_dias_no_laborables
 from src.core.clases.clases import Clase, PostulacionClase
 from src.core.clases import obtener_clases_dictadas_por_profesor, obtener_clases_disponibles_para_profesor, obtener_postulaciones_de_profesor
 from src.web.helpers.decorator import requiere_rol
@@ -53,8 +54,16 @@ def nueva_clase():
     # Le pedimos al Core las especialidades y las salas habilitadas para el select del HTML
     especialidades = listar_especialidades_activas()
     salas = listar_salas_habilitadas()
-    
-    return render_template('clases/crear_clase.html', templates_especialidades=especialidades, puertas_salas=salas)
+
+    # Obtenemos los días no laborables para el año actual y el siguiente
+    # Obtenemos los días no laborables para el año actual y el siguiente para el calendario
+    año_actual = datetime.now().year
+    dias_no_laborables = obtener_dias_no_laborables(año_actual) + obtener_dias_no_laborables(año_actual + 1)
+
+    return render_template('clases/crear_clase.html',
+                           templates_especialidades=especialidades, 
+                           puertas_salas=salas,
+                           dias_no_laborables=dias_no_laborables)
 
 @bp.route('/api/horarios-disponibles', methods=['GET'])
 def api_horarios_disponibles():
