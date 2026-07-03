@@ -152,14 +152,14 @@ def registrar_pago_desde_payment(payment_id, payment):
         )
 
         db.session.add(pago)
-
         crear_reserva(usuario_id, id_clase)
+        print ("EL ID CLASE ES:", id_clase)
 
         db.session.commit()
 
-        # clase = obtener_clase_por_id(id_clase)
+        clase = db.session.query(Clase).filter(Clase.id == id_clase).first()
 
-        # contenido_mensaje = f"Se ha confirmado su nueva reserva para la clase fija {clase.nombre}. Puedes ver más información del pago en la sección de pagos y la reserva ya se encuentra activa."
+        contenido_mensaje = f"Se ha confirmado su nueva reserva para la clase fija {clase.nombre}. Puedes ver más información del pago en la sección de pagos y la reserva ya se encuentra activa."
     
     if tipo == "reserva_individual":
         external_ref = payment.get("external_reference")
@@ -200,8 +200,11 @@ def registrar_pago_desde_payment(payment_id, payment):
 
         # 3. crear reserva REAL
         reserva = crear_reserva(usuario_id, id_clase)
+        
 
         db.session.flush()
+        print ("EL ID CLASE ES:", id_clase)
+
 
         # 2. detalle
         detalle = DetallePago(
@@ -215,9 +218,9 @@ def registrar_pago_desde_payment(payment_id, payment):
 
         db.session.commit()
     
-        # clase = obtener_clase_por_id(id_clase)
+        clase = db.session.query(Clase).filter(Clase.id == id_clase).first()
 
-        # contenido_mensaje = f"Se ha confirmado su nueva reserva para la clase individual {clase.nombre}. Puedes ver más información del pago en la sección de pagos y la reserva ya se encuentra activa."
+        contenido_mensaje = f"Se ha confirmado su nueva reserva para la clase individual {clase.nombre}. Puedes ver más información del pago en la sección de pagos y la reserva ya se encuentra activa."
 
     if tipo == "cola":
         external_ref = payment.get("external_reference")
@@ -250,29 +253,15 @@ def registrar_pago_desde_payment(payment_id, payment):
         clase = db.session.query(Clase).filter(Clase.id == id_clase).first()
         if comprobar_alta_demanda (clase):
             informar_alta_demanda (clase)
-        
-        # clase = obtener_clase_por_id(id_clase)
+
+        contenido_mensaje = f"Se ha confirmado su nuevo espacio en la cola para la clase {clase.nombre}. Puedes ver más información del pago en la sección de pagos y el lugar ya se encuentra activo. En caso de vencer dicho espacio, comuníquese con la administración."
 
         return
     
-    if tipo == "abono":
-        if pago_ya_procesado(payment_id):
-            print("Pago de abono duplicado, ignorando.")
-            return
-        
-        user_id = int(payment.get("external_reference"))
-        clases_ids_str = metadata.get("clases_ids", "")
-        
-        if not clases_ids_str:
-            print(f"Webhook para abono del usuario {user_id} sin clases_ids en metadata. No se procesan reservas.")
-            registrar_pago_abono_mensual(payment_id, user_id, monto)
-            return
+    # Acá estaba el pago de abono, pero actualmente se usa otra ruta :P
 
-        pago_abono = registrar_pago_abono_mensual(payment_id, user_id, monto)
-        from src.core.reservas import procesar_reservas_mensuales_automatica, obtener_clase_por_id
-        clases_a_reservar_obj = [obtener_clase_por_id(int(cid)) for cid in clases_ids_str.split(',') if cid]
-        procesar_reservas_mensuales_automatica(user_id, clases_a_reservar_obj, id_pago_abono=pago_abono.id)
-        print(f"Abono y {len(clases_a_reservar_obj)} reservas registradas desde webhook para el usuario {user_id}.")
+    enviar_notificaciones(obtener_usuario_por_id_core(usuario_id), "¡Pago realizado exitosamente!", contenido_mensaje, TipoNotificacion.PAGOS)
+    db.session.commit()
 
 def registrar_pago_con_credito (cliente, clase, precio):
 
@@ -317,6 +306,7 @@ def procesar_mercado_pago_webhook(data,sdk):
 
     # valida que venga el ID correctamente
     if not data or "data" not in data or "id" not in data["data"]:
+        print ("EL DATA DEL PAGO NO ES VÁLIDO")
         return
     
     # obtiene el ID del pago enviado por Mercado Pago
@@ -326,6 +316,7 @@ def procesar_mercado_pago_webhook(data,sdk):
     payment_info = sdk.payment().get(payment_id)
 
     if not payment_info or "response" not in payment_info:
+        print ("NO HAY PAYMENT INFO")
         return
 
     #obtiene la respuesta real del pago

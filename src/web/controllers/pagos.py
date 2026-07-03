@@ -123,6 +123,12 @@ def pago_exitoso():
                     clases_a_reservar_obj = [obtener_clase_por_id(cid) for cid in clases_seleccionadas_ids]
                     procesar_reservas_mensuales_automatica(user_id, clases_a_reservar_obj, id_pago_abono=pago_abono.id)
                     flash("¡Pago exitoso! Tu abono está activo y tus clases fueron reservadas.", "success")
+
+                    # Envío de notificación
+                    contenido_mensaje = f"Se ha confirmado su pago del abono. Este pago le permitirá acceder a: {len(clases_a_reservar_obj)} reservas registradas, además de acceder a múltiples beneficios. Para más información del pago visite la sección pagos."
+                    from src.core.notificaciones import enviar_notificaciones, TipoNotificacion
+                    from src.core.usuarios import obtener_usuario_por_id_core
+                    enviar_notificaciones(obtener_usuario_por_id_core(user_id), "¡Pago mensual realizado exitosamente!", contenido_mensaje, TipoNotificacion.PAGOS)
                 except Exception as e:
                     print(f"Error al registrar el abono en pago_exitoso: {e}")
                     flash("Tu pago fue exitoso, pero hubo un problema al activar tu abono. Por favor, contactá a soporte.", "danger")
