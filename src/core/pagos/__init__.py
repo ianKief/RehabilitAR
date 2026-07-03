@@ -157,9 +157,9 @@ def registrar_pago_desde_payment(payment_id, payment):
 
         db.session.commit()
 
-        clase = obtener_clase_por_id(id_clase)
+        # clase = obtener_clase_por_id(id_clase)
 
-        contenido_mensaje = f"Se ha confirmado su nueva reserva para la clase fija {clase.nombre}. Puedes ver más información del pago en la sección de pagos y la reserva ya se encuentra activa."
+        # contenido_mensaje = f"Se ha confirmado su nueva reserva para la clase fija {clase.nombre}. Puedes ver más información del pago en la sección de pagos y la reserva ya se encuentra activa."
     
     if tipo == "reserva_individual":
         external_ref = payment.get("external_reference")
@@ -174,6 +174,7 @@ def registrar_pago_desde_payment(payment_id, payment):
 
         # evitar duplicados
         if pago_ya_procesado(payment_id):
+            print ("PAGO YA PROCESADO")
             return
 
         monto = payment.get("transaction_amount")
@@ -214,9 +215,9 @@ def registrar_pago_desde_payment(payment_id, payment):
 
         db.session.commit()
     
-        clase = obtener_clase_por_id(id_clase)
+        # clase = obtener_clase_por_id(id_clase)
 
-        contenido_mensaje = f"Se ha confirmado su nueva reserva para la clase individual {clase.nombre}. Puedes ver más información del pago en la sección de pagos y la reserva ya se encuentra activa."
+        # contenido_mensaje = f"Se ha confirmado su nueva reserva para la clase individual {clase.nombre}. Puedes ver más información del pago en la sección de pagos y la reserva ya se encuentra activa."
 
     if tipo == "cola":
         external_ref = payment.get("external_reference")
@@ -250,7 +251,7 @@ def registrar_pago_desde_payment(payment_id, payment):
         if comprobar_alta_demanda (clase):
             informar_alta_demanda (clase)
         
-        clase = obtener_clase_por_id(id_clase)
+        # clase = obtener_clase_por_id(id_clase)
 
         return
     
