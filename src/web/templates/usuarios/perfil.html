@@ -126,6 +126,7 @@
         </form>
         {% endif %}
         
+        {% if usuario.rol.value == 'cliente' %}
         <hr>
 
         <div class="box">
@@ -291,6 +292,7 @@
                 if (event.key === 'Escape') cerrarModalMotivo();
             });
         </script>
+        {% endif %}
         {% endif %}
 
     </div>

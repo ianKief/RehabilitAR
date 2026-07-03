@@ -54,35 +54,39 @@ def login(email, password):
     if not usuario:
         raise ValueError("Inicio de sesión fallido: El correo ingresado no corresponde a ninguna cuenta")
     
-    # 2. Cuenta bloqueada se desbloquea si ya pasó el tiempo de bloqueo
-    if usuario.estado == EstadoUsuario.BLOQUEADO and usuario.bloqueado_hasta and datetime.now() > usuario.bloqueado_hasta:
-        usuario.estado = EstadoUsuario.ACTIVO
-        usuario.intentos_login = 0
-        usuario.bloqueado_hasta = None
-        db.session.commit()
-
-    # 3. Cuenta bloqueada y todavia no paso el tiempo de bloqueo
+    # 2. Manejo de cuentas bloqueadas
     if usuario.estado == EstadoUsuario.BLOQUEADO:
-        # TODO este valueError está mal, no se llega a leer
-        raise ValueError("Inicio de sesión fallido: Cuenta bloqueada por motivos de seguridad. Vuelva a intentar en {} minutos."
-                         .format(int((usuario.bloqueado_hasta - datetime.now()).total_seconds() // 60) + 1))
-
-    # 4. Cuenta pendiente de verificación
+        if usuario.bloqueado_hasta:
+            # Bloqueo temporal por intentos fallidos
+            if datetime.now() > usuario.bloqueado_hasta:
+                # El tiempo de bloqueo ha expirado, se reactiva la cuenta
+                usuario.estado = EstadoUsuario.ACTIVO
+                usuario.intentos_login = 0
+                usuario.bloqueado_hasta = None
+                db.session.commit()
+            else:
+                # La cuenta sigue bloqueada, se informa el tiempo restante
+                minutos_restantes = int((usuario.bloqueado_hasta - datetime.now()).total_seconds() // 60) + 1
+                raise ValueError(f"Inicio de sesión fallido: Cuenta bloqueada por motivos de seguridad. Vuelva a intentar en {minutos_restantes} minutos.")
+        else:
+            # Bloqueo indefinido por un administrador
+            raise ValueError("Inicio de sesión fallido: Su cuenta ha sido bloqueada por un administrador. Por favor, contacte a soporte.")
+    # 3. Cuenta pendiente de verificación
     if usuario.estado == EstadoUsuario.PENDIENTE:
         raise ValueError("Inicio de sesión fallido: La cuenta aún no ha sido verificada. Por favor, revise su correo para obtener el código de verificación.")
     
-    # 5. Contraseña incorrecta
+    # 4. Contraseña incorrecta
     if usuario.password != password:
         usuario.intentos_login += 1
 
-        # 5.1. Alcanzó los 5 intentos fallidos
+        # 4.1. Alcanzó los 5 intentos fallidos
         if usuario.intentos_login >= 5:
             usuario.estado = EstadoUsuario.BLOQUEADO
             usuario.bloqueado_hasta = datetime.now() + timedelta(hours=1)
             db.session.commit()
             raise ValueError("Inicio de sesión fallido: Contraseña incorrecta. Por motivos de seguridad se ha bloqueado su cuenta por una hora")
         
-        # 5.2. Aún no alcanza los 5 intentos fallidos
+        # 4.2. Aún no alcanza los 5 intentos fallidos
         db.session.commit()
         raise ValueError("Inicio de sesión fallido: Contraseña incorrecta. Te quedan {} intentos antes de que la cuenta sea bloqueada."
         .format(5 - usuario.intentos_login))
