@@ -653,3 +653,44 @@ def tiene_qr (clase_actual):
     return db.session.query(
         query.exists()
     ).scalar()
+
+def profesor_tiene_conflicto_horario(clase_id, id_profesor):
+    """Dada una clase y el id_profesor, comprueba si existe otra clase que se de a la vez que la primera. En caso de no existir clase devuelve false, caso contrario devuelve un texto preparado para meter en flash()"""
+    from src.core.clases import PostulacionClase
+
+    clase = obtener_clase_por_id(clase_id)
+
+    inicio_nuevo = datetime.combine(clase.fecha_clase, clase.horario)
+    fin_nuevo = inicio_nuevo + timedelta(minutes = clase.duracion)
+
+    # Primero agarramos las clases del profe
+    clases_profesor = (db.session.query(Clase)
+        .join(ProfesorDictaClase, ProfesorDictaClase.id_clase == Clase.id)
+        .filter(ProfesorDictaClase.id_profesor == id_profesor)
+        .filter(Clase.fecha_clase == clase.fecha_clase)
+        .filter(Clase.suspendida != False)
+        .all()
+    )
+
+    # Sumamos sus postulaciones
+    postulaciones_profesor = (db.session.query(Clase)
+        .join (PostulacionClase, Clase.id == PostulacionClase.clase_id)
+        .filter(PostulacionClase.profesor_id == id_profesor)
+        .filter(Clase.fecha_clase == clase.fecha_clase)
+        .filter(PostulacionClase.estado != "RECHAZADA")
+        .all()
+    )
+
+    clases_profesor.extend(postulaciones_profesor)
+
+    for otra in clases_profesor:
+        if otra.id == clase.id:
+            continue
+
+        inicio_otra = datetime.combine(otra.fecha_clase, otra.horario)
+        fin_otra = inicio_otra + timedelta(minutes = otra.duracion)
+
+        if (inicio_nuevo < fin_otra and fin_nuevo > inicio_otra):
+            return otra.nombre
+
+    return False

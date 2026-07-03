@@ -130,6 +130,15 @@ class ClaseSeeder:
                 eliminada = False
             )
             self.db.session.add(sala_de_clase_sin_profesor)
+
+            sala_de_clase_sin_profesor2 = Sala (
+                numero_puerta = "1011",
+                descripcion = "Para alojar otra clase sin profesor asignado",
+                capacidad = 10,
+                estado = EstadoSala.HABILITADA,
+                eliminada = False
+            )
+            self.db.session.add(sala_de_clase_sin_profesor2)
             self.db.session.flush()
 
             clase_sin_profesor = Clase (
@@ -137,13 +146,27 @@ class ClaseSeeder:
                 especialidad = "Tren Superior",
                 duracion = 120,
                 descripcion = "Esta es una clase que no tiene un profesor asignado",
-                fecha_clase = date(year=2026, month=7, day=20),
+                fecha_clase = date(year=2026, month=7, day=27),
                 horario = time(hour = 10),
                 aprobada = True,
                 tipo = "Individual",
                 sala = sala_de_clase_sin_profesor
             )
             self.db.session.add(clase_sin_profesor)
+
+            # Esto es para comprobar la condición de anotarse a la vez
+            clase_sin_profesor2 = Clase (
+                nombre = "Clase sin profesor2",
+                especialidad = "Tren Superior",
+                duracion = 120,
+                descripcion = "Esto sirve para comprobar si me puedo anotar a dos clases a la vez",
+                fecha_clase = date(year=2026, month=7, day=27),
+                horario = time(hour = 10),
+                aprobada = True,
+                tipo = "Individual",
+                sala = sala_de_clase_sin_profesor2
+            )
+            self.db.session.add(clase_sin_profesor2)
             self.db.session.commit()
             print(f"✅ Clases pobladas con éxito ({len(clases_y_profesores)} instancias).")
         except Exception as e:

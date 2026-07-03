@@ -240,14 +240,8 @@ def ver_clases_para_postularse():
 @requiere_rol(['PROFESOR'])  
 def postularse():
     from src.core.usuarios import conseguir_administrativos, obtener_usuario_por_id_core
-    user_id = session.get('usuario_id')
-    if not user_id:
-        flash("Debes iniciar sesión para postularte a las clases.", "warning")
-        return redirect(url_for('auth.login'))
-        
-    # Como tu modelo Profesor usa el id de usuario como Primary Key (Herencia), 
-    # el profesor_id que necesita la postulación es directamente el user_id de la sesión.
-    profesor_id = user_id
+    from src.core.clases import profesor_tiene_conflicto_horario
+    profesor_id = session.get('usuario_id')
     
     # Leemos el string que viene del formulario
     clases_ids_raw = request.form.get("clases_ids")
@@ -274,7 +268,6 @@ def postularse():
                 db.session.rollback()  
                 return redirect(url_for("clases.ver_clases_para_postularse"))
             
-            # 🚀 CORRECCIÓN: Buscamos si ya se postuló usando la sintaxis de SQLAlchemy corregida
             query_existente = select(PostulacionClase).where(
                 PostulacionClase.clase_id == clase_id,
                 PostulacionClase.profesor_id == profesor_id
@@ -285,6 +278,13 @@ def postularse():
                 flash("Ya te encontrás postulado a una de las clases seleccionadas.", "warning")
                 db.session.rollback()
                 return redirect(url_for("clases.ver_clases_para_postularse"))
+            
+            conflicto_horario = profesor_tiene_conflicto_horario (clase_id, profesor_id)
+            print (conflicto_horario)
+            if conflicto_horario:
+                db.session.rollback()
+                flash (f"El cliente ya tiene una clase en el mismo horario: {conflicto_horario}", "warning")
+                return redirect(url_for("clases.ver_clases_para_postularse"))
 
             # Creamos la postulación vinculándola al ID correspondiente
             nueva_postulacion = PostulacionClase(
@@ -294,7 +294,7 @@ def postularse():
             )
             db.session.add(nueva_postulacion)
             usuario = obtener_usuario_por_id_core(profesor_id)
-            enviar_notificaciones(conseguir_administrativos(), "Nueva postulación", f"Se ha recibido una nueva postulación: {usuario.nombre}, {usuario.apellido} se ha anotado a la clase {clase_existe.nombre}. Para más información revise la casilla de clases", TipoNotificacion.NUEVA_APELACION_A_CLASE)
+        enviar_notificaciones(conseguir_administrativos(), "Nueva postulación", f"Se ha recibido una nueva postulación: {usuario.nombre}, {usuario.apellido} se ha anotado a la clase {clase_existe.nombre}. Para más información revise la casilla de clases", TipoNotificacion.NUEVA_APELACION_A_CLASE)
         
         db.session.commit()
         flash("Usted fue asignado correctamente, puede ver sus clases en la seccion 'Mis clases'.", "success")
