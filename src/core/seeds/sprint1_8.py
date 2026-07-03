@@ -48,17 +48,6 @@ class SeedAsistenciaYSeguimientoSprint1 ():
             )
             self.db.session.add(profesor2)
 
-            # Hacemos cuenta de profesor 3
-            profesor3 = Profesor(
-                nombre="Profesor 3",
-                apellido="AYS",
-                dni="8000003",
-                email="profesorays3@gmail.com",
-                password="123456",
-                estado = EstadoUsuario.ACTIVO
-            )
-            self.db.session.add(profesor3)
-
             sala_sprint1_1 = Sala(
                 numero_puerta="101-S1",
                 descripcion="Sala Sprint 1 (Capacidad 4)",
