@@ -120,9 +120,52 @@ class SeedAsistenciaYSeguimientoSprint1 ():
                 .join(Clase)
                 .filter(*filtro_clase_actual())
             )
+
             clientes_con_clase_actual = self.db.session.scalars(query).all()
 
             clientes = self.db.session.query(Cliente).filter(Cliente.id.notin_(clientes_con_clase_actual)).all()
+
+            # Acá carga los datos de la clase vieja
+            clase_vieja = Clase(
+                nombre= "Clase 0 de profesor 1 con reservas",
+                especialidad= "Programación",
+                duracion=180,
+                descripcion = "Esta clase ya sucedió hace un par de días",
+                fecha_clase = datetime.now(tz_arg).replace(tzinfo=None).date() - timedelta(days=2),
+                horario = datetime.now(tz_arg).replace(tzinfo=None).time(),
+                aprobada = True,
+                tipo = "individual",
+                sala_id = sala_sprint1_1.id
+            )
+
+            self.db.session.add (clase_vieja)
+            self.db.session.flush()
+            profesor_dicta_clase_viejo = ProfesorDictaClase (
+                id_profesor = profesor1.id,
+                id_clase = clase_vieja.id
+            )
+            self.db.session.add(profesor_dicta_clase_viejo)
+
+            i = 0
+            for cliente in clientes:
+                nueva_reserva = Reserva (
+                    id_cliente = cliente.id,
+                    id_clase = clase_vieja.id,
+                    asiste = AsistenciaReserva.PRESENTE
+                )
+                self.db.session.add(nueva_reserva)
+                if i == 1:
+                    self.db.session.flush()
+                    nuevo_comentario = Comentario (
+                        comentario = "Este es un comentario viejo",
+                        reserva = nueva_reserva
+                    )
+                    self.db.session.add(nuevo_comentario)
+                i+=1
+                if (i == 3):
+                    break
+
+            # Acá a los clientes de la clase actual
             i = 0
             reservas = []
             for cliente in clientes:
@@ -175,45 +218,6 @@ class SeedAsistenciaYSeguimientoSprint1 ():
                 asiste = AsistenciaReserva.CANCELADA
             )
             self.db.session.add(reserva)
-
-            clase_vieja = Clase(
-                nombre= "Clase 0 de profesor 1 con reservas",
-                especialidad= "Programación",
-                duracion=180,
-                descripcion = "Esta clase ya sucedió hace un par de días",
-                fecha_clase = datetime.now(tz_arg).replace(tzinfo=None).date() - timedelta(days=2),
-                horario = datetime.now(tz_arg).replace(tzinfo=None).time(),
-                aprobada = True,
-                tipo = "individual",
-                sala_id = sala_sprint1_1.id
-            )
-
-            self.db.session.add (clase_vieja)
-            self.db.session.flush()
-            profesor_dicta_clase_viejo = ProfesorDictaClase (
-                id_profesor = profesor1.id,
-                id_clase = clase_vieja.id
-            )
-            self.db.session.add(profesor_dicta_clase_viejo)
-
-            i = 0
-            for cliente in clientes:
-                nueva_reserva = Reserva (
-                    id_cliente = cliente.id,
-                    id_clase = clase_vieja.id,
-                    asiste = AsistenciaReserva.PRESENTE
-                )
-                self.db.session.add(nueva_reserva)
-                if i == 1:
-                    self.db.session.flush()
-                    nuevo_comentario = Comentario (
-                        comentario = "Este es un comentario viejo",
-                        reserva = nueva_reserva
-                    )
-                    self.db.session.add(nuevo_comentario)
-                i+=1
-                if (i == 3):
-                    break
 
             self.db.session.commit()
             print("✅ Datos de Asistencia y Seguimiento (Sprint 1.8) poblados con éxito.")

@@ -90,7 +90,7 @@ def conseguir_asistencias (id_profesor, busqueda="", estado='seleccionar_todos',
 
         .filter(Reserva.id.notin_(reservas_faltantes_sin_comentarios))
 
-        .order_by(Reserva.fecha_modificacion.asc())
+        .order_by(Reserva.fecha_modificacion.desc())
     )
 
     if solo_comentarios:
