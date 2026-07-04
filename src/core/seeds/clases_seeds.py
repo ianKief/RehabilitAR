@@ -167,6 +167,31 @@ class ClaseSeeder:
                 sala = sala_de_clase_sin_profesor2
             )
             self.db.session.add(clase_sin_profesor2)
+
+            # Esto es para comprobar la condición de sala ocupada todo el día
+            sala_re_llena_el_30_7 = Sala (
+                numero_puerta = "Ocupado el 30/7",
+                descripcion = "Para comprobar condiciones en salas ocupadas",
+                capacidad = 10,
+                estado = EstadoSala.HABILITADA,
+                eliminada = False
+            )
+            self.db.session.add(sala_re_llena_el_30_7)
+            self.db.session.flush()
+            
+            clase_que_ocupa_todo_el_dia = Clase (
+                nombre = "Clase DEMASIADO LARGA",
+                especialidad = "Tren Superior",
+                duracion = 720,
+                descripcion = "Esta es una clase que no tiene un profesor asignado",
+                fecha_clase = date(year=2026, month=7, day=30),
+                horario = time(hour = 8),
+                aprobada = True,
+                tipo = "Individual",
+                sala = sala_re_llena_el_30_7
+            )
+            self.db.session.add(clase_que_ocupa_todo_el_dia)
+
             self.db.session.commit()
             print(f"✅ Clases pobladas con éxito ({len(clases_y_profesores)} instancias).")
         except Exception as e:

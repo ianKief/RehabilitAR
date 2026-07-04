@@ -283,7 +283,7 @@ def postularse():
             print (conflicto_horario)
             if conflicto_horario:
                 db.session.rollback()
-                flash (f"El cliente ya tiene una clase en el mismo horario: {conflicto_horario}", "warning")
+                flash (f"El profesor ya tiene una clase en el mismo horario: {conflicto_horario}", "warning")
                 return redirect(url_for("clases.ver_clases_para_postularse"))
 
             # Creamos la postulación vinculándola al ID correspondiente
