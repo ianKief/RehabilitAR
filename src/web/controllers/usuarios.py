@@ -36,7 +36,8 @@ def crear_usuario():
             return render_template('usuarios/crear.html', error="El correo electrónico debe ser del dominio @gmail.com, @hotmail.com o @outlook.com.")
         
         try:
-            nuevo_usuario = crear(nombre=nombre, email=email, password=password, rol=rol)    
+            nuevo_usuario = crear(nombre=nombre, email=email, password=password, rol=rol)
+            # TODO enviar mail
         except ValueError as e:
             flash(str(e), 'error')
             return render_template('usuarios/crear.html')
