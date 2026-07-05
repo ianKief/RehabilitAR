@@ -6,8 +6,10 @@ from sqlalchemy.orm import aliased
 
 from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase, ClaseBloque, PostulacionClase
-from src.core.reservas.reservas import Reserva, AsistenciaReserva
+from src.core.reservas.reservas import Reserva, AsistenciaReserva, Cancelacion, EstadoCancelacion
 from src.core.notificaciones import TipoNotificacion, enviar_notificaciones
+from src.core.pagos import Beneficio, TipoBeneficio
+from src.core.mail import enviar_correo
 
 # <VER CLASES ADMIN>
 def listar_clases():
@@ -325,7 +327,8 @@ def obtener_clases_disponibles_para_profesor(profesor_id):
             PostulacionClase,
             and_(
                 PostulacionClase.clase_id == Clase.id,
-                PostulacionClase.profesor_id == profesor_id
+                PostulacionClase.profesor_id == profesor_id,
+                PostulacionClase.estado.in_(["PENDIENTE", "ACEPTADA", "RECHAZADA"])
             )
         )
         .filter(
@@ -470,6 +473,7 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
     en cascada a todas las instancias de dicho bloque para ese profesor.
     """
     from src.core.usuarios import obtener_usuario_por_id_core
+    from src.core.clases.clases import PostulacionClase # Asegurar imports correctos
     
     postulacion = db.session.get(PostulacionClase, postulacion_id)
     if not postulacion or postulacion.estado != "PENDIENTE":
@@ -479,13 +483,13 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
         select(Clase).filter(Clase.id == postulacion.clase_id)
     )
     
-    # 1. 🔍 DETECTAR EL ALCANCE (¿Es clase fija/bloque o individual?)
+    # 1. DETECTAR EL ALCANCE (¿Es clase fija/bloque o individual?)
     registro_bloque = db.session.scalar(
         select(ClaseBloque).filter(ClaseBloque.id_clase == postulacion.clase_id)
     )
     
     if registro_bloque:
-        # 🔥 ES CLASE FIJA: Buscamos todas las clases asociadas al mismo bloque
+        # ES CLASE FIJA: Buscamos todas las clases asociadas al mismo bloque
         registros_del_bloque = db.session.scalars(
             select(ClaseBloque).filter(ClaseBloque.id_bloque == registro_bloque.id_bloque)
         ).all()
@@ -509,8 +513,13 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
         for p_ganadora in postulaciones_ganadoras:
             p_ganadora.estado = "ACEPTADA"
 
-        # IMPACTO EN LA TABLA DICTA (Asignación física de las clases)
+        # IMPACTO EN LA TABLA DICTA (Asignación física de las clases no suspendidas)
         for clase_id in clases_afectadas:
+            # COMPROBACIÓN: Si la instancia específica está suspendida, no creamos asignación
+            instancia_clase = db.session.get(Clase, clase_id)
+            if instancia_clase and instancia_clase.suspendida:
+                continue
+
             existe_dicta = db.session.scalar(
                 select(ProfesorDictaClase).filter(
                     ProfesorDictaClase.id_profesor == postulacion.profesor_id, 
@@ -522,7 +531,7 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
         
         enviar_notificaciones(obtener_usuario_por_id_core(postulacion.profesor_id), "¡Se ha aprobado la postulación de la clase!", f"Se ha aprobado su participación en la clase {clase.nombre}. Para más información vaya a la sección 'Mis clases' en el navegador de profesores.", TipoNotificacion.ESTADO_POSTULACION_CLASE)
         
-        # ❌ RECHAZAR EN CASCADA A LOS COMPETIDORES
+        # RECHAZAR EN CASCADA A LOS COMPETIDORES
         otras_postulaciones = db.session.scalars(
             select(PostulacionClase)
             .filter(
@@ -532,13 +541,19 @@ def resolver_postulacion_clase(postulacion_id: int, accion: str) -> bool:
             )
         ).all()
         
+        profesores_a_notificar = set()
         for otra in otras_postulaciones:
             otra.estado = "RECHAZADA"
+            profesores_a_notificar.add(otra.profesor_id)
         
-        enviar_notificaciones(otras_postulaciones, "Se ha rechazado su postulación a clase", f"Se ha rechazado su participación en la clase {clase.nombre}.", TipoNotificacion.ESTADO_POSTULACION_CLASE)
+        # Notificación corregida a cada usuario competente
+        for prof_id in profesores_a_notificar:
+            usuario_competidor = obtener_usuario_por_id_core(prof_id)
+            if usuario_competidor:
+                enviar_notificaciones(usuario_competidor, "Se ha rechazado su postulación a clase", f"Se ha rechazado su participación en la clase {clase.nombre}.", TipoNotificacion.ESTADO_POSTULACION_CLASE)
             
     elif accion == "rechazar":
-        # ❌ RECHAZAR EN CASCADA AL MISMO PROFESOR EN TODO EL BLOQUE
+        # RECHAZAR EN CASCADA AL MISMO PROFESOR EN TODO EL BLOQUE
         postulaciones_a_rechazar = db.session.scalars(
             select(PostulacionClase)
             .filter(
@@ -653,3 +668,146 @@ def tiene_qr (clase_actual):
     return db.session.query(
         query.exists()
     ).scalar()
+
+def procesar_suspension_o_reactivacion(clase_id, tz_arg=None):
+    """
+    Orquestador del Core para alternar el estado de suspensión de una clase.
+    Aplica compensaciones a alumnos y anula flujos de profesores en caso de suspensión.
+    """
+    clase = db.session.get(Clase, clase_id)
+    if not clase:
+        return {"status": "danger", "message": "La clase solicitada no existe."}
+        
+    # --- Validación de tiempo de finalización ---
+    inicio_clase = datetime.combine(clase.fecha_clase, clase.horario)
+    fin_clase = inicio_clase + timedelta(minutes=clase.duracion)
+    ahora = datetime.now(tz_arg).replace(tzinfo=None) if tz_arg else datetime.now()
+    
+    if ahora >= fin_clase:
+        return {
+            "status": "warning", 
+            "message": f"No se puede modificar la clase '{clase.nombre}' porque ya ha finalizado."
+        }
+    # ------------------------------------------------------
+
+    try:
+        # 🟢 CASO 1: REACTIVAR CLASE
+        if clase.suspendida:
+            clase.suspendida = False
+            db.session.commit()
+            return {
+                "status": "success", 
+                "message": f"¡La clase '{clase.nombre}' ha sido reactivada con éxito!"
+            }
+            
+        # 🔴 CASO 2: SUSPENDER CLASE
+        clase.suspendida = True
+        
+        # 1. Modularización Alumnos: Compensación de Créditos y Cancelaciones
+        emails_alumnos = _procesar_compensacion_alumnos(clase, ahora)
+        
+        # 2. Modularización Profesores: Anulación de Postulaciones y Asignaciones
+        _procesar_baja_profesores_y_postulaciones(clase.id, clase.nombre, clase.fecha_clase)
+
+        # Confirmar toda la transacción unificada
+        db.session.commit()
+        
+        # 3. Disparar notificaciones por mail a alumnos afectados post-commit
+        if emails_alumnos:
+            asunto_mail = f"AVISO IMPORTANTE: Clase Suspendida - {clase.nombre}"
+            cuerpo_mail = (
+                f"Estimado paciente,\n\n"
+                f"Le informamos que la clase de '{clase.nombre}' programada para el día "
+                f"{clase.fecha_clase.strftime('%d/%m/%Y')} a las {clase.horario.strftime('%H:%M')} hs ha sido SUSPENDIDA.\n\n"
+                f"Se ha acreditado automáticamente un crédito en su cuenta para que pueda reprogramar su turno.\n\n"
+                f"Disculpe las molestias.\n"
+                f"Atentamente, Administración de RehabilitAR."
+            )
+            enviar_correo(subject=asunto_mail, recipients=emails_alumnos, body=cuerpo_mail)
+            
+        return {
+            "status": "success", 
+            "message": f"La clase '{clase.nombre}' fue suspendida con éxito. Se liberaron profesores y se compensó a los alumnos."
+        }
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error crítico en el servicio de suspensión: {e}")
+        return {
+            "status": "danger", 
+            "message": "Hubo un error interno al procesar la suspensión. No se alteraron los datos."
+        }
+
+
+# --- FUNCIONES AUXILIARES EXTRAÍDAS (MANTENIMIENTO LIMPIO) ---
+
+def _procesar_compensacion_alumnos(clase, ahora) -> list:
+    """Procesa el impacto de la suspensión sobre las reservas activas de los clientes."""
+    query_reservas = select(Reserva).where(
+        Reserva.id_clase == clase.id,
+        ~Reserva.cancelaciones.any()
+    )
+    reservas_activas = db.session.scalars(query_reservas).all()
+    
+    emails_alumnos = []
+    for reserva in reservas_activas:
+        # Crear la cancelación institucional
+        nueva_cancelacion = Cancelacion(
+            id_reserva=reserva.id,
+            descripcion="Clase suspendida por motivos institucionales (Centro de Rehabilitación).",
+            estado=EstadoCancelacion.CORRESPONDE_ACREDITAR_SIN_LIMITES
+        )
+        db.session.add(nueva_cancelacion)
+        
+        # Generar el beneficio (Crédito)
+        nuevo_credito = Beneficio(
+            id_pago=None,
+            id_cliente=reserva.id_cliente,
+            tipo=TipoBeneficio.CREDITO,
+            descripcion=f"Compensación automática por suspensión de clase: {clase.nombre}",
+            # fecha_vencimiento=ahora + timedelta(days=30),
+            usado=False
+        )
+        db.session.add(nuevo_credito)
+        
+        if reserva.cliente.email:
+            emails_alumnos.append(reserva.cliente.email)
+            
+    return emails_alumnos
+
+
+def _procesar_baja_profesores_y_postulaciones(clase_id: int, clase_nombre: str, clase_fecha):
+    """Procesa el impacto de la suspensión sobre el cuerpo docente y postulantes."""
+    from src.core.usuarios import obtener_usuario_por_id_core
+
+    # 1. Cancelar en cascada postulaciones activas a estado "SUSPENDIDA"
+    postulaciones_afectadas = db.session.scalars(
+        select(PostulacionClase).filter(
+            PostulacionClase.clase_id == clase_id,
+            PostulacionClase.estado.in_(["PENDIENTE", "ACEPTADA"])
+        )
+    ).all()
+
+    profesores_a_notificar = set()
+    for postu in postulaciones_afectadas:
+        postu.estado = "SUSPENDIDA"
+        profesores_a_notificar.add(postu.profesor_id)
+
+    # 2. DELETE físico del dueño en ProfesorDictaClase
+    asignaciones_actuales = db.session.scalars(
+        select(ProfesorDictaClase).filter(ProfesorDictaClase.id_clase == clase_id)
+    ).all()
+    
+    for asignacion in asignaciones_actuales:
+        db.session.delete(asignacion)
+
+    # 3. Notificar de forma atómica a cada profesor involucrado
+    for prof_id in profesores_a_notificar:
+        profesor = obtener_usuario_por_id_core(prof_id)
+        if profesor:
+            enviar_notificaciones(
+                profesor,
+                "Clase Suspendida",
+                f"Te informamos que la clase '{clase_nombre}' programada para el día {clase_fecha.strftime('%d/%m/%Y')} ha sido suspendida por la institución. Las postulaciones asociadas quedan sin efecto.",
+                TipoNotificacion.ESTADO_POSTULACION_CLASE
+            )
