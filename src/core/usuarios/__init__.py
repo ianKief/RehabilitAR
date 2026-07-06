@@ -165,6 +165,13 @@ def crear_usuario(**kwargs):
     if not clase_elegida:
         raise ValueError("Rol no válido.")
     nuevo_usuario = clase_elegida(rol=rol_enum, **kwargs)
+    if hasattr(nuevo_usuario, 'fecha_ultima_verificacion'):
+        nuevo_usuario.fecha_ultima_verificacion = datetime.now()
+    
+    if hasattr(nuevo_usuario, 'codigo_verificacion'):
+        nuevo_usuario.codigo_verificacion = None
+        nuevo_usuario.codigo_verificacion_expira = None
+        
     db.session.add(nuevo_usuario)
     db.session.commit()
     return nuevo_usuario

@@ -1,7 +1,7 @@
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, request
 from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_aptos_en_revision, obtener_usuario_por_id_core, actualizar_rol_usuario, bloquear_usuario, habilitar_usuario, eliminar_usuario, revisar_y_aprobar_apto, revisar_y_rechazar_apto, modificar_usuario_core
-from src.core.usuarios.usuarios import Usuario, EstadoAptoFisico, Cliente, AptoFisico
+from src.core.usuarios.usuarios import Usuario, EstadoAptoFisico, Cliente, AptoFisico, EstadoUsuario
 from src.web.helpers.decorator import requiere_rol
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
@@ -36,7 +36,7 @@ def crear_usuario():
             return render_template('usuarios/crear.html', error="El correo electrónico debe ser del dominio @gmail.com, @hotmail.com o @outlook.com.")
         
         try:
-            nuevo_usuario = crear(nombre=nombre, email=email, password=password, rol=rol)
+            nuevo_usuario = crear(nombre=nombre, email=email, password=password, rol=rol, estado=EstadoUsuario.ACTIVO)
             msg = Message(
             subject="RehabilitAR - Cuenta Creada",
             recipients=[email]
