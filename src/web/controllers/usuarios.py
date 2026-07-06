@@ -1,7 +1,7 @@
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, request
 from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_aptos_en_revision, obtener_usuario_por_id_core, actualizar_rol_usuario, bloquear_usuario, habilitar_usuario, eliminar_usuario, revisar_y_aprobar_apto, revisar_y_rechazar_apto, modificar_usuario_core
-from src.core.usuarios.usuarios import Usuario, EstadoAptoFisico, Cliente, AptoFisico
+from src.core.usuarios.usuarios import Usuario, EstadoAptoFisico, Cliente, AptoFisico, EstadoUsuario
 from src.web.helpers.decorator import requiere_rol
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
@@ -36,8 +36,23 @@ def crear_usuario():
             return render_template('usuarios/crear.html', error="El correo electrónico debe ser del dominio @gmail.com, @hotmail.com o @outlook.com.")
         
         try:
-            nuevo_usuario = crear(nombre=nombre, email=email, password=password, rol=rol)
-            # TODO enviar mail
+            nuevo_usuario = crear(nombre=nombre, email=email, password=password, rol=rol, estado=EstadoUsuario.ACTIVO)
+            msg = Message(
+            subject="RehabilitAR - Cuenta Creada",
+            recipients=[email]
+            )
+            msg.body = f"""Hola {nombre},
+
+    Se ha creado tu cuenta en el sistema RehabilitAR con éxito. Tu rol asignado es: {rol}.
+
+    Las credenciales para acceder al sistema son las siguientes:
+    Email: {email}
+    Contraseña: {password}
+
+    Saludos,
+    El equipo de RehabilitAR."""
+
+            mail.send(msg)
         except ValueError as e:
             flash(str(e), 'error')
             return render_template('usuarios/crear.html')
@@ -321,6 +336,19 @@ def rechazar_apto(id_apto):
         
     return redirect(url_for("usuarios.listar_aptos_pendientes"))
 
+def obtener_dias_apto(usuario):
+    # 1. Escudo protector: Si el usuario NO tiene el atributo apto_fisico (ej: es Admin o Profe), devolvemos 0 directo.
+    if not hasattr(usuario, 'apto_fisico'):
+        return 0
+        
+    # 2. Si pasó el escudo, sabemos que es un Cliente y podemos evaluar su apto
+    if usuario.apto_fisico and usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
+        if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
+            vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
+            return (vencimiento - datetime.now()).days
+            
+    return 0
+
 @users_bp.route('/perfil/editar', methods=['GET', 'POST'])
 def editar_perfil():
     user_id = session.get('usuario_id')
@@ -329,7 +357,7 @@ def editar_perfil():
         return redirect(url_for('auth.login'))
     
     # Obtenemos el usuario de la base de datos
-    usuario = db.session.get(Cliente, user_id)
+    usuario = db.session.get(Usuario, user_id)
     if not usuario:
         session.clear()
         return redirect(url_for('auth.login'))
@@ -342,11 +370,7 @@ def editar_perfil():
         
         if not nuevo_nombre:
             flash("El nombre completo es obligatorio.", "danger")
-            dias_restantes = 0
-            if usuario.apto_fisico and usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
-                if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
-                    fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
-                    dias_restantes = (fecha_vencimiento - datetime.now()).days
+            dias_restantes = obtener_dias_apto(usuario)
             return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes, editando=True)
         
         # 2. Actualizamos el modelo permitiendo que queden vacíos (Guardamos None si es un string vacío)
@@ -364,22 +388,11 @@ def editar_perfil():
             flash("Ocurrió un error al guardar los cambios. Inténtalo de nuevo.", "danger")
             
             # === Validamos paso a paso que no sea None ===
-            dias_restantes = 0
-            if usuario.apto_fisico and usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
-                if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
-                    fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
-                    dias_restantes = (fecha_vencimiento - datetime.now()).days
-                    
+            dias_restantes = obtener_dias_apto(usuario)
             return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes, editando=True)
     
     # 4. Si entra por GET, calculamos los días del apto para el renderizado del formulario
-    dias_restantes = 0
-    
-    # === 'if usuario.apto_fisico' antes de evaluar sus propiedades ===
-    if usuario.apto_fisico and usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
-        if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
-            fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
-            dias_restantes = (fecha_vencimiento - datetime.now()).days
+    dias_restantes = obtener_dias_apto(usuario)
 
     # Reutilizamos tu HTML pasándole el flag 'editando=True'
     return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes, editando=True)
