@@ -37,7 +37,22 @@ def crear_usuario():
         
         try:
             nuevo_usuario = crear(nombre=nombre, email=email, password=password, rol=rol)
-            # TODO enviar mail
+            msg = Message(
+            subject="RehabilitAR - Cuenta Creada",
+            recipients=[email]
+            )
+            msg.body = f"""Hola {nombre},
+
+    Se ha creado tu cuenta en el sistema RehabilitAR con éxito. Tu rol asignado es: {rol}.
+
+    Las credenciales para acceder al sistema son las siguientes:
+    Email: {email}
+    Contraseña: {password}
+
+    Saludos,
+    El equipo de RehabilitAR."""
+
+            mail.send(msg)
         except ValueError as e:
             flash(str(e), 'error')
             return render_template('usuarios/crear.html')
