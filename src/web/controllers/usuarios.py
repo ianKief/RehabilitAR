@@ -321,6 +321,19 @@ def rechazar_apto(id_apto):
         
     return redirect(url_for("usuarios.listar_aptos_pendientes"))
 
+def obtener_dias_apto(usuario):
+    # 1. Escudo protector: Si el usuario NO tiene el atributo apto_fisico (ej: es Admin o Profe), devolvemos 0 directo.
+    if not hasattr(usuario, 'apto_fisico'):
+        return 0
+        
+    # 2. Si pasó el escudo, sabemos que es un Cliente y podemos evaluar su apto
+    if usuario.apto_fisico and usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
+        if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
+            vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
+            return (vencimiento - datetime.now()).days
+            
+    return 0
+
 @users_bp.route('/perfil/editar', methods=['GET', 'POST'])
 def editar_perfil():
     user_id = session.get('usuario_id')
@@ -329,7 +342,7 @@ def editar_perfil():
         return redirect(url_for('auth.login'))
     
     # Obtenemos el usuario de la base de datos
-    usuario = db.session.get(Cliente, user_id)
+    usuario = db.session.get(Usuario, user_id)
     if not usuario:
         session.clear()
         return redirect(url_for('auth.login'))
@@ -342,11 +355,7 @@ def editar_perfil():
         
         if not nuevo_nombre:
             flash("El nombre completo es obligatorio.", "danger")
-            dias_restantes = 0
-            if usuario.apto_fisico and usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
-                if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
-                    fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
-                    dias_restantes = (fecha_vencimiento - datetime.now()).days
+            dias_restantes = obtener_dias_apto(usuario)
             return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes, editando=True)
         
         # 2. Actualizamos el modelo permitiendo que queden vacíos (Guardamos None si es un string vacío)
@@ -364,22 +373,11 @@ def editar_perfil():
             flash("Ocurrió un error al guardar los cambios. Inténtalo de nuevo.", "danger")
             
             # === Validamos paso a paso que no sea None ===
-            dias_restantes = 0
-            if usuario.apto_fisico and usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
-                if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
-                    fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
-                    dias_restantes = (fecha_vencimiento - datetime.now()).days
-                    
+            dias_restantes = obtener_dias_apto(usuario)
             return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes, editando=True)
     
     # 4. Si entra por GET, calculamos los días del apto para el renderizado del formulario
-    dias_restantes = 0
-    
-    # === 'if usuario.apto_fisico' antes de evaluar sus propiedades ===
-    if usuario.apto_fisico and usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
-        if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
-            fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
-            dias_restantes = (fecha_vencimiento - datetime.now()).days
+    dias_restantes = obtener_dias_apto(usuario)
 
     # Reutilizamos tu HTML pasándole el flag 'editando=True'
     return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes, editando=True)
