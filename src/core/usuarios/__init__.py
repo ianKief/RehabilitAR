@@ -225,6 +225,9 @@ def eliminar_usuario(usuario_id):
         raise ValueError("El usuario no existe.")
 
     usuario.eliminado = True
+    usuario.email = f"del_{usuario.id}_{usuario.email}"
+    if usuario.dni:
+        usuario.dni = f"del_{usuario.id}_{usuario.dni}"
     db.session.commit()
     return True
 
