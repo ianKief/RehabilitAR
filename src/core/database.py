@@ -46,6 +46,7 @@ def seed_db():
     from src.core.seeds.sprint1_8 import SeedAsistenciaYSeguimientoSprint1
     from src.core.seeds.sprint1_9 import SeedListaDeEspera
     from src.core.seeds.notificaciones_seeds import NotificacionesSeeder
+    from src.core.seeds.estadistiticas_seed import EstadisticasSeeder
     from src.core import events
 
     # Definimos el orden lógico de ejecución de los seeders
@@ -60,7 +61,8 @@ def seed_db():
         SeedPagosSprint1(db),
         SeedAsistenciaYSeguimientoSprint1(db),
         SeedListaDeEspera (db),
-        NotificacionesSeeder (db)
+        NotificacionesSeeder (db),
+        EstadisticasSeeder(db)
     ]
 
     for seeder in seeders:
