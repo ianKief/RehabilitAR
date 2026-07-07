@@ -1,0 +1,171 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Estadísticas
+{% endblock %}
+
+{% block content %}
+
+<section class="section">
+    <div class="container">
+
+        <h1 class="title">
+            Estadísticas del sistema
+        </h1>
+
+        <div class="columns is-multiline">
+
+            <!-- Nuevos registros -->
+            <div class="column is-6">
+                <div class="box">
+                    <h2 class="title is-5">
+                        <span class="icon mr-2">
+                            <i class="fas fa-user-plus"></i>
+                        </span>
+                        Nuevos registros mensuales
+                    </h2>
+
+                    <div class="columns is-vcentered mb-4">
+
+                        <!-- Filtro -->
+                        <div class="column">
+                            <form method="GET">
+                                <div class="field">
+                                    <label class="label">Año</label>
+
+                                    <div class="control">
+                                        <div class="select">
+                                            <select name="anio" onchange="this.form.submit()">
+                                                {% for anio in anios %}
+                                                <option value="{{ anio }}" {% if anio==anio_seleccionado %}selected{%
+                                                    endif %}>
+                                                    {{ anio }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Tarjeta con el total -->
+                        <div class="column is-narrow mt-1">
+                            <div class="column is-narrow mt-3 has-text-right">
+                                <p class="heading mb-1">
+                                    Nuevos clientes
+                                </p>
+
+                                <p class="title is-5 mb-0">
+                                    {{ total_clientes }}
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="content">
+                        <div id="datos-registros" data-registros='{{ registros | tojson }}'></div>
+
+                        <canvas id="registrosChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Ganancias -->
+            <div class="column is-6">
+                <div class="box">
+                    <h2 class="title is-5">
+                        <span class="icon mr-2">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </span>
+                        Ganancias
+                    </h2>
+
+                    <div class="content">
+                        Próximamente estadísticas de ingresos.
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Suspendidos -->
+            <div class="column is-6">
+                <div class="box">
+                    <h2 class="title is-5">
+                        <span class="icon mr-2">
+                            <i class="fas fa-user-slash"></i>
+                        </span>
+                        Clientes suspendidos
+                    </h2>
+
+                    <div class="content">
+                        Próximamente cantidad de suspendidos.
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Asistencias -->
+            <div class="column is-6">
+                <div class="box">
+                    <h2 class="title is-5">
+                        <span class="icon mr-2">
+                            <i class="fas fa-calendar-check"></i>
+                        </span>
+                        Asistencias y ausencias
+                    </h2>
+
+                    <div class="content">
+                        Próximamente historial de asistencias.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        const elementoDatos = document.getElementById("datos-registros");
+
+        const datosRegistros = JSON.parse(
+            elementoDatos.dataset.registros
+        );
+
+        const meses = datosRegistros.map(registro => registro.mes);
+        const cantidades = datosRegistros.map(registro => registro.cantidad);
+
+        const ctx = document.getElementById('registrosChart');
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: meses,
+                datasets: [{
+                    label: 'Nuevos clientes',
+                    data: cantidades
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+
+    <script>
+        document.getElementById("filtroTiempo").addEventListener("change", function () {
+            const meses = this.value;
+
+            window.location.href = `/estadisticas/?meses=${meses}`;
+        });
+    </script>
+    {% endblock %}
