@@ -83,9 +83,62 @@ Estadísticas
                         Ganancias
                     </h2>
 
-                    <div class="content">
-                        Próximamente estadísticas de ingresos.
+                    <form method="GET">
+
+                        <div class="columns is-vcentered">
+
+                            <div class="column">
+                                <label class="label">Desde</label>
+                                <input
+                                    class="input"
+                                    type="date"
+                                    name="desde"
+                                    value="{{ fecha_desde }}">
+                            </div>
+
+                            <div class="column">
+                                <label class="label">Hasta</label>
+                                <input
+                                    class="input"
+                                    type="date"
+                                    name="hasta"
+                                    value="{{ fecha_hasta }}">
+                            </div>
+
+                        </div>
+
+                        <div class="columns is-vcentered mb-4">
+
+                            <!-- Botón filtrar -->
+                            <div class="column">
+                                <button
+                                    class="button is-link"
+                                    type="submit">
+                                    Filtrar
+                                </button>
+                            </div>
+
+                            <!-- Total ganancias -->
+                            <div class="column is-narrow has-text-right">
+                                <p class="heading mb-1">
+                                    Total ganancias
+                                </p>
+
+                                <p class="title is-5 mb-0">
+                                    ${{ total_ganancias }}
+                                </p>
+                            </div>
+
+                        </div>
+
+                        </form>
+
+                    <div id="datos-ganancias"
+                        data-ganancias='{{ ganancias | tojson }}'>
                     </div>
+
+                    <canvas id="gananciasChart"></canvas>
+
                 </div>
             </div>
 
@@ -168,4 +221,36 @@ Estadísticas
             window.location.href = `/estadisticas/?meses=${meses}`;
         });
     </script>
+    <script>
+    const datosGanancias = JSON.parse(
+        document
+            .getElementById("datos-ganancias")
+            .dataset
+            .ganancias
+    );
+
+    const mesesGanancias = datosGanancias.map(g => g.mes);
+    const totalesGanancias = datosGanancias.map(g => g.total);
+
+    const ctxGanancias = document.getElementById("gananciasChart");
+
+    new Chart(ctxGanancias, {
+        type: "bar",
+        data: {
+            labels: mesesGanancias,
+            datasets: [{
+                label: "Ganancias ($)",
+                data: totalesGanancias
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
     {% endblock %}
