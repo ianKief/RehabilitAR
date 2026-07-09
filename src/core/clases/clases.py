@@ -73,8 +73,8 @@ class PostulacionClase(Base):
     clase_id: Mapped[int] = mapped_column(ForeignKey("clases.id"), nullable=False)
     profesor_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), nullable=False)
     
-    estado: Mapped[str] = mapped_column(String(20), default="PENDIENTE", nullable=False)
-    fecha_registro: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    estado: Mapped[str] = mapped_column(String(20), default="PENDIENTE", nullable=False) # "PENDIENTE" / "ACEPTADA" / "RECHAZADA"
+    fecha_registro: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False) 
 
     # Relaciones para moverte fácil en Python
     clase = relationship("Clase")

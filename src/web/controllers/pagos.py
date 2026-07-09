@@ -1,107 +1,79 @@
-#importo herramientas
-from flask import Blueprint, jsonify, current_app
-from flask import request,render_template, redirect,url_for, flash
-from src.core.pagos import estado_abono_usuario, procesar_mercado_pago_webhook,calcular_valor_abono
-from flask import session
+from flask import (
+    Blueprint,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
+
+from src.core.pagos import (
+    actualizar_precios_clase,
+    conseguir_precio_actual,
+    crear_preferencia_mp,
+    devolver_abonos_de_usuarios,
+    devolver_pagos_de_reservas_de_usuarios,
+    obtener_precio_clase_actual,
+    pago_ya_procesado,
+    procesar_mercado_pago_webhook,
+    registrar_pago_abono_mensual,
+)
+from src.core.reservas import obtener_clase_por_id
 from src.web.helpers.decorator import requiere_rol
-from src.core.database import db
-from src.core.notificaciones import enviar_notificaciones
-
-from src.core.pagos import PrecioClase, Pago, TipoBeneficio, devolver_pagos_de_reservas_de_usuarios, devolver_abonos_de_usuarios, conseguir_precio_actual, tiene_beneficios, calcular_descuento_maximo
+from src.web.functions import devolver_enlace_absoluto_actual
+from src.core.auditoria import registrar_log, TipoAccion
 
 
-bp = Blueprint("pagos", __name__)
+bp = Blueprint("pagos", __name__, url_prefix="/pagos")
 
-
-#crea una preferencia de pago utilizando el SDK de Mercado Pago
-def crear_preferencia_mp(sdk, preference_data):
-    return sdk.preference().create(preference_data)
-
-
-#pantalla principal de suscripción
-@bp.route("/contratar_abono/suscripcion")
+@bp.route("/pagar-abono", methods=["POST"])
 @requiere_rol(["CLIENTE"])
-def suscripcion():
-
-    id_cliente = session.get("usuario_id")
-    precios = {}
-    descuentos_por_dia = {}
-
-    for dia in range(5):
-        precios[dia] = calcular_valor_abono(dia)
-        descuentos_por_dia[dia] = calcular_descuento_maximo(id_cliente,dia)
+def pagar_abono():
+    """
+    Recibe la confirmación final y crea la preferencia de pago en Mercado Pago.
+    """
+    sdk = current_app.mp_sdk
+    user_id = session.get("usuario_id")
     
-    tiene_descuento = tiene_beneficios(id_cliente,tipo=TipoBeneficio.DESCUENTO)
+    id_clase_origen = request.form.get("id_clase_origen")
+    # Recuperamos los datos de la sesión que guardamos en el paso anterior
+    reserva_data = session.get('reserva_mensual_post_data', {})
+    clases_seleccionadas_ids = reserva_data.get('clases_seleccionadas', [])
+    precio_clase_fija = obtener_precio_clase_actual("Fija")
+    valor_final = len(clases_seleccionadas_ids) * precio_clase_fija
 
-    estado_actual = estado_abono_usuario(id_cliente)
+    if not clases_seleccionadas_ids or valor_final <= 0:
+        flash("El monto a pagar no puede ser cero. Por favor, revisá las clases seleccionadas.", "danger")
+        return redirect(url_for("reservas.calendario_cliente"))
 
-    return render_template(
-        "pagos/suscripcion.html",
-        precios=precios,
-        descuentos_por_dia=descuentos_por_dia,
-        tiene_descuento=tiene_descuento,
-        estado_abono=estado_actual
-    )
+    URL_BASE = devolver_enlace_absoluto_actual()
+    url_exito = f"{URL_BASE}{url_for('pagos.pago_exitoso', tipo='abono')}"
 
-#pantalla mostrada cuando el pago fue exitoso
-@bp.route("/contratar_abono/pago_exitoso")
-def pago_exitoso():
-    return render_template("pagos/pago_exitoso.html")
+    preference_data = {
+        "items": [{"title": "Abono mensual RehabilitAR", "quantity": 1, "unit_price": float(valor_final)}],
+        "external_reference": str(user_id),
+        "metadata": {
+            "tipo": "abono",
+            "clases_ids": ",".join(map(str, clases_seleccionadas_ids)) # Enviamos los IDs como string
+        },
+        "back_urls": {
+            "success": url_exito,
+            "failure": f"{URL_BASE}{url_for('pagos.pago_fallido', tipo='abono')}",
+            "pending": f"{URL_BASE}{url_for('pagos.pago_pendiente', tipo='abono')}"
+        },
+        "notification_url": url_for('pagos.webhook', _external=True),
+        "auto_return": "approved"
+    }
 
-# pantalla mostrada cuando el pago falló
-@bp.route("/contratar_abono/pago_fallido")
-def pago_fallido():
-
-    tipo = request.args.get("tipo")
-    
-    if tipo == "cola":
-        datos = {
-            "mensaje": "No se pudo completar el pago del abono mensual.",
-            "url_reintento": url_for("pagos.suscripcion")
-        }
-
-    if tipo == "reserva_fija":
-
-        id_clase = request.args.get("id_clase")
-
-        datos = {
-            "mensaje": "No se pudo completar el pago de la reserva.",
-            "url_reintento": url_for(
-                "reservas.abonar_clase_fija",
-                id_clase=id_clase
-            )
-        }
-    
-    if tipo == "reserva_individual":
-        id_clase = request.args.get("id_clase")
-
-        datos = {
-            "mensaje": "No se pudo completar el pago de la clase individual.",
-            "url_reintento": url_for(
-                "reservas.abonar_individual",
-                id_clase=id_clase
-            )
-        }
-
-    if tipo == "cola":
-        id_clase = request.args.get("id_clase")
-
-        datos = {
-            "mensaje": "No se pudo completar el pago de la reserva de espera.",
-            "url_reintento": url_for(
-                "reservas.abonar_cola",
-                id_clase=id_clase
-            )
-        }
-
-    return render_template(
-        "pagos/pago_fallido.html",
-        **datos
-    )
-#pantalla mostrada cuando el pago queda pendiente
-@bp.route("/contratar_abono/pago_pendiente")
-def pago_pendiente():
-    return render_template("pagos/pago_pendiente.html")
+    try:
+        resultado = crear_preferencia_mp(sdk, preference_data)
+        return redirect(resultado["response"]["init_point"])
+    except (KeyError, Exception) as e:
+        print(f"Error al crear preferencia de pago en pagar_abono: {e}")
+        flash("Ocurrió un error inesperado al procesar el pago. Por favor, contactá a soporte.", "danger")
+        return redirect(url_for("reservas.calendario_cliente"))
 
 # webhook utilizado por Mercado Pago para notificar pagos
 @bp.route("/webhook", methods=["POST"])
@@ -116,29 +88,127 @@ def webhook():
     print("termine webhook")
     return "OK", 200
 
+#pantalla mostrada cuando el pago fue exitoso
+@bp.route("/pago_exitoso")
+def pago_exitoso():
+    """
+    Página de éxito genérica. Si el pago es de un abono,
+    procesa el registro de forma sincrónica para asegurar la consistencia.
+    """
+    tipo = request.args.get("tipo")
+
+    if tipo == "abono":
+        sdk = current_app.mp_sdk
+        payment_id = request.args.get("payment_id")
+        status = request.args.get("status")
+        user_id = session.get("usuario_id")
+
+        # Fallback por si se pierde la sesión
+        if not user_id:
+            external_reference = request.args.get("external_reference")
+            user_id = int(external_reference) if external_reference and external_reference.isdigit() else None
+
+        if status == "approved" and payment_id and user_id:
+            if not pago_ya_procesado(payment_id):
+                try:
+                    payment_info = sdk.payment().get(payment_id)
+                    monto = payment_info["response"]["transaction_amount"]
+                    metadata = payment_info["response"]["metadata"]
+                    clases_ids_str = metadata.get("clases_ids", "")
+                    clases_seleccionadas_ids = [int(cid) for cid in clases_ids_str.split(',') if cid]
+
+                    pago_abono = registrar_pago_abono_mensual(payment_id, user_id, monto)
+                    from src.core.reservas import procesar_reservas_mensuales_automatica
+                    clases_a_reservar_obj = [obtener_clase_por_id(cid) for cid in clases_seleccionadas_ids]
+                    procesar_reservas_mensuales_automatica(user_id, clases_a_reservar_obj, id_pago_abono=pago_abono.id)
+                    flash("¡Pago exitoso! Tu abono está activo y tus clases fueron reservadas.", "success")
+
+                    # Envío de notificación
+                    contenido_mensaje = f"Se ha confirmado su pago del abono. Este pago le permitirá acceder a: {len(clases_a_reservar_obj)} reservas registradas, además de acceder a múltiples beneficios. Para más información del pago visite la sección pagos."
+                    from src.core.notificaciones import enviar_notificaciones, TipoNotificacion
+                    from src.core.usuarios import obtener_usuario_por_id_core
+                    enviar_notificaciones(obtener_usuario_por_id_core(user_id), "¡Pago mensual realizado exitosamente!", contenido_mensaje, TipoNotificacion.PAGOS)
+                except Exception as e:
+                    print(f"Error al registrar el abono en pago_exitoso: {e}")
+                    flash("Tu pago fue exitoso, pero hubo un problema al activar tu abono. Por favor, contactá a soporte.", "danger")
+        return redirect(url_for('reservas.mis_clases'))
+
+    return render_template("pagos/pago_exitoso.html")
+
+# pantalla mostrada cuando el pago falló
+@bp.route("/pago_fallido")
+def pago_fallido():
+
+    tipo = request.args.get("tipo")
+    id_clase = request.args.get("id_clase")
+
+    # URL de reintento por defecto
+    url_reintento = url_for("reservas.calendario_cliente")
+    mensaje = "No se pudo completar el pago."
+
+    if tipo == "abono":
+        mensaje = "No se pudo completar el pago del abono mensual."
+        # Para el abono, el reintento es volver al calendario.
+    elif tipo == "reserva_fija":
+        mensaje = "No se pudo completar el pago de la reserva."
+        url_reintento = url_for("reservas.abonar_clase_fija", id_clase=id_clase)
+    elif tipo == "reserva_individual":
+        mensaje = "No se pudo completar el pago de la clase individual."
+        url_reintento = url_for("reservas.abonar_individual", id_clase=id_clase)
+    elif tipo == "cola":
+        mensaje = "No se pudo completar el pago para la lista de espera."
+        url_reintento = url_for("reservas.abonar_cola", id_clase=id_clase)
+
+    datos = {
+        "mensaje": mensaje,
+        "url_reintento": url_reintento
+    }
+
+    return render_template(
+        "pagos/pago_fallido.html",
+        **datos
+    )
+
+#pantalla mostrada cuando el pago queda pendiente
+@bp.route("/pago_pendiente")
+def pago_pendiente():
+    return render_template("pagos/pago_pendiente.html")
+
 @bp.route("/admin/precio-clase", methods=["GET", "POST"])
 @requiere_rol(["ADMINISTRADOR"])
 def precio_clase():
 
     if request.method == "POST":
-        nuevo_precio = request.form.get("precio")
+        precio_individual = request.form.get("precio_individual")
+        precio_fija = request.form.get("precio_fija")
 
-        if not nuevo_precio:
-            flash("Debes ingresar un precio", "danger")
-            return redirect(url_for("pagos.precio_clase"))
-
-        precio = PrecioClase(precio=int(nuevo_precio))
-        db.session.add(precio)
-        db.session.commit()
-
-        flash("Precio actualizado correctamente", "success")
+        try:
+            # Usamos el core para actualizar los precios
+            actualizar_precios_clase(
+                precio_individual=precio_individual,
+                precio_fija=precio_fija
+            )
+            registrar_log(
+                TipoAccion.ACTUALIZACION_PRECIO,
+                detalles={
+                    "nuevo_precio_individual": precio_individual,
+                    "nuevo_precio_fija": precio_fija
+                }
+            )
+            flash("Precios actualizados correctamente", "success")
+        except ValueError as e:
+            flash(str(e), "danger")
+        
         return redirect(url_for("pagos.precio_clase"))
 
-    precio_actual = conseguir_precio_actual ()
+    # Conseguimos ambos precios para mostrarlos en el formulario
+    precio_individual = conseguir_precio_actual("Individual")
+    precio_fija = conseguir_precio_actual("Fija")
 
     return render_template(
         "pagos/precio_clase.html",
-        precio=precio_actual
+        precio_individual=precio_individual,
+        precio_fija=precio_fija
     )
 
 

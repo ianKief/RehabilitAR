@@ -44,3 +44,19 @@ html[data-theme="dark"] .flatpickr-day.prevMonthDay,
 html[data-theme="dark"] .flatpickr-day.nextMonthDay {
     color: var(--bulma-text-weak);
 }
+
+/* Estilo para los días feriados */
+.flatpickr-day.feriado {
+    background: #fff5f7;
+    border-color: #f14668;
+    color: #cc0f35;
+}
+.flatpickr-day.feriado:hover {
+    background: #f14668;
+    color: #fff;
+}
+html[data-theme="dark"] .flatpickr-day.feriado {
+    background: var(--bulma-danger-dark);
+    border-color: var(--bulma-danger);
+    color: var(--bulma-danger-light);
+}

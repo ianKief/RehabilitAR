@@ -2,57 +2,29 @@
 
 {% block title %}Detalle de Clase - {{ clase.nombre }}{% endblock %}
 
-{% block head_scripts %}
-<style>
-    /* Estilos personalizados integrados con la paleta de Bulma */
-    .tag.is-outline-info {
-        background-color: rgba(17, 143, 228, 0.08);
-        border: 1.5px solid #0f7bc4;
-        color: #0f7bc4;
-        font-weight: 600;
-    }
-    
-    .tag.is-outline-fixed {
-        background-color: rgba(100, 100, 100, 0.08);
-        border: 1.5px solid #5a5a5a;
-        color: #5a5a5a;
-        font-weight: 600;
-    }
-    
-    /* Pequeño ajuste para centrar verticalmente textos en celdas de Bulma */
-    .table td {
-        vertical-align: middle !important;
-    }
-
-    /* Ajuste de seguridad para títulos muy largos */
-    .title-container {
-        word-wrap: break-word;
-        word-break: break-word;
-    }
-</style>
-{% endblock %}
+{% block head_scripts %}{% endblock %}
 
 {% block content %}
 <div class="container py-5 px-3">
 
     <div class="box mb-5">
         <div class="columns is-vcentered is-multiline">
-            <div class="column is-flex-grow-1 title-container pr-3">
-                <div class="is-flex is-align-items-center is-flex-wrap-wrap mb-2" style="gap: 0.75rem;">
-                    <h1 class="title is-2 has-text-dark mb-0">{{ clase.nombre }}</h1>
+            <div class="column is-flex-grow-1 pr-3 has-text-centered-mobile">
+                <div class="is-flex is-align-items-center is-justify-content-center-mobile is-flex-wrap-wrap mb-2" style="gap: 0.75rem;">
+                    <h1 class="title is-3 is-5-mobile mb-0">{{ clase.nombre }}</h1>
                     <div>
                         {% if clase.tipo == "Individual" %}
-                            <span class="tag is-outline-info is-medium">Individual</span>
+                            <span class="tag is-info is-light is-medium">Individual</span>
                         {% else %}
-                            <span class="tag is-outline-fixed is-medium">Fija</span>
+                            <span class="tag is-light is-medium">Fija</span>
                         {% endif %}
                     </div>
                 </div>
-                <p class="subtitle is-6 has-text-grey">Gestión integral de la clase y resolución de postulantes aspirantes</p>
+                <p class="subtitle is-6 has-text-grey-dark">Gestión integral de la clase y resolución de postulantes aspirantes</p>
             </div>
             
-            <div class="column is-narrow">
-                <a href="{{ url_for('clases.listar_clases_admin') }}" class="button is-light is-fullwidth-mobile">
+            <div class="column is-narrow has-text-centered-mobile">
+                <a href="{{ url_for('clases.listar_clases_admin') }}" class="button is-light">
                     <span class="icon"><i class="fas fa-arrow-left"></i></span>
                     <span>Volver al Listado</span>
                 </a>
@@ -64,9 +36,10 @@
         
         <div class="column is-4-desktop is-flex is-flex-direction-column">
             <div class="box is-flex is-flex-direction-column is-flex-grow-1 mb-4">
-                <h3 class="subtitle is-5 has-text-weight-bold pb-3 mb-3" style="border-bottom: 1px solid #ededed;">
+                <h3 class="subtitle is-5 has-text-weight-bold">
                     <span class="icon mr-2 has-text-info"><i class="fas fa-info-circle"></i></span>Información General
                 </h3>
+                <hr class="mt-0 mb-4">
                 
                 <div class="is-flex-grow-1">
                     <table class="table is-fullwidth" style="background-color: transparent;">
@@ -105,7 +78,8 @@
                     </table>
                 </div>
 
-                <div class="mt-5 pt-3" style="border-top: 1px solid #ededed;">
+                <hr class="my-4">
+                <div class="has-text-centered-mobile">
                     <p class="is-size-7 has-text-danger mb-2">
                         <span class="icon is-small mr-1">
                             <i class="fas fa-exclamation-triangle"></i>
@@ -114,12 +88,12 @@
                     </p>
         
                     {% if clase.suspendida %}
-                        <a class="button is-danger is-outlined is-fullwidth" href="/clases/{{ clase.id }}/alternar-suspension">
+                        <a class="button is-danger is-outlined" href="/clases/{{ clase.id }}/alternar-suspension">
                             <span class="icon"><i class="fas fa-play"></i></span>
                             <span>Reactivar Clase</span>
                         </a>
                     {% else %}
-                        <a class="button is-danger is-fullwidth" href="/clases/{{ clase.id }}/alternar-suspension" onclick="return confirm('¿Estás seguro de que deseas suspender esta clase? Se notificará a los alumnos.');">
+                        <a class="button is-danger" href="/clases/{{ clase.id }}/alternar-suspension" onclick="return confirm('¿Estás seguro de que deseas suspender esta clase? Se notificará a los alumnos.');">
                             <span class="icon"><i class="fas fa-ban"></i></span>
                             <span>Suspender Clase</span>
                         </a>
@@ -128,9 +102,10 @@
             </div>
 
             <div class="box mt-4">
-                <h3 class="subtitle is-5 has-text-weight-bold pb-2 mb-3" style="border-bottom: 1px solid #ededed;">
+                <h3 class="subtitle is-5 has-text-weight-bold">
                     <span class="icon mr-2 has-text-warning"><i class="fas fa-align-left"></i></span>Descripción
                 </h3>
+                <hr class="mt-0 mb-3">
                 <div class="content is-size-6">
                     {% if clase.descripcion %}
                         <p>{{ clase.descripcion }}</p>
@@ -142,9 +117,10 @@
         </div>
         <div class="column is-8-desktop is-flex">
             <div class="box is-flex is-flex-direction-column is-flex-grow-1">
-                <h3 class="subtitle is-5 has-text-weight-bold pb-3 mb-3" style="border-bottom: 1px solid #ededed;">
+                <h3 class="subtitle is-5 has-text-weight-bold">
                     <span class="icon mr-2 has-text-primary"><i class="fas fa-users"></i></span>Profesores Postulados
                 </h3>
+                <hr class="mt-0 mb-4">
 
                 {% if asignado %}
                     <div class="notification is-success is-light mb-4 py-3 px-4">

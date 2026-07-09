@@ -7,29 +7,25 @@ class EspecialidadSeeder:
         self.db = db
 
     def run(self):
-        print("Insertando especialidades base...")
+        print("🌱 Poblando especialidades...")
+        try:
+            contador_nuevos = 0
+            
+            # Obtener especialidades existentes en una sola consulta para optimizar
+            existing_enums = {e.nombre for e in self.db.session.scalars(select(Especialidad))}
 
-        contador_nuevos = 0
+            # Iteramos directamente sobre los miembros del Enum
+            for miembro_enum in TipoEspecialidad:
+                if miembro_enum not in existing_enums:
+                    nueva_especialidad = Especialidad(nombre=miembro_enum)
+                    self.db.session.add(nueva_especialidad)
+                    contador_nuevos += 1
 
-        # Iteramos directamente sobre los miembros del Enum
-        for miembro_enum in TipoEspecialidad:
-            # Validamos si ya existe para hacerlo idempotente y evitar duplicados
-            query = select(Especialidad).filter_by(nombre=miembro_enum)
-            especialidad_existente = self.db.session.scalars(query).first()
-
-            if not list(self.db.session.scalars(query)): # O usando scalar() de forma directa
-                nueva_especialidad = Especialidad(nombre=miembro_enum)
-                self.db.session.add(nueva_especialidad)
-                contador_nuevos += 1
-                print(f" -> Seeder: Preparada especialidad {miembro_enum.value}")
-
-        # Confirmamos los cambios de manera atómica
-        if contador_nuevos > 0:
-            try:
+            if contador_nuevos > 0:
                 self.db.session.commit()
-                print(f"¡Se han guardado {contador_nuevos} especialidades correctamente!")
-            except Exception as e:
-                self.db.session.rollback()
-                print(f"❌ Error al ejecutar el commit del seeder: {e}")
-        else:
-            print("💡 Las especialidades ya estaban inicializadas. No se realizaron cambios.")
+                print(f"✅ Especialidades pobladas con éxito ({contador_nuevos} nuevas).")
+            else:
+                print("💡 Especialidades ya existentes, no se realizaron cambios.")
+        except Exception as e:
+            self.db.session.rollback()
+            print(f"❌ Error al poblar especialidades: {e}")

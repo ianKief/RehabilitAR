@@ -2,10 +2,7 @@
 
 {% block title %}Listado de Salas | Rehabilitar{% endblock %}
 
-{% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/toggle-switch.css') }}">
-{% endblock %}
-
+{% block head %}{% endblock %}
 
 {% block content %}
 <div class="box">
@@ -50,8 +47,8 @@
             <tbody>
                 {% for sala in salas %}
                 <tr>
-                    <td class="has-text-centered has-text-weight-bold">
-                        <span class="tag is-primary is-medium">{{ sala.numero_puerta }}</span>
+                    <td class="has-text-centered">
+                        <span class="has-text-centered is-medium">{{ sala.numero_puerta }}</span>
                     </td>
                     <td class="is-vcentered">
                         {% if sala.descripcion %}

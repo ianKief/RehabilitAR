@@ -2,40 +2,7 @@
 
 {% block title %}Rehabilitar - Administración de Clases{% endblock %}
 
-{% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='toggle-switch.css') }}">
-<style>
-    /* Estilos personalizados para fijar la cabecera de la tabla */
-    .table-container th {
-        position: sticky;
-        top: 0;
-        background-color: #1a1a1a !important; /* Usá el color de fondo exacto de tus boxes oscuros */
-        color: #ffffff !important;
-        z-index: 2;
-        box-shadow: inset 0 -2px 0 #ededed; /* Línea divisoria inferior fija */
-    }
-
-    /* Centrado vertical homogéneo */
-    .table td {
-        vertical-align: middle !important;
-    }
-
-    /* Estilos de etiquetas importados para coherencia visual */
-    .tag.is-outline-info {
-        background-color: rgba(17, 143, 228, 0.08);
-        border: 1.5px solid #0f7bc4;
-        color: #0f7bc4;
-        font-weight: 600;
-    }
-    
-    .tag.is-outline-fixed {
-        background-color: rgba(100, 100, 100, 0.08);
-        border: 1.5px solid #5a5a5a;
-        color: #5a5a5a;
-        font-weight: 600;
-    }
-</style>
-{% endblock %}
+{% block head %}{% endblock %}
 
 {% block content %}
 <div class="box">
@@ -63,7 +30,7 @@
 
     <hr>
 
-    <div class="table-container" style="max-height: 500px; overflow-y: auto;">
+    <div class="table-container" style="max-height: 60vh; overflow-y: auto;">
         <table class="table is-striped is-hoverable is-fullwidth">
             <thead>
                 <tr>
@@ -79,22 +46,22 @@
             <tbody>
                 {% for clase in clases %}
                 <tr>
-                    <td class="is-vcentered">
+                    <td>
                         <span class="has-text-weight-bold">
                             {{ clase.nombre }}
                         </span>
                     </td>
                     
-                    <td class="is-vcentered">
+                    <td>
                         {% if clase.tipo == "Individual" or clase.tipo_clase == "Individual" %}
-                            <span class="tag is-outline-info">Individual</span>
+                            <span class="tag is-info is-light">Individual</span>
                         {% else %}
-                            <span class="tag is-outline-fixed">Fija</span>
+                            <span class="tag is-primary is-light">Fija</span>
                         {% endif %}
                     </td>
                     
-                    <td class="is-vcentered">
-                        <span class="tag is-dark is-rounded has-text-weight-medium" style="background-color: #2b2b2b;">
+                    <td>
+                        <span class="tag is-link is-light is-rounded">
                             {{ clase.especialidad }}
                         </span>
                     </td>
@@ -104,22 +71,16 @@
                             <span class="icon has-text-grey">
                                 <i class="fas fa-door-open"></i>
                             </span>
-                            <span>
-                                {% if clase.sala.numero_puerta is defined %}
-                                    {{ clase.sala.numero_puerta }}
-                                {% else %}
-                                    {{ clase.sala }}
-                                {% endif %}
-                            </span>
+                            <span>{{ clase.sala.numero_puerta if clase.sala else 'N/A' }}</span>
                         </div>
                     </td>
                     
-                    <td class="has-text-centered is-vcentered">
+                    <td class="has-text-centered">
                         <div>{{ clase.fecha_clase.strftime('%d/%m/%Y') }}</div>
                         <div class="has-text-grey small">{{ clase.horario.strftime('%H:%M') }} hs</div>
                     </td>
                     
-                    <td class="has-text-centered is-vcentered">
+                    <td class="has-text-centered">
                         <span class="icon-text">
                             <span class="icon has-text-grey">
                                 <i class="fas fa-users"></i>
@@ -128,13 +89,13 @@
                                 {% if clase.tipo == "Individual" or clase.tipo_clase == "Individual" %}
                                     1
                                 {% else %}
-                                    {{ clase.capacidad_maxima }}
+                                    {{ clase.sala.capacidad if clase.sala else 'N/A' }}
                                 {% endif %}
                             </span>
                         </span>
                     </td>
                     
-                    <td class="has-text-centered is-vcentered">
+                    <td class="has-text-centered">
                         <div class="buttons is-centered">
                             <a class="button is-small is-info is-darker" href="{{ url_for('clases.ver_detalle_admin', clase_id=clase.id) }}" title="Ver Detalle">
                                 <span class="icon is-small">

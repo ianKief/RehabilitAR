@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+
+{% block title %}Mis Propuestas - RehabilitAR{% endblock %}
+
+{% block content %}
+<div class="box">
+    <h1 class="title is-4">
+        <span class="icon mr-2 has-text-primary"><i class="fas fa-history"></i></span>
+        Mis Propuestas Enviadas
+    </h1>
+    <p class="subtitle is-6 has-text-grey">Listado de espacios horarios que enviaste a revisión y aún están pendientes de aprobación.</p>
+    <hr>
+
+    {% if not propuestas %}
+        <div class="notification is-light has-text-centered">
+            <p class="has-text-grey">No tenés propuestas pendientes de revisión.</p>
+            <a href="{{ url_for('clases.proponer_clase_vista') }}" class="button is-primary is-small mt-3">Proponer una nueva</a>
+        </div>
+    {% else %}
+        <div class="table-container">
+            <table class="table is-striped is-fullwidth">
+                <thead>
+                    <tr>
+                        <th>Clase</th>
+                        <th>Fecha</th>
+                        <th>Horario</th>
+                        <th>Duración</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prop in propuestas %}
+                        <tr>
+                            <td><strong>{{ prop.nombre }}</strong></td>
+                            <td>{{ prop.fecha_clase.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ prop.horario.strftime('%H:%M') }} hs</td>
+                            <td>{{ prop.duracion }} min</td>
+                            <td><span class="tag is-warning is-light">Pendiente de Revisión</span></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

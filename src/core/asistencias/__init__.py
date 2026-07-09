@@ -1,11 +1,11 @@
-from sqlalchemy import or_, func, text, select, func
+from sqlalchemy import or_, func, select, func
 from sqlalchemy.orm import joinedload, selectinload, contains_eager, aliased
 from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reservas.reservas import Comentario, Reserva, AsistenciaReserva
 from src.core.usuarios.usuarios import Usuario, RolUsuario, Cliente
-
 from src.core.functions import filtro_clase_actual
+from src.core.auditoria import registrar_log, TipoAccion
 
 def alumno_tiene_asistencia (dni_alumno=None, id_alumno=None):
     """Devuelve True si el alumno tiene asistencia en la clase actual, False si no.
@@ -204,9 +204,12 @@ def finalizar_clase_y_penalizar(id_clase):
         if porcentaje_inasistencia >= 50 and total_clases >= 4:
             try:
                 bloquear_usuario(reserva.id_cliente, motivo="Su porcentaje de asistencias ha llegado a menos del 50%. Se le ha bloqueado la cuenta indefinidamente. Para más información acérquese a la administración.")
+                registrar_log(TipoAccion.BLOQUEO_USUARIO_INASISTENCIA, id_entidad_objetivo=reserva.id_cliente, detalles={'id_clase': id_clase, 'porcentaje_inasistencia': porcentaje_inasistencia, 'total_clases': total_clases})
                 bloqueados += 1
             except Exception as e:
                 print(f"Error al bloquear al usuario {reserva.id_cliente}: {e}")
+
+    registrar_log(TipoAccion.FINALIZACION_CLASE, id_entidad_objetivo=id_clase, detalles={'ausentes_marcados': ausentes_marcados, 'bloqueados': bloqueados})
                 
     db.session.commit()
     

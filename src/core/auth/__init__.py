@@ -1,4 +1,5 @@
 import random
+import secrets
 from datetime import datetime, timedelta
 from sqlalchemy import select, or_
 from src.core.database import db
@@ -53,35 +54,39 @@ def login(email, password):
     if not usuario:
         raise ValueError("Inicio de sesión fallido: El correo ingresado no corresponde a ninguna cuenta")
     
-    # 2. Cuenta bloqueada se desbloquea si ya pasó el tiempo de bloqueo
-    if usuario.estado == EstadoUsuario.BLOQUEADO and usuario.bloqueado_hasta and datetime.now() > usuario.bloqueado_hasta:
-        usuario.estado = EstadoUsuario.ACTIVO
-        usuario.intentos_login = 0
-        usuario.bloqueado_hasta = None
-        db.session.commit()
-
-    # 3. Cuenta bloqueada y todavia no paso el tiempo de bloqueo
+    # 2. Manejo de cuentas bloqueadas
     if usuario.estado == EstadoUsuario.BLOQUEADO:
-        # TODO este valueError está mal, no se llega a leer
-        raise ValueError("Inicio de sesión fallido: Cuenta bloqueada por motivos de seguridad. Vuelva a intentar en {} minutos."
-                         .format(int((usuario.bloqueado_hasta - datetime.now()).total_seconds() // 60) + 1))
-
-    # 4. Cuenta pendiente de verificación
+        if usuario.bloqueado_hasta:
+            # Bloqueo temporal por intentos fallidos
+            if datetime.now() > usuario.bloqueado_hasta:
+                # El tiempo de bloqueo ha expirado, se reactiva la cuenta
+                usuario.estado = EstadoUsuario.ACTIVO
+                usuario.intentos_login = 0
+                usuario.bloqueado_hasta = None
+                db.session.commit()
+            else:
+                # La cuenta sigue bloqueada, se informa el tiempo restante
+                minutos_restantes = int((usuario.bloqueado_hasta - datetime.now()).total_seconds() // 60) + 1
+                raise ValueError(f"Inicio de sesión fallido: Cuenta bloqueada por motivos de seguridad. Vuelva a intentar en {minutos_restantes} minutos.")
+        else:
+            # Bloqueo indefinido por un administrador
+            raise ValueError("Inicio de sesión fallido: Su cuenta ha sido bloqueada por un administrador. Por favor, contacte a soporte.")
+    # 3. Cuenta pendiente de verificación
     if usuario.estado == EstadoUsuario.PENDIENTE:
         raise ValueError("Inicio de sesión fallido: La cuenta aún no ha sido verificada. Por favor, revise su correo para obtener el código de verificación.")
     
-    # 5. Contraseña incorrecta
+    # 4. Contraseña incorrecta
     if usuario.password != password:
         usuario.intentos_login += 1
 
-        # 5.1. Alcanzó los 5 intentos fallidos
+        # 4.1. Alcanzó los 5 intentos fallidos
         if usuario.intentos_login >= 5:
             usuario.estado = EstadoUsuario.BLOQUEADO
             usuario.bloqueado_hasta = datetime.now() + timedelta(hours=1)
             db.session.commit()
             raise ValueError("Inicio de sesión fallido: Contraseña incorrecta. Por motivos de seguridad se ha bloqueado su cuenta por una hora")
         
-        # 5.2. Aún no alcanza los 5 intentos fallidos
+        # 4.2. Aún no alcanza los 5 intentos fallidos
         db.session.commit()
         raise ValueError("Inicio de sesión fallido: Contraseña incorrecta. Te quedan {} intentos antes de que la cuenta sea bloqueada."
         .format(5 - usuario.intentos_login))
@@ -152,3 +157,45 @@ def confirmar_codigo(user_id, codigo_ingresado):
     db.session.commit()
 
     return True
+
+def solicitar_restablecimiento_core(email):
+    # Escenario 2 (Solicitud): Validar existencia
+    stmt = select(Usuario).filter(Usuario.email == email)
+    usuario = db.session.execute(stmt).scalar()
+    
+    if not usuario:
+        raise ValueError(f"No existe una cuenta asociada a {email}")
+        
+    # Escenario 1 (Solicitud): Generar token y asignar tiempo (5 min)
+    token = secrets.token_urlsafe(32)
+    usuario.reset_token = token
+    usuario.reset_token_expira = datetime.now() + timedelta(minutes=5)
+    
+    db.session.commit()
+    return usuario, token
+
+def restablecer_contrasena_core(token, nueva_password, confirmacion):
+    # Escenario 4 (Restablecimiento): Validar expiración
+    stmt = select(Usuario).filter(Usuario.reset_token == token)
+    usuario = db.session.execute(stmt).scalar()
+    
+    if not usuario or not usuario.reset_token_expira or datetime.now() > usuario.reset_token_expira:
+        raise ValueError("El link ya expiró, solicite reestablecer contraseña nuevamente")
+        
+    # Validaciones de seguridad
+    if nueva_password != confirmacion:
+        raise ValueError("Las contraseñas no coinciden.")
+        
+    # Escenario 2 (Restablecimiento): Contraseña corta
+    if len(nueva_password) < 6:
+        raise ValueError("La contraseña debe tener al menos 6 caracteres")
+        
+    # Escenario 3 (Restablecimiento): Contraseña idéntica
+    if usuario.password == nueva_password:
+        raise ValueError("Debe ingresar una contraseña distinta a la actual")
+        
+    # Escenario 1 (Restablecimiento): Éxito total
+    usuario.password = nueva_password
+    usuario.reset_token = None
+    usuario.reset_token_expira = None
+    db.session.commit()

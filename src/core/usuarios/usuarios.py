@@ -1,7 +1,8 @@
 from typing import List
+from src.core.notificaciones.notificaciones import ConfiguracionNotificacion, Notificacion
 from src.core.reservas.reservas import Cola, Reserva
 from src.core.database import Base
-from sqlalchemy import Integer, String, DateTime, Enum, ForeignKey, Boolean,Float
+from sqlalchemy import Boolean, Integer, String, DateTime, Enum, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -60,7 +61,7 @@ class Usuario(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     nombre: Mapped[str] = mapped_column(String(100), nullable=False)
     apellido: Mapped[str] = mapped_column(String(100), nullable=True)
-    dni: Mapped[str] = mapped_column(String(20), unique=True, nullable=True)
+    dni: Mapped[str] = mapped_column(String(20), nullable=True)
     email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     direccion: Mapped[str] = mapped_column(String(255), nullable=True)
@@ -69,6 +70,8 @@ class Usuario(Base):
     
     rol: Mapped[RolUsuario] = mapped_column(Enum(RolUsuario), default=RolUsuario.CLIENTE, nullable=False)
     estado: Mapped[EstadoUsuario] = mapped_column(Enum(EstadoUsuario), default=EstadoUsuario.PENDIENTE, nullable=True)
+    
+    eliminado: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     codigo_verificacion : Mapped[str] = mapped_column(String(6), nullable=True)
     codigo_verificacion_expira : Mapped[datetime] = mapped_column(DateTime, nullable=True)
@@ -77,6 +80,9 @@ class Usuario(Base):
     intentos_login: Mapped[int] = mapped_column(Integer, default=0, nullable=True)
     bloqueado_hasta: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
+    reset_token: Mapped[str] = mapped_column(String(100), unique=True, nullable=True)
+    reset_token_expira: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    
     notificaciones: Mapped[list["Notificacion"]] = relationship("Notificacion", back_populates="usuario")
     configuracion_notificaciones: Mapped[List["ConfiguracionNotificacion"]] = relationship("ConfiguracionNotificacion", back_populates="usuario", cascade="all, delete-orphan")
 
@@ -95,8 +101,9 @@ class Usuario(Base):
     
     __mapper_args__ = {
         "polymorphic_on": "rol",
-        "polymorphic_identity": "usuario_base"
+        "polymorphic_identity": "usuario_base",
     }
+    __table_args__ = (UniqueConstraint('dni', 'rol', name='_dni_rol_uc'),)
 
 # ==========================================
 # 2. CLASES HIJAS

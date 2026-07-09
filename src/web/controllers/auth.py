@@ -3,9 +3,10 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from flask_mail import Message
 from datetime import datetime
 from werkzeug.utils import secure_filename
-from src.core.auth import registrar_cliente as registrar_cliente_core, confirmar_codigo as confirmar_codigo_core, login as login_core
+from src.core.auth import registrar_cliente as registrar_cliente_core, confirmar_codigo as confirmar_codigo_core, login as login_core, restablecer_contrasena_core, solicitar_restablecimiento_core
 from src.core.usuarios import obtener_usuario_por_id_core
 from src.core.database import db
+from src.core.auditoria import registrar_log, TipoAccion
 
 from src.web import mail
 from src.web.bypass import correos_bypass
@@ -111,6 +112,7 @@ def registrar_cliente():
 
             mail.send(msg)
             
+            registrar_log(TipoAccion.REGISTRO_USUARIO, id_entidad_objetivo=nuevo_cliente.id, detalles={"mensaje": f"Se registró el usuario {nuevo_cliente.email}"})
             session['verificacion_user_id'] = nuevo_cliente.id
             session['verificacion_origen'] = 'registro'
             db.session.commit()
@@ -154,6 +156,7 @@ def login():
                 session.permanent = True
                 session['usuario_id'] = usuario.id
                 session['rol'] = usuario.rol.name
+                registrar_log(TipoAccion.LOGIN_EXITOSO, id_entidad_objetivo=usuario.id, detalles={"mensaje": "Inicio de sesión exitoso"})
                 flash("¡Bienvenido! (Verificación omitida para pruebas)", "success")
                 return redirect(url_for('home'))
 
@@ -179,6 +182,7 @@ def login():
         
         except ValueError as e:
             db.session.rollback()
+            registrar_log(TipoAccion.LOGIN_FALLIDO, detalles={'email': email, 'error': str(e)})
             return render_template('auth/login.html', error=str(e))
         
         except Exception as e:
@@ -189,7 +193,8 @@ def login():
 
 @auth_bp.route('/logout')
 def logout():
-    session.clear() 
+    registrar_log(TipoAccion.LOGOUT, detalles={"mensaje": "Cierre de sesión exitoso"})
+    session.clear()
     
     flash("Has cerrado sesión de forma segura.", "success")
     return redirect(url_for('home'))
@@ -230,3 +235,61 @@ def verificar():
             return render_template('auth/verificacion.html', error=str(e))
 
     return render_template('auth/verificacion.html')
+
+@auth_bp.route('/olvide-contrasena', methods=['GET', 'POST'])
+def olvide_contrasena():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        try:
+            usuario, token = solicitar_restablecimiento_core(email)
+            
+            # Generamos el link absoluto con el token
+            link = url_for('auth.restablecer_contrasena', token=token, _external=True)
+            
+            msg = Message(subject="RehabilitAR - Restablecer Contraseña", recipients=[email])
+            msg.body = f"""Hola {usuario.nombre},
+            
+Has solicitado restablecer tu contraseña. Haz clic en el siguiente enlace para crear una nueva (es válido por 5 minutos):
+{link}
+
+Si no solicitaste este cambio, ignora este correo.
+Saludos, El equipo de RehabilitAR."""
+
+            mail.send(msg)
+            flash("Correo enviado, revisa tu bandeja de entrada", "success")
+            return redirect(url_for('auth.login'))
+            
+        except ValueError as e:
+            flash(str(e), "danger")
+            
+    return render_template('auth/olvide_contrasena.html')
+
+
+@auth_bp.route('/restablecer-contrasena/<token>', methods=['GET', 'POST'])
+def restablecer_contrasena(token):
+    # Verificación temprana por GET (Si el link ya venció, lo pateamos antes de mostrar el formulario)
+    from src.core.usuarios.usuarios import Usuario
+    from src.core.database import db
+    from sqlalchemy import select
+    from datetime import datetime
+    
+    stmt = select(Usuario).filter(Usuario.reset_token == token)
+    usuario = db.session.execute(stmt).scalar()
+    
+    if not usuario or not usuario.reset_token_expira or datetime.now() > usuario.reset_token_expira:
+        flash("El link ya expiró, solicite reestablecer contraseña nuevamente", "danger")
+        return redirect(url_for('auth.olvide_contrasena'))
+
+    if request.method == 'POST':
+        nueva_password = request.form.get('password')
+        confirmacion = request.form.get('confirmacion')
+        
+        try:
+            restablecer_contrasena_core(token, nueva_password, confirmacion)
+            registrar_log(TipoAccion.CAMBIO_CONTRASENA, id_entidad_objetivo=usuario.id, detalles={"mensaje": f"Se cambió la contraseña del usuario {usuario.email}"})
+            flash("Contraseña reestablecida, ya puede iniciar sesión", "success")
+            return redirect(url_for('auth.login'))
+        except ValueError as e:
+            flash(str(e), "danger")
+            
+    return render_template('auth/restablecer_contrasena.html', token=token)

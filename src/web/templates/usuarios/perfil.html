@@ -27,7 +27,18 @@
             <div class="column is-6">
                 <div class="field">
                     <label class="label has-text-grey is-small">Nombre Completo</label>
-                    <p class="is-size-5"><strong>{{ usuario.nombre }} {{ usuario.apellido }}</strong></p>
+                    {% if editando %}
+                        <div class="control has-icons-left">
+                            <input class="input" type="text" id="nombre" name="nombre" 
+                                   value="{{ usuario.nombre }}" required placeholder="Tu nombre">
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-user"></i>
+                            </span>
+                        </div>
+                        <p class="help is-size-7 has-text-grey-light">Tu apellido ({{ usuario.apellido }}) se mantiene fijo.</p>
+                    {% else %}
+                        <p class="is-size-5"><strong>{{ usuario.nombre }} {{ usuario.apellido }}</strong></p>
+                    {% endif %}
                 </div>
             </div>
 
@@ -115,6 +126,7 @@
         </form>
         {% endif %}
         
+        {% if usuario.rol.value == 'cliente' %}
         <hr>
 
         <div class="box">
@@ -280,6 +292,7 @@
                 if (event.key === 'Escape') cerrarModalMotivo();
             });
         </script>
+        {% endif %}
         {% endif %}
 
     </div>

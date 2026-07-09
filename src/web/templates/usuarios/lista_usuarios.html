@@ -3,16 +3,39 @@
 {% block title %}Listado de Usuarios - RehabilitAR{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <h1 class="title is-3 mb-5">
-        <span class="icon mr-2"><i class="fas fa-users"></i></span>
-        Gestión de Usuarios
-    </h1>
+<div class="box">
+    <div class="columns is-vcentered mb-4">
+        <div class="column">
+            <h1 class="title is-3">
+                <span class="icon-text">
+                    <span class="icon has-text-primary">
+                        <i class="fas fa-users"></i>
+                    </span>
+                    <span>Gestión de Usuarios</span>
+                </span>
+            </h1>
+            <p class="subtitle is-6 has-text-grey">Listado de usuarios registrados en el sistema</p>
+        </div>
+        <div class="column is-narrow">
+            <div class="buttons">
+                <button class="button is-info is-outlined" id="toggle-filters-btn">
+                    <span class="icon"><i class="fas fa-filter"></i></span>
+                    <span>Buscar y Filtrar</span>
+                </button>
+                <a class="button is-primary" href="{{ url_for('usuarios.crear_usuario') }}">
+                    <span class="icon"><i class="fas fa-plus"></i></span>
+                    <span>Crear Usuario</span>
+                </a>
+            </div>
+        </div>
+    </div>
 
-    <div class="box mb-5">
+    <hr>
+
+    <div id="filters-container" class="is-hidden">
+        <div class="notification is-light p-4 mb-5">
         <form action="{{ url_for('usuarios.listar_usuarios') }}" method="GET">
             <input type="hidden" name="is_search" value="1">
-            
             <div class="columns is-multiline">
                 
                 <div class="column is-4-desktop is-6-tablet">
@@ -120,12 +143,12 @@
                 </div>
 
             </div>
-        </form>
+        </form></div>
     </div>
 
-    <div class="box p-0" style="overflow: hidden;">
-        <div class="table-container m-0">
-            <table class="table is-fullwidth is-hoverable is-striped">
+    <div class="table-container" style="max-height: 60vh; overflow-y: auto;">
+        
+            <table class="table is-fullwidth is-hoverable is-striped is-vcentered">
                 <thead>
                     <tr>
                         <th>Nombre y Apellido</th>
@@ -139,25 +162,25 @@
                 <tbody>
                     {% for u in usuarios %}
                     <tr>
-                        <td class="is-vcentered">{{ u.nombre }} {{ u.apellido }}</td>
-                        <td class="is-vcentered">{{ u.dni }}</td>
-                        <td class="is-vcentered">{{ u.email }}</td>
-                        <td class="is-vcentered">
-                            <span class="tag is-info is-light">{{ u.rol.name }}</span>
+                        <td class="has-text-weight-semibold">{{ u.nombre }} {{ u.apellido }}</td>
+                        <td>{{ u.dni }}</td>
+                        <td>{{ u.email }}</td>
+                        <td>
+                            <span class="tag is-info is-light">{{ u.rol.name | capitalize }}</span>
                         </td>
-                        <td class="is-vcentered">
+                        <td>
                             {% if u.estado.name == 'ACTIVO' %}
-                                <span class="tag is-success">{{ u.estado.name }}</span>
+                                <span class="tag is-success is-light">{{ u.estado.name | capitalize }}</span>
                             {% elif u.estado.name == 'PENDIENTE' %}
-                                <span class="tag is-warning">{{ u.estado.name }}</span>
+                                <span class="tag is-warning is-light">{{ u.estado.name | capitalize }}</span>
                             {% elif u.estado.name == 'BLOQUEADO' %}
-                                <span class="tag is-danger">{{ u.estado.name }}</span>
+                                <span class="tag is-danger is-light">{{ u.estado.name | capitalize }}</span>
                             {% else %}
-                                <span class="tag">{{ u.estado.name if u.estado else 'N/A' }}</span>
+                                <span class="tag is-light">{{ u.estado.name if u.estado else 'N/A' }}</span>
                             {% endif %}
                         </td>
-                        <td class="is-vcentered">
-                            <a href="{{ url_for('usuarios.detalle_usuario', id=u.id) }}" class="button is-small is-primary is-outlined">Ver Detalle</a>
+                        <td>
+                            <a href="{{ url_for('usuarios.detalle_usuario', id=u.id) }}" class="button is-small is-info is-outlined">Ver Detalle</a>
                         </td>
                     </tr>
                     {% else %}
@@ -170,7 +193,29 @@
                     {% endfor %}
                 </tbody>
             </table>
-        </div>
+        
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const toggleBtn = document.getElementById('toggle-filters-btn');
+    const filtersContainer = document.getElementById('filters-container');
+
+    if (toggleBtn && filtersContainer) {
+        // Si la URL contiene 'is_search', significa que se realizó una búsqueda.
+        // En ese caso, mostramos los filtros al cargar la página para que el usuario vea los criterios aplicados.
+        const isSearch = new URLSearchParams(window.location.search).has('is_search');
+        if (isSearch) {
+            filtersContainer.classList.remove('is-hidden');
+        }
+
+        toggleBtn.addEventListener('click', () => {
+            filtersContainer.classList.toggle('is-hidden');
+        });
+    }
+});
+</script>
 {% endblock %}

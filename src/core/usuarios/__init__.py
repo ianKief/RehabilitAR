@@ -129,7 +129,7 @@ def obtener_usuario_por_id_core(user_id):
 def listar_usuarios(nombre=None, apellido=None, dni=None, email=None, rol=None, estado=None):
     """Devuelve una lista con todos los usuarios registrados.
     Si hay parametros, los filtra."""
-    stmt = select(Usuario).order_by(Usuario.id)
+    stmt = select(Usuario).filter_by(eliminado=False).order_by(Usuario.id)
     if nombre:
         stmt = stmt.where(Usuario.nombre == nombre)
     if apellido:
@@ -165,6 +165,13 @@ def crear_usuario(**kwargs):
     if not clase_elegida:
         raise ValueError("Rol no válido.")
     nuevo_usuario = clase_elegida(rol=rol_enum, **kwargs)
+    if hasattr(nuevo_usuario, 'fecha_ultima_verificacion'):
+        nuevo_usuario.fecha_ultima_verificacion = datetime.now()
+    
+    if hasattr(nuevo_usuario, 'codigo_verificacion'):
+        nuevo_usuario.codigo_verificacion = None
+        nuevo_usuario.codigo_verificacion_expira = None
+        
     db.session.add(nuevo_usuario)
     db.session.commit()
     return nuevo_usuario
@@ -217,9 +224,10 @@ def eliminar_usuario(usuario_id):
     if not usuario:
         raise ValueError("El usuario no existe.")
 
-    usuario.estado = EstadoUsuario.BLOQUEADO
-    usuario.email = f"eliminado_{usuario.id}_{usuario.email}"  
-    # db.session.delete(usuario)
+    usuario.eliminado = True
+    usuario.email = f"del_{usuario.id}_{usuario.email}"
+    if usuario.dni:
+        usuario.dni = f"del_{usuario.id}_{usuario.dni}"
     db.session.commit()
     return True
 
@@ -235,7 +243,7 @@ def conseguir_administrativos ():
 
 def informar_alta_demanda (clase):
     try:
-        enviar_notificaciones (conseguir_administrativos(), "RehabilitAR - Aviso de alta demanda", f"Hola. Se le informa que la clase {clase.nombre} de la especialidad {clase.especialidad} está teniendo picos de demanda, habiendo alcanzado recientemente las 10 esperas en cola. Se le aconseja considerar más clases de este estilo para un futuro.", TipoNotificacion.CLASE_COLAPSADA)
+        enviar_notificaciones (conseguir_administrativos(), "RehabilitAR - Aviso de alta demanda", f"Hola. Se le informa que la clase {clase.nombre} de la especialidad {clase.especialidad} está teniendo picos de demanda, habiendo alcanzado recientemente las 10 esperas en cola. Se le aconseja considerar más clases de este estilo para un futuro. Para evitar que se llene más la clase, se ha deshabilitado la posibilidad de anotarse a la misma", TipoNotificacion.CLASE_COLAPSADA)
     except:
         clase.aviso_alta_demanda = False
         print ("Hubo un intento de informar alta demanda, pero falló")
@@ -300,3 +308,29 @@ def revisar_y_rechazar_apto(db_session, id_apto, comentario_motivo):
     
     db_session.commit()
     return apto
+
+def modificar_usuario_core(usuario_id, nombre, direccion, email, telefono):
+    """
+    Actualiza los datos permitidos de un usuario.
+    Valida que el email nuevo no esté siendo usado por OTRA cuenta.
+    """
+    # 1. Escenario 4: Validar si el email ya pertenece a OTRO usuario del sistema
+    stmt = select(Usuario).filter(Usuario.email == email, Usuario.id != usuario_id)
+    email_duplicado = db.session.execute(stmt).scalar()
+    
+    if email_duplicado:
+        raise ValueError("El email ingresado ya pertenece a una cuenta en el sistema")
+
+    # 2. Buscamos al usuario a modificar
+    usuario = db.session.get(Usuario, usuario_id)
+    if not usuario:
+        raise ValueError("El usuario solicitado no existe.")
+
+    # 3. Actualizamos solo los campos permitidos (El DNI ni se toca)
+    usuario.nombre = nombre
+    usuario.direccion = direccion
+    usuario.email = email
+    usuario.telefono = telefono
+
+    db.session.commit()
+    return usuario

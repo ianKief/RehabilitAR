@@ -26,6 +26,7 @@ def listar_clases_disponibles_para_cliente(fecha=None, tipo=None, especialidad=N
     query = select(Clase).filter(
         Clase.suspendida == False,
         Clase.aprobada == True,
+        Clase.aviso_alta_demanda == False,
         _filtro_clase_futura()
     )
     
@@ -132,27 +133,26 @@ def crear_espera_en_cola (id_cliente, id_clase):
     db.session.commit()
     return nueva_cola
 
-def verificar_reserva_semanal_existente(id_cliente, fecha_clase):
-    """Verifica si el cliente ya tiene una reserva activa para una clase de tipo 'Fija' en la misma semana."""
+def contar_reservas_fijas_semanales(id_cliente, fecha_clase):
+    """Cuenta cuántas reservas activas para clases de tipo 'Fija' tiene un cliente en una semana específica."""
     start_of_week = fecha_clase - timedelta(days=fecha_clase.weekday())
     end_of_week = start_of_week + timedelta(days=6)
 
-    query = select(Reserva).join(Clase).filter(
+    query = select(func.count(Reserva.id)).join(Clase).filter(
         Reserva.id_cliente == id_cliente,
         Clase.tipo == "Fija",
         Clase.fecha_clase >= start_of_week,
         Clase.fecha_clase <= end_of_week,
         Reserva.asiste != AsistenciaReserva.CANCELADA
     )
-    return db.session.scalars(query).first()
+    return db.session.scalar(query) or 0
 
 def verificar_limite_reservas_mensuales(id_cliente, clase_base):
     """Verifica si el cliente ya tiene una clase fija reservada en el mes que no coincida con el bloque actual."""
-    if not clase_base:
-        return False
-        
-    año = clase_base.fecha_clase.year
-    mes = clase_base.fecha_clase.month
+    # Si no se pasa clase_base, se usa la fecha actual para determinar el mes.
+    fecha_referencia = clase_base.fecha_clase if clase_base else date.today()
+    año = fecha_referencia.year
+    mes = fecha_referencia.month
     
     fecha_inicio = date(año, mes, 1)
     _, dias_en_mes = calendar.monthrange(año, mes)
@@ -167,15 +167,19 @@ def verificar_limite_reservas_mensuales(id_cliente, clase_base):
     )
     clases = db.session.scalars(query).all()
     
-    bloque_actual = (clase_base.fecha_clase.weekday(), clase_base.horario, clase_base.nombre)
-    
-    for c in clases:
-        b = (c.fecha_clase.weekday(), c.horario, c.nombre)
-        # Si tiene una clase fija en el mes que no coincide con el bloque que intenta reservar,
-        # chocaría con la regla de 1 clase fija por semana al hacer la reserva mensual completa.
-        if b != bloque_actual:
-            return True
-            
+    # Si no se pasa clase_base, la simple existencia de una clase fija ya es un límite.
+    if not clase_base:
+        return len(clases) > 0
+
+    # Si se pasa clase_base, se comprueba si hay un bloque diferente.
+    else:
+        bloque_actual = (clase_base.fecha_clase.weekday(), clase_base.horario, clase_base.nombre)
+        for c in clases:
+            b = (c.fecha_clase.weekday(), c.horario, c.nombre)
+            # Si tiene una clase fija en el mes que no coincide con el bloque que intenta reservar,
+            # chocaría con la regla de 1 clase fija por semana al hacer la reserva mensual completa.
+            if b != bloque_actual:
+                return True
     return False
 
 def obtener_alternativas_semana_para_clase(clase_base):
@@ -241,18 +245,29 @@ def obtener_clases_mensuales(id_clase_base):
     clases_mensuales.sort(key=lambda x: x.fecha_clase)
     return clases_mensuales
 
-def procesar_reservas_mensuales_automatica(id_cliente, clases_a_reservar):
+def procesar_reservas_mensuales_automatica(id_cliente, clases_a_reservar, id_pago_abono=None):
     """Crea o reactiva de forma automática reservas para un cliente en un conjunto de clases mensuales iteradas."""
     reservas_creadas = 0
     for c in clases_a_reservar:
         reserva_exist = obtener_reserva(id_cliente, c.id)
+        reserva_actual = None
         if reserva_exist and reserva_exist.asiste == AsistenciaReserva.CANCELADA:
             reserva_exist.asiste = AsistenciaReserva.AUSENTE
+            reserva_actual = reserva_exist
             reservas_creadas += 1
         elif not reserva_exist:
             nueva_reserva = Reserva(id_cliente=id_cliente, id_clase=c.id, asiste=AsistenciaReserva.AUSENTE)
             db.session.add(nueva_reserva)
+            reserva_actual = nueva_reserva
             reservas_creadas += 1
+
+        # Si se está procesando un abono y se creó/reactivó una reserva, se crea el detalle de pago.
+        if id_pago_abono and reserva_actual:
+            db.session.flush() # Para obtener el ID de la reserva si es nueva
+            from src.core.pagos.pagos import DetallePago
+            detalle = DetallePago(id_pago=id_pago_abono, id_reserva=reserva_actual.id, cantidad=1, precio_unitario=0, subtotal=0)
+            db.session.add(detalle)
+
     if reservas_creadas > 0:
         db.session.commit()
     return reservas_creadas
