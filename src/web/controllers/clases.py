@@ -390,4 +390,4 @@ def alternar_suspension(clase_id):
     # Se manda el flash dinámico según lo que devolvió el motor de servicios
     flash(resultado["message"], resultado["status"])
     
-    return redirect(url_for("clases.ver_detalle_clase", clase_id=clase_id))
+    return redirect(url_for("clases.ver_detalle_admin", clase_id=clase_id))
