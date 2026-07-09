@@ -310,10 +310,34 @@
                                 </a>
                             </li>
                             <li>
-                                <a href="{{ url_for('clases.listar_clases_admin') }}"
-                                    class="py-2.5 px-3 {% if request.path.startswith('/clases/admin') %}menu-item-active{% endif %}">
-                                    <span class="icon mr-2"><i class="far fa-calendar-alt"></i></span>Clases
+                                <a id="btn-toggle-clases" class="py-2.5 px-3 has-text-weight-semibold" style="cursor: pointer;">
+                                    <span class="icon mr-2"><i class="fas fa-calendar-alt"></i></span>
+                                    Clases y Agenda
+                                    <span class="icon is-small is-pulled-right mt-1">
+                                        <i id="icono-flecha-clases" class="fas fa-angle-down"></i>
+                                    </span>
                                 </a>
+                                
+                                <ul id="submenu-clases" class="is-hidden ml-4 mt-2" style="border-left: 2px solid var(--bulma-border-weak);">
+                                    <li>
+                                        <a href="{{ url_for('clases.listar_clases_admin') }}" 
+                                        class="py-2 px-3 {% if request.path == url_for('clases.listar_clases_admin') or (request.path.startswith('/clases/admin') and 'propuestas' not in request.path) %}menu-item-active{% endif %}">
+                                            <span class="icon mr-2"><i class="fas fa-th-list"></i></span>Grilla de Clases
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ url_for('clases.nueva_clase') }}" 
+                                        class="py-2 px-3 {% if request.path.startswith('/clases/crear') or request.path.startswith('/clases/nueva') %}menu-item-active{% endif %}">
+                                            <span class="icon mr-2"><i class="fas fa-plus-circle"></i></span>Crear Clase Nueva
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ url_for('clases.listar_propuestas_pendientes') }}" 
+                                        class="py-2 px-3 {% if request.path.startswith('/admin/propuestas') or '/propuestas' in request.path %}menu-item-active{% endif %}">
+                                            <span class="icon mr-2"><i class="fas fa-inbox"></i></span>Propuestas Pendientes
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
                             <li>
                                 <a href="{{ url_for('estadisticas.listar_estadisticas') }}"
@@ -355,6 +379,30 @@
                                     class="py-2.5 px-3 {% if request.path.startswith(url_for('clases.ver_clases_para_postularse') ) %}menu-item-active{% endif %}">
                                     <span class="icon mr-2"><i class="fas fa-clipboard-list"></i></span>Postulacion a clases
                                 </a>
+                            </li>
+                            <li>
+                                <a id="btn-toggle-propuestas-profesor" class="py-2.5 px-3 has-text-weight-semibold" style="cursor: pointer;">
+                                    <span class="icon mr-2"><i class="fas fa-chalkboard-teacher"></i></span>
+                                    Mis Propuestas
+                                    <span class="icon is-small is-pulled-right mt-1">
+                                        <i id="icono-flecha-propuestas-profesor" class="fas fa-angle-down"></i>
+                                    </span>
+                                </a>
+                                
+                                <ul id="submenu-propuestas-profesor" class="is-hidden ml-4 mt-2" style="border-left: 2px solid var(--bulma-border-weak);">
+                                    <li>
+                                        <a href="{{ url_for('clases.proponer_clase_vista') }}" 
+                                        class="py-2 px-3 {% if request.path == url_for('clases.proponer_clase_vista') %}menu-item-active{% endif %}">
+                                            <span class="icon mr-2"><i class="fas fa-plus-circle"></i></span>Proponer Clase
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ url_for('clases.historial_propuestas_profesor') }}" 
+                                        class="py-2 px-3 {% if request.path == url_for('clases.historial_propuestas_profesor') %}menu-item-active{% endif %}">
+                                            <span class="icon mr-2"><i class="fas fa-history"></i></span>Historial de Propuestas
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
                             {% endif %}
                             <!-- Navegación para clientes (solo si son clientes) -->
@@ -474,6 +522,39 @@
     </script>
 
     <script>
+        // ==========================================
+        // LÓGICA DEL MENÚ DESPLEGABLE DE USUARIOS
+        // ==========================================
+        const btnToggleUsuarios = document.getElementById('btn-toggle-usuarios');
+        const submenuUsuarios = document.getElementById('submenu-usuarios');
+        const iconoFlecha = document.getElementById('icono-flecha-usuarios');
+
+        if (btnToggleUsuarios && submenuUsuarios) {
+            
+            // Función para abrir/cerrar
+            btnToggleUsuarios.addEventListener('click', (e) => {
+                e.preventDefault();
+                submenuUsuarios.classList.toggle('is-hidden');
+                
+                // Girar la flechita
+                if (submenuUsuarios.classList.contains('is-hidden')) {
+                    iconoFlecha.classList.replace('fa-angle-up', 'fa-angle-down');
+                } else {
+                    iconoFlecha.classList.replace('fa-angle-down', 'fa-angle-up');
+                }
+            });
+
+            // UX Inteligente: Si la URL actual ya es una pantalla de usuarios, 
+            // dejamos el menú abierto automáticamente para que el Admin no se pierda.
+            const pathActual = window.location.pathname;
+            if (pathActual.includes('/usuarios/lista') || pathActual.includes('/usuarios/crear') || pathActual.includes('/usuarios/detalle') || pathActual.includes('/usuarios/aptos')) {
+                submenuUsuarios.classList.remove('is-hidden');
+                iconoFlecha.classList.replace('fa-angle-down', 'fa-angle-up');
+            }
+        }
+    </script>
+
+    <script>
         // Seleccionamos todos los botones de "marcar como leída"
         const markReadButtons = document.querySelectorAll('.js-mark-read');
 
@@ -581,6 +662,69 @@
 
                 mobileOverlay.addEventListener('click', closeMobile);
                 if (mobileCloseBtn) mobileCloseBtn.addEventListener('click', closeMobile);
+            }
+        });
+    </script>
+
+    <script>
+        // ==========================================
+        // LÓGICA DEL MENÚ DESPLEGABLE DE CLASES
+        // ==========================================
+        const btnToggleClases = document.getElementById('btn-toggle-clases');
+        const submenuClases = document.getElementById('submenu-clases');
+        const iconoFlechaClases = document.getElementById('icono-flecha-clases');
+
+        if (btnToggleClases && submenuClases) {
+            btnToggleClases.addEventListener('click', (e) => {
+                e.preventDefault();
+                submenuClases.classList.toggle('is-hidden');
+                
+                // Rotar flecha usando replace igual que en Usuarios
+                if (submenuClases.classList.contains('is-hidden')) {
+                    if (iconoFlechaClases) iconoFlechaClases.classList.replace('fa-angle-up', 'fa-angle-down');
+                } else {
+                    if (iconoFlechaClases) iconoFlechaClases.classList.replace('fa-angle-down', 'fa-angle-up');
+                }
+            });
+
+            // UX Inteligente: Mantener abierto si estamos dentro del módulo clases o propuestas
+            const pathActual = window.location.pathname;
+            if (pathActual.includes('/clases') || pathActual.includes('/admin/propuestas')) {
+                submenuClases.classList.remove('is-hidden');
+                if (iconoFlechaClases) iconoFlechaClases.classList.replace('fa-angle-down', 'fa-angle-up');
+            }
+        }
+    </script>
+
+    <script>
+        // ==========================================
+        // LÓGICA DEL MENÚ DESPLEGABLE DE PROPUESTAS (PROF)
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', function() {
+            const btnToggle = document.getElementById('btn-toggle-propuestas-profesor');
+            const submenu = document.getElementById('submenu-propuestas-profesor');
+            const iconoFlecha = document.getElementById('icono-flecha-propuestas-profesor');
+
+            if (btnToggle && submenu && iconoFlecha) {
+                // 1. Mantener abierto el submenú si el profesor está parado en alguna de sus sub-rutas
+                const tieneHijoActivo = submenu.querySelector('.menu-item-active') !== null;
+                if (tieneHijoActivo) {
+                    submenu.classList.remove('is-hidden');
+                    iconoFlecha.classList.replace('fa-angle-down', 'fa-angle-up');
+                }
+
+                // 2. Evento Click para colapsar / expandir de forma manual
+                btnToggle.addEventListener('click', function() {
+                    const estaOculto = submenu.classList.contains('is-hidden');
+                    
+                    if (estaOculto) {
+                        submenu.classList.remove('is-hidden');
+                        iconoFlecha.classList.replace('fa-angle-down', 'fa-angle-up');
+                    } else {
+                        submenu.classList.add('is-hidden');
+                        iconoFlecha.classList.replace('fa-angle-up', 'fa-angle-down');
+                    }
+                });
             }
         });
     </script>

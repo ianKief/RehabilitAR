@@ -1,0 +1,166 @@
+{% extends "layout.html" %}
+
+{% block title %}Revisar Propuesta - RehabilitAR{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/calendario.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="box">
+    <div class="mb-5 has-text-centered-mobile">
+        <h1 class="title is-3 is-4-mobile">
+            <span class="icon-text">
+                <span class="icon has-text-link mr-2">
+                    <i class="fas fa-paste"></i>
+                </span>
+                <span>Evaluar Propuesta de Clase</span>
+            </span>
+        </h1>
+        <p class="subtitle is-6 has-text-grey-dark">Revisá la información provista por el docente. Como administrador podés definir si se consolida como una instancia individual o fija mensual.</p>
+    </div>
+
+    <hr>
+
+    <form action="{{ url_for('clases.procesar_propuesta_post', clase_id=propuesta.id) }}" method="POST">
+        
+        <div class="columns">
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label">Nombre de la Clase</label>
+                    <div class="control has-icons-left">
+                        <input class="input is-static" type="text" value="{{ propuesta.nombre }}" readonly>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-heading"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label">Especialidad</label>
+                    <div class="control has-icons-left">
+                        <input class="input is-static" type="text" value="{{ propuesta.especialidad | title }}" readonly>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-briefcase"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="columns">
+            <div class="column is-3">
+                <div class="field">
+                    <label class="label has-text-link">Tipo de Clase Final</label>
+                    <div class="control has-icons-left">
+                        <div class="select is-fullwidth is-link">
+                            <select name="tipo_clase" id="tipo_clase_select" required>
+                                <option value="Individual" {% if propuesta.tipo == 'Individual' %}selected{% endif %}>Individual (Solo esta fecha)</option>
+                                <option value="Fija" {% if propuesta.tipo == 'Fija' %}selected{% endif %}>Fija (Repetitiva mensual)</option>
+                            </select>
+                        </div>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-fingerprint"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-3">
+                <div class="field">
+                    <label class="label">Sala Asignada</label>
+                    <div class="control has-icons-left">
+                        <input class="input is-static" type="text" value="Sala {{ propuesta.sala.numero_puerta if propuesta.sala else propuesta.sala_id }}" readonly>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-door-open"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-3">
+                <div class="field">
+                    <label class="label">Fecha Propuesta</label>
+                    <div class="control has-icons-left">
+                        <input class="input is-static" type="text" value="{{ propuesta.fecha_clase.strftime('%d/%m/%Y') }}" readonly>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-calendar-alt"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-3">
+                <div class="field">
+                    <label class="label">Duración</label>
+                    <div class="control has-icons-left">
+                        <input class="input is-static" type="text" value="{{ propuesta.duracion }} minutos" readonly>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-hourglass-half"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="columns">
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label">Horario de Inicio</label>
+                    <div class="control has-icons-left">
+                        <input class="input is-static" type="text" value="{{ propuesta.horario.strftime('%H:%M') }} hs" readonly>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-clock"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="column is-6"></div>
+        </div>
+
+        <div class="field mt-4">
+            <label class="label">Descripción e Indicaciones del Profesor</label>
+            <div class="box is-light has-background-light has-text-grey-dark" style="box-shadow: none; border: 1px solid #dbdbdb;">
+                {{ propuesta.descripcion if propuesta.descripcion else 'Sin descripción provista.' }}
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="field is-grouped is-grouped-right mt-5">
+            <p class="control">
+                <a href="{{ url_for('clases.listar_propuestas_pendientes') }}" class="button is-light is-fullwidth-mobile">Volver al listado</a>
+            </p>
+            <p class="control">
+                <button type="submit" class="button is-success is-fullwidth-mobile">
+                    <span class="icon">
+                        <i class="fas fa-check-circle"></i>
+                    </span>
+                    <span>Aprobar y Consolidar</span>
+                </button>
+            </p>
+        </div>
+
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const formulario = document.querySelector('form');
+    if (formulario) {
+        formulario.addEventListener('submit', function() {
+            const btnSubmit = formulario.querySelector('button[type="submit"]');
+            if (btnSubmit) {
+                btnSubmit.classList.add('is-loading');
+                btnSubmit.disabled = true;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

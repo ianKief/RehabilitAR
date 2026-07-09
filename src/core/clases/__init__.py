@@ -20,7 +20,8 @@ def listar_clases():
 
     query = (
         select(Clase)
-        .where(Clase.fecha_clase >= hoy)
+        .where(Clase.fecha_clase >= hoy,
+               Clase.aprobada == True)
         .order_by(
             Clase.fecha_clase.asc(), 
             Clase.horario.asc()
@@ -123,12 +124,11 @@ def obtener_postulantes_clase(clase_id: int):
 # <DETALLE DE CLASE/>
 
 # <CREAR CLASE>
-def obtener_horarios_disponibles(fecha_evaluar, duracion_minutos=45, sala_id_evaluar=0, tipo_clase="Individual"):
+def obtener_horarios_disponibles(fecha_evaluar, duracion_minutos=45, sala_id_evaluar=0, tipo_clase="Individual", profesor_id=None):
     HORA_INICIO_LABORAL = 8
     HORA_FIN_LABORAL = 20
     INTERVALO_SLOTS = 30
 
-    # Aseguramos que el ID de la sala sea un entero seguro
     try:
         sala_id_evaluar = int(sala_id_evaluar)
     except (TypeError, ValueError):
@@ -136,13 +136,30 @@ def obtener_horarios_disponibles(fecha_evaluar, duracion_minutos=45, sala_id_eva
 
     rangos_ocupados = []
 
+    #  CONSTRUCCIÓN DE LA CONDICIÓN DE FILTRADO BASE
+    # El horario está ocupado si la clase ya está aprobada por el admin...
+    condicion_ocupacion = (Clase.aprobada == True)
+    
+    # ...O si la clase fue propuesta por ESTE mismo profesor y sigue pendiente.
+    if profesor_id:
+        from src.core.clases.clases import ProfesorDictaClase # Tu tabla intermedia
+        
+        # Subquery para traer los IDs de las clases que este profesor ya tiene asociadas
+        subquery_mis_clases = select(ProfesorDictaClase.id_clase).where(
+            ProfesorDictaClase.id_profesor == profesor_id
+        )
+        
+        condicion_ocupacion = or_(
+            Clase.aprobada == True,
+            (Clase.id.in_(subquery_mis_clases)) & (Clase.aprobada == False)
+        )
+
     if tipo_clase == "Fija":
-        # --- LÓGICA OPTIMIZADA PARA CLASES FIJAS ---
+        # --- LÓGICA PARA CLASES FIJAS ---
         anio = fecha_evaluar.year
         mes = fecha_evaluar.month
-        dia_semana_python = fecha_evaluar.weekday() # 0=Lunes, 6=Domingo
+        dia_semana_python = fecha_evaluar.weekday()
         
-        # 1. Buscamos el RESTO de las ocurrencias del mismo día en el mes (excluyendo la fecha_evaluar)
         _, total_dias_mes = calendar.monthrange(anio, mes)
         otras_fechas_del_mes = []
         
@@ -151,23 +168,18 @@ def obtener_horarios_disponibles(fecha_evaluar, duracion_minutos=45, sala_id_eva
             if fecha_posible.weekday() == dia_semana_python and fecha_posible != fecha_evaluar:
                 otras_fechas_del_mes.append(fecha_posible)
         
-        # 2. Una única consulta atómica y liviana:
-        # - Trae TODO lo del día de evaluación (captura la fija base y las individuales de ese día).
-        # - Trae SOLO las individuales del resto de los días repetidos del mes (evita traer fijas duplicadas).
+        # Aplicamos la condicion_ocupacion combinada con tus filtros de fechas
         query = select(Clase).filter(
             Clase.sala_id == sala_id_evaluar,
             Clase.suspendida == False,
+            condicion_ocupacion, #  Inyección del blindaje por rol
             or_(
-                # Opción A: Todo lo que esté agendado en la fecha inicial a evaluar
                 (Clase.fecha_clase == fecha_evaluar),
-                
-                # Opción B: Únicamente clases individuales en los otros días del mes
                 (Clase.fecha_clase.in_(otras_fechas_del_mes)) & (Clase.tipo == "Individual")
             )
         )
         clases_conflictivas = db.session.scalars(query).all()
 
-        # 3. Mapeamos los rangos ocupados proyectándolos sobre la 'fecha_evaluar' de referencia
         for c in clases_conflictivas:
             inicio_dt = datetime.combine(fecha_evaluar, c.horario)
             fin_dt = inicio_dt + timedelta(minutes=c.duracion)
@@ -175,11 +187,11 @@ def obtener_horarios_disponibles(fecha_evaluar, duracion_minutos=45, sala_id_eva
 
     else:
         # --- LÓGICA PARA CLASE INDIVIDUAL ---
-        # Se mantiene lineal: solo nos importa lo que ocurra exactamente ese día en la sala
         query = select(Clase).filter(
             Clase.fecha_clase == fecha_evaluar,
             Clase.sala_id == sala_id_evaluar,
-            Clase.suspendida == False
+            Clase.suspendida == False,
+            condicion_ocupacion #  Inyección del blindaje por rol
         )
         clases_del_dia = db.session.scalars(query).all()
 
@@ -188,7 +200,7 @@ def obtener_horarios_disponibles(fecha_evaluar, duracion_minutos=45, sala_id_eva
             fin_dt = inicio_dt + timedelta(minutes=c.duracion)
             rangos_ocupados.append((inicio_dt, fin_dt))
 
-    # --- GENERADOR DE SLOTS (Ventana deslizante corregida y óptima) ---
+    # --- GENERADOR DE SLOTS (Se mantiene igual de óptimo) ---
     horarios_libres = []
     enfoque_dt = datetime.combine(fecha_evaluar, time(HORA_INICIO_LABORAL, 0))
     fin_laboral_dt = datetime.combine(fecha_evaluar, time(HORA_FIN_LABORAL, 0))
@@ -221,14 +233,14 @@ def listar_especialidades_activas():
     especialidades = db.session.scalars(query).all()
     return especialidades
 
-def crear_clases_agenda(**datos_clase):
+def crear_clases_agenda(id_profesor=None, **datos_clase):
     """
     Se encarga de persistir las clases en la base de datos con manejo estricto de excepciones.
+    Permite opcionalmente vincular un profesor a cada instancia creada en la agenda.
     """
     try:
-        # Usamos .get() con valores por defecto para evitar KeyErrors si cambian los nombres de los inputs
         fecha_inicial = datos_clase.get('fecha_clase')
-        tipo = datos_clase.get('tipo') or datos_clase.get('tipo_clase') # Soporta ambas variantes
+        tipo = datos_clase.get('tipo') or datos_clase.get('tipo_clase')
         
         fechas_a_procesar = []
         hoy = date.today()
@@ -238,24 +250,20 @@ def crear_clases_agenda(**datos_clase):
             mes = fecha_inicial.month
             dia_semana_objetivo = fecha_inicial.weekday()
 
-            # Obtenemos la matriz de semanas del mes correspondiente
             cal = calendar.monthcalendar(anio, mes)
             for semana in cal:
                 dia = semana[dia_semana_objetivo]
                 if dia != 0:
                     fecha_calculada = date(anio, mes, dia)
-                    # CANDADO: Solo agrega si es estrictamente posterior al día de hoy
-                    if fecha_calculada >= hoy:  # Cambiado a >= por seguridad si se crea para el mismo día
+                    if fecha_calculada >= hoy:
                         fechas_a_procesar.append(fecha_calculada)
         else:
             fechas_a_procesar.append(fecha_inicial)
 
-        # Si el algoritmo de fechas falló y quedó vacío
         if not fechas_a_procesar:
             print(f"⚠️ Alerta Seeder/Agenda: No se generaron fechas para {fecha_inicial} [Tipo: {tipo}]")
             return False
 
-        # SI ES FIJA: Calculamos el próximo id_bloque secuencial libre
         id_bloque_actual = None
         if tipo == "Fija":
             max_bloque = db.session.scalar(select(func.max(ClaseBloque.id_bloque)))
@@ -267,7 +275,6 @@ def crear_clases_agenda(**datos_clase):
                 nombre=datos_clase.get('nombre'),
                 especialidad=datos_clase.get('especialidad'),
                 duracion=datos_clase.get('duracion'),
-                #capacidad_maxima=datos_clase.get('capacidad_maxima'),
                 descripcion=datos_clase.get('descripcion'),
                 fecha_clase=f,
                 horario=datos_clase.get('horario'),
@@ -277,9 +284,22 @@ def crear_clases_agenda(**datos_clase):
                 aprobada=True
             )
             db.session.add(nueva_clase)
+
+            # BLINDAJE ATÓMICO: Cancelamos cualquier propuesta que compita con este slot
+            _limpiar_propuestas_por_colision(nueva_clase)
+            
+            # NUEVA LÓGICA: Si se provee un profesor, creamos la relación intermedia
+            if id_profesor is not None:
+                # Usamos el objeto completa 'clase=nueva_clase' para que SQLAlchemy
+                # resuelva los IDs autoincrementales automáticamente en el flush/commit.
+                nueva_relacion = ProfesorDictaClase(
+                    id_profesor=id_profesor,
+                    id_clase=nueva_clase.id
+                )
+                db.session.add(nueva_relacion)
             
             if tipo == "Fija":
-                db.session.flush() # Forzamos obtención de ID de clase
+                db.session.flush() # Forzamos obtención de ID de clase para el bloque
                 
                 asociacion_bloque = ClaseBloque(
                     id_bloque=id_bloque_actual,
@@ -292,10 +312,9 @@ def crear_clases_agenda(**datos_clase):
 
     except Exception as e:
         db.session.rollback()
-        # 🚨 ESTO ES CLAVE: Te va a decir en la terminal la línea y causa exacta del fallo
         print(f"❌ Error crítico en el Core al persistir la agenda: {str(e)}")
         import traceback
-        traceback.print_exc() # Imprime el árbol de ejecución del error en tu consola de Flask
+        traceback.print_exc()
         return False
 # <CREAR CLASE/>
 
@@ -426,11 +445,14 @@ def obtener_clases_dictadas_por_profesor(profesor_id: int):
     """
     # QUERY BASE DE ASIGNACIONES 
     query = (
-        select(Clase)
-        .join(ProfesorDictaClase, ProfesorDictaClase.id_clase == Clase.id)
-        .filter(ProfesorDictaClase.id_profesor == profesor_id)
-        .order_by(Clase.fecha_clase.asc(), Clase.horario.asc())
+    select(Clase)
+    .join(ProfesorDictaClase, ProfesorDictaClase.id_clase == Clase.id)
+    .where(
+        ProfesorDictaClase.id_profesor == profesor_id,
+        Clase.aprobada == True  # 🔓 Solo muestra las clases confirmadas por el Admin
     )
+    .order_by(Clase.fecha_clase.asc(), Clase.horario.asc())
+)
     clases_objetos = db.session.scalars(query).all()
     
     # 🕒 Momento exacto de "ahora" respetando la zona horaria del sistema
@@ -694,3 +716,114 @@ def profesor_tiene_conflicto_horario(clase_id, id_profesor):
             return otra.nombre
 
     return False
+
+def _limpiar_propuestas_por_colision(nueva_clase_admin):
+    """
+    Busca propuestas de profesores (aprobada=False, suspendida=False) que colisionen 
+    en la misma fecha y sala que la nueva clase oficial del Admin, pasándolas a suspendida=True.
+    """
+    inicio_admin = datetime.combine(nueva_clase_admin.fecha_clase, nueva_clase_admin.horario)
+    fin_admin = inicio_admin + timedelta(minutes=nueva_clase_admin.duracion)
+    
+    # Traemos solo las propuestas pendientes de esa sala y fecha
+    query_propuestas = select(Clase).filter(
+        Clase.fecha_clase == nueva_clase_admin.fecha_clase,
+        Clase.sala_id == nueva_clase_admin.sala_id,
+        Clase.aprobada == False,
+        Clase.suspendida == False
+    )
+    propuestas_candidatas = db.session.scalars(query_propuestas).all()
+    
+    for propuesta in propuestas_candidatas:
+        inicio_propu = datetime.combine(propuesta.fecha_clase, propuesta.horario)
+        fin_propu = inicio_propu + timedelta(minutes=propuesta.duracion)
+        
+        # Superposición: InicioA < FinB and FinA > InicioB
+        if inicio_admin < fin_propu and fin_admin > inicio_propu:
+            propuesta.suspendida = True # Muta a Rechazada por Colisión
+
+def proponer_clase_profesor(profesor_id: int, **datos_propuesta) -> bool:
+    """
+    Permite a un profesor registrar una propuesta de clase individual.
+    Nace con aprobada=False y se pre-asigna en ProfesorDictaClase.
+    """
+    from src.core.clases.clases import ProfesorDictaClase
+
+    try:
+        fecha_inicial = datos_propuesta.get('fecha_clase')
+        
+        # Por regla de negocio elemental, las propuestas de profesores suelen ser individuales 
+        # para que el administrador las evalúe caso por caso.
+        nueva_propuesta = Clase(
+            nombre=datos_propuesta.get('nombre'),
+            especialidad=datos_propuesta.get('especialidad'),
+            duracion=datos_propuesta.get('duracion'),
+            descripcion=datos_propuesta.get('descripcion'),
+            fecha_clase=fecha_inicial,
+            horario=datos_propuesta.get('horario'),
+            tipo="Individual",
+            sala_id=datos_propuesta.get('sala_id'),
+            suspendida=False,
+            aprobada=False # 🟡 Estado: PROPUESTA / PENDIENTE
+        )
+        db.session.add(nueva_propuesta)
+        db.session.flush() # Forzamos obtención del ID para la pre-asignación
+        
+        # Pre-vinculamos al profesor que la ideó para mantener la consistencia
+        pre_asignacion = ProfesorDictaClase(
+            id_profesor=profesor_id,
+            id_clase=nueva_propuesta.id
+        )
+        db.session.add(pre_asignacion)
+        
+        db.session.commit()
+        return True
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error al persistir la propuesta del profesor: {e}")
+        return False
+    
+def validar_disponibilidad_extendida(db_session, Clase, sala_id, fecha_inicio, horario, duracion, tipo_clase):
+    """
+    Calcula las fechas correspondientes (un solo día o todo el mes si es Fija)
+    y verifica si existen solapamientos horarios en la base de datos.
+    Retorna (True, None) si está disponible, o (False, fecha_conflicto) si hay colisión.
+    """
+    # 1. Determinar el set de fechas a auditar
+    fechas_a_validar = []
+    if tipo_clase == "Individual":
+        fechas_a_validar.append(fecha_inicio)
+    else:
+        fecha_corriente = fecha_inicio
+        ultimo_dia_mes = calendar.monthrange(fecha_corriente.year, fecha_corriente.month)[1]
+        fecha_limite = date(fecha_corriente.year, fecha_corriente.month, ultimo_dia_mes)
+        
+        while fecha_corriente <= fecha_limite:
+            fechas_a_validar.append(fecha_corriente)
+            fecha_corriente += timedelta(days=7)
+
+    # 2. Rango horario de la nueva propuesta
+    base_dt = datetime.combine(date.today(), horario)
+    fin_propuesta_time = (base_dt + timedelta(minutes=duracion)).time()
+
+    # 3. Comprobación en bucle
+    for fecha in fechas_a_validar:
+        clases_del_dia = db_session.scalars(
+            select(Clase).where(
+                Clase.sala_id == sala_id,
+                Clase.fecha_clase == fecha,
+                Clase.aprobada == True,
+                Clase.suspendida == False
+            )
+        ).all()
+
+        for clase in clases_del_dia:
+            base_existente_dt = datetime.combine(date.today(), clase.horario)
+            fin_existente_time = (base_existente_dt + timedelta(minutes=clase.duracion)).time()
+            
+            # Regla de solapamiento: (InicioA < FinB) AND (FinA > InicioB)
+            if horario < fin_existente_time and fin_propuesta_time > clase.horario:
+                return False, fecha
+
+    return True, None
