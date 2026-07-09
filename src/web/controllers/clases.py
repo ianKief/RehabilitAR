@@ -1,10 +1,10 @@
 from datetime import date, datetime
 from src.core.database import db
 from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, session, url_for
-from src.core.clases import crear_clases_agenda, listar_clases, listar_especialidades_activas, obtener_clase_por_id, obtener_horarios_disponibles, obtener_postulantes_clase, proponer_clase_profesor, resolver_postulacion_clase
+from src.core.clases import crear_clases_agenda, listar_clases, listar_especialidades_activas, obtener_clase_por_id, obtener_horarios_disponibles, obtener_postulantes_clase, procesar_suspension_o_reactivacion, proponer_clase_profesor, resolver_postulacion_clase
 from src.core.salas import listar_salas_habilitadas, obtener_sala
-from src.web.helpers.feriados import obtener_dias_no_laborables
 from src.core.clases.clases import Clase, PostulacionClase, ProfesorDictaClase
+from src.web.helpers.feriados import obtener_dias_no_laborables
 from src.core.auditoria import registrar_log, TipoAccion
 from src.core.clases import obtener_clases_dictadas_por_profesor, obtener_clases_disponibles_para_profesor, obtener_postulaciones_de_profesor
 from src.web.helpers.decorator import requiere_rol
@@ -259,8 +259,17 @@ def ver_clases_para_postularse():
 @requiere_rol(['PROFESOR'])  
 def postularse():
     from src.core.usuarios import conseguir_administrativos, obtener_usuario_por_id_core
+    from datetime import date
+    
+    user_id = session.get('usuario_id')
+    if not user_id:
+        flash("Debes iniciar sesión para postularte a las clases.", "warning")
+        return redirect(url_for('auth.login'))
+        
+    # Como tu modelo Profesor usa el id de usuario como Primary Key (Herencia), 
+    # el profesor_id que necesita la postulación es directamente el user_id de la sesión.
+    profesor_id = user_id
     from src.core.clases import profesor_tiene_conflicto_horario
-    profesor_id = session.get('usuario_id')
     
     # Leemos el string que viene del formulario
     clases_ids_raw = request.form.get("clases_ids")
@@ -279,17 +288,41 @@ def postularse():
             flash("El formato de las clases seleccionadas no es válido.", "danger")
             return redirect(url_for("clases.ver_clases_para_postularse"))
 
+        hoy = date.today()
+
         for clase_id in lista_ids:
-            # Validamos existencia de la clase
+            # 1. Validamos la existencia física de la clase en la BD
             clase_existe = db.session.get(Clase, clase_id)
             if not clase_existe:
-                flash(f"La clase con ID {clase_id} no existe o ya no está disponible.", "warning")
+                flash(f"La clase con ID {clase_id} no existe.", "warning")
                 db.session.rollback()  
                 return redirect(url_for("clases.ver_clases_para_postularse"))
             
+            # 2. Validar que la clase no esté suspendida institucionalmente
+            if clase_existe.suspendida:
+                flash(f"No podés postularte a '{clase_existe.nombre}' porque está suspendida temporalmente.", "danger")
+                db.session.rollback()
+                return redirect(url_for("clases.ver_clases_para_postularse"))
+                
+            # Validar que la clase no pertenezca al pasado
+            if clase_existe.fecha_clase < hoy:
+                flash(f"No podés postularte a '{clase_existe.nombre}' porque ya pasó de fecha.", "danger")
+                db.session.rollback()
+                return redirect(url_for("clases.ver_clases_para_postularse"))
+
+            # 4. Validar que la clase no tenga ya un profesor asignado ("dueño")
+            query_asignacion = select(ProfesorDictaClase).where(ProfesorDictaClase.id_clase == clase_id)
+            ya_asignada = db.session.scalar(query_asignacion)
+            if ya_asignada:
+                flash(f"La clase '{clase_existe.nombre}' ya tiene un profesor asignado.", "warning")
+                db.session.rollback()
+                return redirect(url_for("clases.ver_clases_para_postularse"))
+            
+            # 5. CORRECCIÓN DUPLICADOS: Buscamos si ya se postuló ignorando el historial "SUSPENDIDA"
             query_existente = select(PostulacionClase).where(
                 PostulacionClase.clase_id == clase_id,
-                PostulacionClase.profesor_id == profesor_id
+                PostulacionClase.profesor_id == profesor_id,
+                PostulacionClase.estado.in_(["PENDIENTE", "ACEPTADA", "RECHAZADA"])
             )
             postulacion_existente = db.session.scalar(query_existente)
             
@@ -305,22 +338,27 @@ def postularse():
                 flash (f"El profesor ya tiene una clase en el mismo horario: {conflicto_horario}", "warning")
                 return redirect(url_for("clases.ver_clases_para_postularse"))
 
-            # Creamos la postulación vinculándola al ID correspondiente
+            # Creamos la postulación vinculándola al ID correspondiente en estado PENDIENTE
             nueva_postulacion = PostulacionClase(
                 clase_id=clase_id,
                 profesor_id=profesor_id,
                 estado="PENDIENTE"
             )
             db.session.add(nueva_postulacion)
+            
             usuario = obtener_usuario_por_id_core(profesor_id)
-        enviar_notificaciones(conseguir_administrativos(), "Nueva postulación", f"Se ha recibido una nueva postulación: {usuario.nombre}, {usuario.apellido} se ha anotado a la clase {clase_existe.nombre}. Para más información revise la casilla de clases", TipoNotificacion.NUEVA_APELACION_A_CLASE)
+            enviar_notificaciones(
+                conseguir_administrativos(), 
+                "Nueva postulación", 
+                f"Se ha recibido una nueva postulación: {usuario.nombre}, {usuario.apellido} se ha anotado a la clase {clase_existe.nombre}. Para más información revise la casilla de clases", 
+                TipoNotificacion.NUEVA_APELACION_A_CLASE
+            )
         
         db.session.commit()
-        flash("Usted fue asignado correctamente, puede ver sus clases en la seccion 'Mis clases'.", "success")
-
+        flash("Usted se ha postulado correctamente, puede ver el estado en la sección correspondientes.", "success")
+        
     except Exception as e:
         db.session.rollback()
-        # Esto te va a mostrar en la terminal si llega a saltar otra cosa de la base de datos
         print(f"❌ Error crítico en postulación: {e}") 
         flash("Hubo un error interno al procesar la postulación. Intentalo de nuevo.", "danger")
         
@@ -378,6 +416,17 @@ def ver_clases_asignadas():
         current_path=request.path
     )
 
+@bp.route("/<int:clase_id>/alternar-suspension", methods=["GET", "POST"])
+@requiere_rol(['ADMINISTRADOR']) 
+def alternar_suspension(clase_id):
+    from src.core.clases.clases import tz_arg
+
+    resultado = procesar_suspension_o_reactivacion(clase_id, tz_arg)
+    
+    # Se manda el flash dinámico según lo que devolvió el motor de servicios
+    flash(resultado["message"], resultado["status"])
+    
+    return redirect(url_for("clases.ver_detalle_admin", clase_id=clase_id))
 @bp.route('/profesor/proponer', methods=['GET'])
 @requiere_rol(['PROFESOR'])
 def proponer_clase_vista():

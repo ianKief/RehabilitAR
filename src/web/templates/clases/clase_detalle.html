@@ -168,11 +168,14 @@
                                                 <span class="tag is-warning is-light">Pendiente</span>
                                             {% elif postu.estado == "ACEPTADA" %}
                                                 <span class="tag is-success is-light">Aceptada</span>
+                                            {% elif postu.estado == "SUSPENDIDA" %}
+                                                <span class="tag is-info is-light">Cancelada</span>
                                             {% else %}
                                                 <span class="tag is-danger is-light">Rechazada</span>
                                             {% endif %}
                                         </td>
                                         <td class="has-text-right">
+                                            {# Lógica de acciones y botones #}
                                             {% if postu.estado == "PENDIENTE" and asignado %}
                                                 <span class="has-text-grey-light is-size-7 mr-2 italic">Vacante cubierta</span>
                                             {% elif postu.estado == "PENDIENTE" %}
@@ -191,6 +194,8 @@
                                                         </button>
                                                     </form>
                                                 </div>
+                                            {% elif postu.estado == "SUSPENDIDA" %}
+                                                <span class="has-text-grey-light is-size-7 mr-2">Clase Anulada</span>
                                             {% else %}
                                                 <span class="has-text-grey-light is-size-7 mr-2">Resuelta</span>
                                             {% endif %}

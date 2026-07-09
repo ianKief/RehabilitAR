@@ -396,11 +396,23 @@ def editar_perfil():
             flash("Ocurrió un error al guardar los cambios. Inténtalo de nuevo.", "danger")
             
             # === Validamos paso a paso que no sea None ===
-            dias_restantes = obtener_dias_apto(usuario)
+            dias_restantes = 0
+            if isinstance(usuario, Cliente):
+                if usuario.apto_fisico and usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
+                    if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
+                        fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
+                        dias_restantes = (fecha_vencimiento - datetime.now()).days
+                    
             return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes, editando=True)
     
     # 4. Si entra por GET, calculamos los días del apto para el renderizado del formulario
-    dias_restantes = obtener_dias_apto(usuario)
+    dias_restantes = 0
+    
+    # === 'if usuario.apto_fisico' antes de evaluar sus propiedades ===
+    if isinstance(usuario, Cliente) and usuario.apto_fisico and usuario.apto_fisico.estado and usuario.apto_fisico.estado.name == 'ACEPTADO':
+        if hasattr(usuario.apto_fisico, 'fecha_carga') and usuario.apto_fisico.fecha_carga:
+            fecha_vencimiento = usuario.apto_fisico.fecha_carga + timedelta(days=365)
+            dias_restantes = (fecha_vencimiento - datetime.now()).days
 
     # Reutilizamos tu HTML pasándole el flag 'editando=True'
     return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes, editando=True)

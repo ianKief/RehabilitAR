@@ -80,8 +80,6 @@ class PostulacionClase(Base):
     clase = relationship("Clase")
     profesor = relationship("Usuario")
 
-    from sqlalchemy import ForeignKey
-
 class ClaseBloque(Base):
     __tablename__ = "clases_bloques"
 
