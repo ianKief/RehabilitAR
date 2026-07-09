@@ -29,6 +29,8 @@ def listar_estadisticas():
         total_ganancias=ganancias["total_ganancias"],
         fecha_desde=ganancias["fecha_desde"],
         fecha_hasta=ganancias["fecha_hasta"],
+        fecha_desde_default=ganancias["fecha_desde_default"],
+        fecha_hasta_default=ganancias["fecha_hasta_default"],
 
         current_path=request.path
     )
@@ -61,15 +63,20 @@ def obtener_datos_registros():
 
 def obtener_datos_ganancias():
 
+    fecha_desde_default = f"{datetime.now().year}-01-01"
+    fecha_hasta_default = datetime.now().strftime("%Y-%m-%d")
     fecha_desde = request.args.get(
         "desde",
-        default=f"{datetime.now().year}-01-01"
+        default=fecha_desde_default
     )
 
     fecha_hasta = request.args.get(
         "hasta",
-        default=datetime.now().strftime("%Y-%m-%d")
+        default=fecha_hasta_default
     )
+    
+    if fecha_desde > fecha_hasta:
+        fecha_desde = fecha_hasta
 
     ganancias_db = obtener_ganancias_periodo(
         fecha_desde,
@@ -91,5 +98,7 @@ def obtener_datos_ganancias():
         "ganancias": ganancias,
         "total_ganancias": total_ganancias,
         "fecha_desde": fecha_desde,
-        "fecha_hasta": fecha_hasta
+        "fecha_hasta": fecha_hasta,
+        "fecha_desde_default": fecha_desde_default,
+        "fecha_hasta_default": fecha_hasta_default
     }

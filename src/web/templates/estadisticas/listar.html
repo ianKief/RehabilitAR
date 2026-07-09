@@ -29,7 +29,7 @@ Estadísticas
 
                         <!-- Filtro -->
                         <div class="column">
-                            <form method="GET">
+                            <form method="GET" class="js-preserve-filters">
                                 <div class="field">
                                     <label class="label">Año</label>
 
@@ -83,28 +83,33 @@ Estadísticas
                         Ganancias
                     </h2>
 
-                    <form method="GET">
+                    <form method="GET" class="js-preserve-filters">
 
-                        <div class="columns is-vcentered">
-
+                        <div class="columns">
                             <div class="column">
                                 <label class="label">Desde</label>
-                                <input
-                                    class="input"
-                                    type="date"
-                                    name="desde"
-                                    value="{{ fecha_desde }}">
+                                <div class="control is-relative date-control">
+                                    <!-- El data-default guarda la variable de Flask de forma invisible -->
+                                    <input type="date" name="desde" class="input js-date-input" id="fecha_desde" value="{{ fecha_desde }}" data-default="{{ fecha_desde_default }}" max="{{ fecha_hasta_default }}">
+                                    
+                                    <!-- Ícono de reset -->
+                                    <span class="icon is-small reset-date-icon" title="Volver a fecha original" data-target="fecha_desde">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </span>
+                                </div>
                             </div>
 
+                            <!-- Campo: Fecha Hasta -->
                             <div class="column">
                                 <label class="label">Hasta</label>
-                                <input
-                                    class="input"
-                                    type="date"
-                                    name="hasta"
-                                    value="{{ fecha_hasta }}">
+                                <div class="control is-relative date-control">
+                                    <input type="date" name="hasta" class="input js-date-input" id="fecha_hasta"  value="{{ fecha_hasta }}" data-default="{{ fecha_hasta_default }}" max="{{ fecha_hasta_default }}">
+                                        
+                                    <span class="icon is-small reset-date-icon" title="Volver a fecha original" data-target="fecha_hasta">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </span>
+                                </div>
                             </div>
-
                         </div>
 
                         <div class="columns is-vcentered mb-4">
@@ -131,7 +136,7 @@ Estadísticas
 
                         </div>
 
-                        </form>
+                    </form>
 
                     <div id="datos-ganancias"
                         data-ganancias='{{ ganancias | tojson }}'>
@@ -180,8 +185,73 @@ Estadísticas
 
     </div>
 
+    <!--Ruedita de actualización para poner las fechas de pago default-->
+    <style>
+        .date-control .input {
+            /* Le damos un poco más de espacio a la derecha para que no se superponga el texto con los dos íconos */
+            padding-right: 2.5rem; 
+        }
+
+        .date-control .reset-date-icon {
+            position: absolute;
+            right: 10px; /* Lo acercamos al borde derecho porque ya no compite con el calendario */
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #b5b5b5;
+            transition: color 0.2s ease, transform 0.3s ease;
+            z-index: 10;
+        }
+
+        /* Efecto al pasar el mouse: se oscurece y gira */
+        .date-control .reset-date-icon:hover {
+            color: #4a4a4a;
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        .js-date-input::-webkit-calendar-picker-indicator {
+            display: none;
+            -webkit-appearance: none;
+        }
+    </style>
+
+    <!--Importación de chart-->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <!--No se pierden los filtros al filtrar en otra parte-->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Seleccionamos todos los formularios de filtros
+            const filterForms = document.querySelectorAll('.js-preserve-filters');
+
+            filterForms.forEach(form => {
+                form.addEventListener('submit', (e) => {
+                    // 1. Frenamos el envío nativo del HTML que borraría nuestra URL
+                    e.preventDefault();
+
+                    // 2. Obtenemos los parámetros de la URL en la que estamos parados ahora mismo
+                    const currentParams = new URLSearchParams(window.location.search);
+
+                    // 3. Extraemos los datos del formulario que el usuario acaba de enviar
+                    const formData = new FormData(form);
+
+                    // 4. Mezclamos ambos: actualizamos los parámetros viejos con los valores nuevos
+                    for (const [key, value] of formData.entries()) {
+                        if (value) {
+                            currentParams.set(key, value); // Si hay valor, lo actualiza o lo agrega
+                        } else {
+                            currentParams.delete(key); // Si el input está vacío, lo borra para mantener la URL limpia
+                        }
+                    }
+
+                    // 5. Recargamos la página pasándole la nueva cadena unificada de parámetros
+                    window.location.search = currentParams.toString();
+                });
+            });
+        });
+    </script>
+
+    <!--Renderización de gráfico de registros mensuales-->
     <script>
         const elementoDatos = document.getElementById("datos-registros");
 
@@ -214,6 +284,7 @@ Estadísticas
         });
     </script>
 
+    <!--Funcionalidad aún no implementada ¿?-->
     <script>
         document.getElementById("filtroTiempo").addEventListener("change", function () {
             const meses = this.value;
@@ -221,36 +292,67 @@ Estadísticas
             window.location.href = `/estadisticas/?meses=${meses}`;
         });
     </script>
+
+    <!--Renderización de las ganancias-->
     <script>
-    const datosGanancias = JSON.parse(
-        document
-            .getElementById("datos-ganancias")
-            .dataset
-            .ganancias
-    );
+        const datosGanancias = JSON.parse(
+            document
+                .getElementById("datos-ganancias")
+                .dataset
+                .ganancias
+        );
 
-    const mesesGanancias = datosGanancias.map(g => g.mes);
-    const totalesGanancias = datosGanancias.map(g => g.total);
+        const mesesGanancias = datosGanancias.map(g => g.mes);
+        const totalesGanancias = datosGanancias.map(g => g.total);
 
-    const ctxGanancias = document.getElementById("gananciasChart");
+        const ctxGanancias = document.getElementById("gananciasChart");
 
-    new Chart(ctxGanancias, {
-        type: "bar",
-        data: {
-            labels: mesesGanancias,
-            datasets: [{
-                label: "Ganancias ($)",
-                data: totalesGanancias
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true
+        new Chart(ctxGanancias, {
+            type: "bar",
+            data: {
+                labels: mesesGanancias,
+                datasets: [{
+                    label: "Ganancias ($)",
+                    data: totalesGanancias
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
                 }
             }
-        }
-    });
-</script>
-    {% endblock %}
+        });
+    </script>
+
+    <!--Ganancias: reseteo de fecha-->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Seleccionamos todas las rueditas
+            const resetIcons = document.querySelectorAll('.reset-date-icon');
+
+            resetIcons.forEach(icon => {
+                icon.addEventListener('click', () => {
+                    // Buscamos a qué input pertenece este ícono
+                    const targetId = icon.getAttribute('data-target');
+                    const input = document.getElementById(targetId);
+                    
+                    // Obtenemos la fecha original que inyectó Flask
+                    const defaultValue = input.getAttribute('data-default');
+
+                    // Solo hacemos el cambio si la fecha actual es distinta a la original
+                    if (input.value !== defaultValue) {
+                        input.value = defaultValue;
+                        
+                        // ¡Magia! Disparamos el evento 'change'.
+                        // Si tus gráficos escuchan el cambio de fecha para actualizarse, 
+                        // esto hará que lo hagan automáticamente.
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock %}
