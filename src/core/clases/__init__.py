@@ -136,7 +136,7 @@ def obtener_horarios_disponibles(fecha_evaluar, duracion_minutos=45, sala_id_eva
 
     rangos_ocupados = []
 
-    # 🛡️ CONSTRUCCIÓN DE LA CONDICIÓN DE FILTRADO BASE
+    #  CONSTRUCCIÓN DE LA CONDICIÓN DE FILTRADO BASE
     # El horario está ocupado si la clase ya está aprobada por el admin...
     condicion_ocupacion = (Clase.aprobada == True)
     
@@ -172,7 +172,7 @@ def obtener_horarios_disponibles(fecha_evaluar, duracion_minutos=45, sala_id_eva
         query = select(Clase).filter(
             Clase.sala_id == sala_id_evaluar,
             Clase.suspendida == False,
-            condicion_ocupacion, # 👈 Inyección del blindaje por rol
+            condicion_ocupacion, #  Inyección del blindaje por rol
             or_(
                 (Clase.fecha_clase == fecha_evaluar),
                 (Clase.fecha_clase.in_(otras_fechas_del_mes)) & (Clase.tipo == "Individual")
@@ -191,7 +191,7 @@ def obtener_horarios_disponibles(fecha_evaluar, duracion_minutos=45, sala_id_eva
             Clase.fecha_clase == fecha_evaluar,
             Clase.sala_id == sala_id_evaluar,
             Clase.suspendida == False,
-            condicion_ocupacion # 👈 Inyección del blindaje por rol
+            condicion_ocupacion #  Inyección del blindaje por rol
         )
         clases_del_dia = db.session.scalars(query).all()
 
@@ -285,10 +285,10 @@ def crear_clases_agenda(id_profesor=None, **datos_clase):
             )
             db.session.add(nueva_clase)
 
-            # 🛡️ BLINDAJE ATÓMICO: Cancelamos cualquier propuesta que compita con este slot
+            # BLINDAJE ATÓMICO: Cancelamos cualquier propuesta que compita con este slot
             _limpiar_propuestas_por_colision(nueva_clase)
             
-            # 🔄 NUEVA LÓGICA: Si se provee un profesor, creamos la relación intermedia
+            # NUEVA LÓGICA: Si se provee un profesor, creamos la relación intermedia
             if id_profesor is not None:
                 # Usamos el objeto completa 'clase=nueva_clase' para que SQLAlchemy
                 # resuelva los IDs autoincrementales automáticamente en el flush/commit.

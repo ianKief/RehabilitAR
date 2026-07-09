@@ -554,36 +554,6 @@
     </script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const btnToggle = document.getElementById('btn-toggle-propuestas-profesor');
-            const submenu = document.getElementById('submenu-propuestas-profesor');
-            const iconoFlecha = document.getElementById('icono-flecha-propuestas-profesor');
-
-            if (btnToggle && submenu && iconoFlecha) {
-                // 1. Mantener abierto el submenú si el profesor está parado en alguna de sus sub-rutas
-                const tieneHijoActivo = submenu.querySelector('.menu-item-active') !== null;
-                if (tieneHijoActivo) {
-                    submenu.classList.remove('is-hidden');
-                    iconoFlecha.classList.replace('fa-angle-down', 'fa-angle-up');
-                }
-
-                // 2. Evento Click para colapsar / expandir de forma manual
-                btnToggle.addEventListener('click', function() {
-                    const estaOculto = submenu.classList.contains('is-hidden');
-                    
-                    if (estaOculto) {
-                        submenu.classList.remove('is-hidden');
-                        iconoFlecha.classList.replace('fa-angle-down', 'fa-angle-up');
-                    } else {
-                        submenu.classList.add('is-hidden');
-                        iconoFlecha.classList.replace('fa-angle-up', 'fa-angle-down');
-                    }
-                });
-            }
-        });
-    </script>
-
-    <script>
         // Seleccionamos todos los botones de "marcar como leída"
         const markReadButtons = document.querySelectorAll('.js-mark-read');
 
@@ -723,6 +693,39 @@
                 if (iconoFlechaClases) iconoFlechaClases.classList.replace('fa-angle-down', 'fa-angle-up');
             }
         }
+    </script>
+
+    <script>
+        // ==========================================
+        // LÓGICA DEL MENÚ DESPLEGABLE DE PROPUESTAS (PROF)
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', function() {
+            const btnToggle = document.getElementById('btn-toggle-propuestas-profesor');
+            const submenu = document.getElementById('submenu-propuestas-profesor');
+            const iconoFlecha = document.getElementById('icono-flecha-propuestas-profesor');
+
+            if (btnToggle && submenu && iconoFlecha) {
+                // 1. Mantener abierto el submenú si el profesor está parado en alguna de sus sub-rutas
+                const tieneHijoActivo = submenu.querySelector('.menu-item-active') !== null;
+                if (tieneHijoActivo) {
+                    submenu.classList.remove('is-hidden');
+                    iconoFlecha.classList.replace('fa-angle-down', 'fa-angle-up');
+                }
+
+                // 2. Evento Click para colapsar / expandir de forma manual
+                btnToggle.addEventListener('click', function() {
+                    const estaOculto = submenu.classList.contains('is-hidden');
+                    
+                    if (estaOculto) {
+                        submenu.classList.remove('is-hidden');
+                        iconoFlecha.classList.replace('fa-angle-down', 'fa-angle-up');
+                    } else {
+                        submenu.classList.add('is-hidden');
+                        iconoFlecha.classList.replace('fa-angle-up', 'fa-angle-down');
+                    }
+                });
+            }
+        });
     </script>
 
     <style>
