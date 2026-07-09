@@ -1,5 +1,3 @@
-import os
-
 from flask import (
     Blueprint,
     current_app,
@@ -25,6 +23,7 @@ from src.core.pagos import (
 from src.core.reservas import obtener_clase_por_id
 from src.web.helpers.decorator import requiere_rol
 from src.web.functions import devolver_enlace_absoluto_actual
+from src.core.auditoria import registrar_log, TipoAccion
 
 
 bp = Blueprint("pagos", __name__, url_prefix="/pagos")
@@ -188,6 +187,13 @@ def precio_clase():
             actualizar_precios_clase(
                 precio_individual=precio_individual,
                 precio_fija=precio_fija
+            )
+            registrar_log(
+                TipoAccion.ACTUALIZACION_PRECIO,
+                detalles={
+                    "nuevo_precio_individual": precio_individual,
+                    "nuevo_precio_fija": precio_fija
+                }
             )
             flash("Precios actualizados correctamente", "success")
         except ValueError as e:

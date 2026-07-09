@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 from src.core.auth import registrar_cliente as registrar_cliente_core, confirmar_codigo as confirmar_codigo_core, login as login_core, restablecer_contrasena_core, solicitar_restablecimiento_core
 from src.core.usuarios import obtener_usuario_por_id_core
 from src.core.database import db
+from src.core.auditoria import registrar_log, TipoAccion
 
 from src.web import mail
 from src.web.bypass import correos_bypass
@@ -111,6 +112,7 @@ def registrar_cliente():
 
             mail.send(msg)
             
+            registrar_log(TipoAccion.REGISTRO_USUARIO, id_entidad_objetivo=nuevo_cliente.id, detalles={"mensaje": f"Se registró el usuario {nuevo_cliente.email}"})
             session['verificacion_user_id'] = nuevo_cliente.id
             session['verificacion_origen'] = 'registro'
             db.session.commit()
@@ -154,6 +156,7 @@ def login():
                 session.permanent = True
                 session['usuario_id'] = usuario.id
                 session['rol'] = usuario.rol.name
+                registrar_log(TipoAccion.LOGIN_EXITOSO, id_entidad_objetivo=usuario.id, detalles={"mensaje": "Inicio de sesión exitoso"})
                 flash("¡Bienvenido! (Verificación omitida para pruebas)", "success")
                 return redirect(url_for('home'))
 
@@ -179,6 +182,7 @@ def login():
         
         except ValueError as e:
             db.session.rollback()
+            registrar_log(TipoAccion.LOGIN_FALLIDO, detalles={'email': email, 'error': str(e)})
             return render_template('auth/login.html', error=str(e))
         
         except Exception as e:
@@ -189,7 +193,8 @@ def login():
 
 @auth_bp.route('/logout')
 def logout():
-    session.clear() 
+    registrar_log(TipoAccion.LOGOUT, detalles={"mensaje": "Cierre de sesión exitoso"})
+    session.clear()
     
     flash("Has cerrado sesión de forma segura.", "success")
     return redirect(url_for('home'))
@@ -281,6 +286,7 @@ def restablecer_contrasena(token):
         
         try:
             restablecer_contrasena_core(token, nueva_password, confirmacion)
+            registrar_log(TipoAccion.CAMBIO_CONTRASENA, id_entidad_objetivo=usuario.id, detalles={"mensaje": f"Se cambió la contraseña del usuario {usuario.email}"})
             flash("Contraseña reestablecida, ya puede iniciar sesión", "success")
             return redirect(url_for('auth.login'))
         except ValueError as e:
