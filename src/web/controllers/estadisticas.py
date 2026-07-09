@@ -17,36 +17,6 @@ bp = Blueprint ("estadisticas",__name__, url_prefix="/estadisticas")
 @bp.route("/",methods=["GET"])
 @requiere_rol(["ADMINISTRADOR"])
 def listar_estadisticas():
-
-    registros = obtener_datos_registros()
-    ganancias = obtener_datos_ganancias()
-
-    # suspendidos = obtener_datos_suspendidos()
-    # asistencias = obtener_datos_asistencias()
-
-    return render_template(
-        "estadisticas/listar.html",
-
-        # Registros
-        registros=registros["registros"],
-        total_clientes=registros["total_clientes"],
-        anios=registros["anios"],
-        anio_seleccionado=registros["anio_seleccionado"],
-
-        # Ganancias
-        ganancias=ganancias["ganancias"],
-        total_ganancias=ganancias["total_ganancias"],
-        fecha_desde=ganancias["fecha_desde"],
-        fecha_hasta=ganancias["fecha_hasta"],
-        fecha_desde_default=ganancias["fecha_desde_default"],
-        fecha_hasta_default=ganancias["fecha_hasta_default"],
-
-        current_path=request.path
-    )
-
-
-def obtener_datos_registros():
-
     anios = obtener_anios_disponibles()
     is_search = request.args.get('is_search')
 
@@ -87,17 +57,3 @@ def obtener_datos_registros():
         anio_seleccionado=anio,
         is_search=is_search
     )
-
-    total_ganancias = sum(
-        pago.monto_total
-        for pago in ganancias_db
-    )
-
-    return {
-        "ganancias": ganancias,
-        "total_ganancias": total_ganancias,
-        "fecha_desde": fecha_desde,
-        "fecha_hasta": fecha_hasta,
-        "fecha_desde_default": fecha_desde_default,
-        "fecha_hasta_default": fecha_hasta_default
-    }
