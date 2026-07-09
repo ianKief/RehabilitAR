@@ -5,6 +5,7 @@ from src.core.usuarios.usuarios import Usuario, EstadoAptoFisico, Cliente, AptoF
 from src.web.helpers.decorator import requiere_rol
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
+from src.core.auditoria import registrar_log, TipoAccion
 from src.core.database import db
 from flask_mail import Message
 from src.web import mail
@@ -57,6 +58,7 @@ def crear_usuario():
             flash(str(e), 'error')
             return render_template('usuarios/crear.html')
         
+        registrar_log(TipoAccion.CREACION_USUARIO_ADMIN, id_entidad_objetivo=nuevo_usuario.id, detalles={'rol': rol, 'email': email})
         flash("Usuario creado con éxito.", "success")
         return render_template('usuarios/crear.html')
     
@@ -112,6 +114,7 @@ def cambiar_rol(id):
     
     try:
         actualizar_rol_usuario(id, nuevo_rol)
+        registrar_log(TipoAccion.CAMBIO_ROL, id_entidad_objetivo=id, detalles={'nuevo_rol': nuevo_rol})
         flash("El rol del usuario fue actualizado con éxito.", "success")
         
     except ValueError as e:
@@ -215,6 +218,7 @@ def subir_apto():
 def ruta_bloquear_usuario(id):
     try:
         bloquear_usuario(id, motivo="La administración ha bloqueado su usuario. Para más información acérquese a la administración.")
+        registrar_log(TipoAccion.BLOQUEO_USUARIO, id_entidad_objetivo=id, detalles={"motivo": "Bloqueo manual desde el panel de administración."})
         flash("El usuario ha sido bloqueado y ya no tiene acceso al sistema.", "success")
     except Exception as e:
         db.session.rollback()
@@ -227,6 +231,7 @@ def ruta_bloquear_usuario(id):
 def ruta_habilitar_usuario(id):
     try:
         habilitar_usuario(id)
+        registrar_log(TipoAccion.HABILITACION_USUARIO, id_entidad_objetivo=id, detalles={"mensaje": "Habilitación manual desde el panel de administración."})
         flash("El usuario ha sido habilitado exitosamente.", "success")
     except ValueError as e:
         # Acá atrapamos si tiene deudas y mostramos el mensaje de error
@@ -254,6 +259,7 @@ def ruta_eliminar_usuario(id):
     try:
         # 2. Lo eliminamos permanentemente
         eliminar_usuario(id)
+        registrar_log(TipoAccion.ELIMINACION_USUARIO, id_entidad_objetivo=id, detalles={'email_eliminado': email_destino})
         
         # 3. Armamos y enviamos el correo de notificación
         msg = Message(
@@ -305,6 +311,7 @@ def aprobar_apto(id_apto):
     """
     try:
         revisar_y_aprobar_apto(db.session, id_apto)
+        registrar_log(TipoAccion.APROBACION_APTO, id_entidad_objetivo=id_apto, detalles={"mensaje": "Apto físico aprobado."})
         flash("El apto físico ha sido aprobado con éxito.", "success")
     except ValueError as e:
         # Capturamos las validaciones del Core (ej: si ya estaba procesado)
@@ -327,6 +334,7 @@ def rechazar_apto(id_apto):
     
     try:
         revisar_y_rechazar_apto(db.session, id_apto, motivo)
+        registrar_log(TipoAccion.RECHAZO_APTO, id_entidad_objetivo=id_apto, detalles={'motivo': motivo})
         flash("El apto físico ha sido rechazado y se notificará al cliente.", "info")
     except ValueError as e:
         # Si el administrador no escribió el comentario obligatorio, frena acá

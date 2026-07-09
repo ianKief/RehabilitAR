@@ -5,6 +5,7 @@ from src.core.clases import crear_clases_agenda, listar_clases, listar_especiali
 from src.core.salas import listar_salas_habilitadas, obtener_sala
 from src.web.helpers.feriados import obtener_dias_no_laborables
 from src.core.clases.clases import Clase, PostulacionClase
+from src.core.auditoria import registrar_log, TipoAccion
 from src.core.clases import obtener_clases_dictadas_por_profesor, obtener_clases_disponibles_para_profesor, obtener_postulaciones_de_profesor
 from src.web.helpers.decorator import requiere_rol
 from src.core.notificaciones import TipoNotificacion, enviar_notificaciones
@@ -164,6 +165,13 @@ def crear_clase_post():
         sala_id=sala_id
     )
 
+    registrar_log(TipoAccion.CREACION_CLASE, detalles={
+        'nombre': nombre,
+        'tipo': tipo_clase,
+        'fecha': fecha_str,
+        'sala_id': sala_id
+    })
+
     if exito:
         if (tipo_clase == "Individual"):
             flash("Clase individual creada con éxito", "success")
@@ -197,6 +205,7 @@ def responder_postulacion(postu_id, accion):
 
     # Delegar la transacción al Core
     exito = resolver_postulacion_clase(postu_id, accion)
+    registrar_log(TipoAccion.RESOLUCION_POSTULACION, id_entidad_objetivo=postu_id, detalles={'accion': accion, 'clase_id': clase_id})
 
     # Mensajes Flash basados en el resultado de la operación
     if exito:
