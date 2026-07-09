@@ -1,6 +1,6 @@
 {% extends "layout.html" %}
 
-{% block title %}Nueva Clase - RehabilitAR{% endblock %}
+{% block title %}Proponer Clase - RehabilitAR{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -13,24 +13,28 @@
         <h1 class="title is-3 is-4-mobile">
             <span class="icon-text">
                 <span class="icon has-text-primary mr-2">
-                    <i class="fas fa-calendar-plus"></i>
+                    <i class="fas fa-lightbulb"></i>
                 </span>
-                <span>Programar Nueva Clase</span>
+                <span>Proponer Nueva Clase</span>
             </span>
         </h1>
-        <p class="subtitle is-6 has-text-grey-dark">Completá los datos para dar de alta un nuevo espacio de rehabilitación en la agenda</p>
+        <p class="subtitle is-6 has-text-grey-dark">Sugerí un espacio de rehabilitación. La propuesta quedará guardada a la espera de la aprobación del administrador.</p>
     </div>
 
     <hr>
 
-    <form action="{{ url_for('clases.crear_clase_post') }}" method="POST">
+    {# 🔄 Redirección al controlador del Profesor #}
+    <form action="{{ url_for('clases.proponer_clase_post') }}" method="POST">
         
+        {# Forzamos de forma transparente que las propuestas del profesor sean individuales #}
+        <input type="hidden" name="tipo_clase" id="tipo_clase_select" value="Individual">
+
         <div class="columns">
             <div class="column is-6">
                 <div class="field">
-                    <label class="label">Nombre de la Clase</label>
+                    <label class="label">Nombre de la Clase Sugerida</label>
                     <div class="control has-icons-left">
-                        <input class="input" type="text" name="nombre" placeholder="Ej: Estabilidad de Tobillo" required>
+                        <input class="input" type="text" name="nombre" placeholder="Ej: Flexibilidad de Cadera Post-Operatoria" required>
                         <span class="icon is-small is-left">
                             <i class="fas fa-heading"></i>
                         </span>
@@ -65,24 +69,7 @@
         </div>
 
         <div class="columns">
-            <div class="column is-3">
-                <div class="field">
-                    <label class="label">Tipo de Clase</label>
-                    <div class="control has-icons-left">
-                        <div class="select is-fullwidth">
-                            <select name="tipo_clase" id="tipo_clase_select" required>
-                                <option value="Fija" selected>Fija (Grupal)</option>
-                                <option value="Individual">Individual</option>
-                            </select>
-                        </div>
-                        <span class="icon is-small is-left">
-                            <i class="fas fa-fingerprint"></i>
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="column is-3">
+            <div class="column is-4">
                 <div class="field">
                     <label class="label">Sala Asignada</label>
                     <div class="control has-icons-left">
@@ -103,7 +90,7 @@
                 </div>
             </div>
 
-            <div class="column is-3">
+            <div class="column is-4">
                 <div class="field">
                     <label class="label">Fecha de la Clase</label>
                     <div class="control has-icons-left">
@@ -115,7 +102,7 @@
                 </div>
             </div>
 
-            <div class="column is-3">
+            <div class="column is-4">
                 <div class="field">
                     <label class="label">Duración</label>
                     <div class="control has-icons-left">
@@ -138,7 +125,7 @@
         <div class="columns">
             <div class="column is-6">
                 <div class="field">
-                    <label class="label">Horario de Inicio</label>
+                    <label class="label">Horario de Inicio Sugerido</label>
                     <div class="control has-icons-left">
                         <div class="select is-fullwidth">
                             <select name="horario" id="horario_select" disabled required>
@@ -149,17 +136,16 @@
                             <i class="fas fa-clock"></i>
                         </span>
                     </div>
-                    <p class="help has-text-grey-dark">Solo se listan los bloques libres sin superposiciones en la sala elegida.</p>
+                    <p class="help has-text-grey-dark">La API calculará tus baches libres cuidando que no te superpongas con tus propios horarios.</p>
                 </div>
             </div>
-            
             <div class="column is-6"></div>
         </div>
 
         <div class="field mt-4">
-            <label class="label">Descripción de la Clase</label>
+            <label class="label">Propósito / Justificación de la propuesta</label>
             <div class="control">
-                <textarea class="textarea" name="descripcion" placeholder="Escribí acá los detalles sobre la patología a tratar, ejercicios pautados o indicaciones específicas para los profesionales..." rows="4"></textarea>
+                <textarea class="textarea" name="descripcion" placeholder="Describí brevemente los ejercicios, los objetivos de la clase o por qué considerás oportuno abrir este espacio en el horario seleccionado..." rows="4"></textarea>
             </div>
         </div>
 
@@ -167,21 +153,20 @@
 
         <div class="field is-grouped is-grouped-right mt-5">
             <p class="control">
-                <a href="/clases/admin" class="button is-light is-fullwidth-mobile">Cancelar</a>
+                <a href="/clases/profesor/historial" class="button is-light is-fullwidth-mobile">Cancelar</a>
             </p>
             <p class="control">
                 <button type="submit" class="button is-primary is-fullwidth-mobile">
                     <span class="icon">
-                        <i class="fas fa-save"></i>
+                        <i class="fas fa-paper-plane"></i>
                     </span>
-                    <span>Guardar Clase</span>
+                    <span>Enviar Propuesta</span>
                 </button>
             </p>
         </div>
 
     </form>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
@@ -191,8 +176,8 @@
 <script src="{{ url_for('static', filename='js/agenda-dinamica.js') }}"></script>
 
 <script>
-    // Invocamos la lógica pasando las herramientas de Jinja de forma segura
     const endpoint = "{{ url_for('clases.api_horarios_disponibles') }}";
+    // Si la vista del profesor no le pasa feriados, el array nace vacío por defecto de forma segura
     const noLaborables = JSON.parse('{{ dias_no_laborables | default([]) | tojson | safe }}');
     
     inicializarAgendaDinamica(endpoint, noLaborables);
