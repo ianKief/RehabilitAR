@@ -1,12 +1,21 @@
-from flask import Blueprint, current_app, flash,redirect,render_template,request,session,url_for
+from flask import Blueprint,render_template,request
 from src.web.helpers.decorator import requiere_rol
 from datetime import datetime
-from src.core.estadisticas import obtener_registros_mensuales,Mes,preparar_registros_para_grafico,obtener_anios_disponibles,obtener_ganancias_periodo,preparar_ganancias_para_grafico
+from src.core.estadisticas import (
+    obtener_registros_mensuales,
+    preparar_registros_para_grafico,
+    obtener_ganancias_mensuales,
+    preparar_ganancias_para_grafico,
+    obtener_asistencias_mensuales,
+    preparar_asistencias_para_grafico,
+    obtener_suspendidos_mensuales,
+    preparar_suspendidos_para_grafico,
+    obtener_anios_disponibles
+)
 
 bp = Blueprint ("estadisticas",__name__, url_prefix="/estadisticas")
 @bp.route("/",methods=["GET"])
 @requiere_rol(["ADMINISTRADOR"])
-
 def listar_estadisticas():
 
     registros = obtener_datos_registros()
@@ -39,6 +48,7 @@ def listar_estadisticas():
 def obtener_datos_registros():
 
     anios = obtener_anios_disponibles()
+    is_search = request.args.get('is_search')
 
     anio = request.args.get(
         "anio",
@@ -46,47 +56,36 @@ def obtener_datos_registros():
         type=int
     )
 
+    # Nuevos registros
     registros_db = obtener_registros_mensuales(anio)
-
-    registros, total_clientes = preparar_registros_para_grafico(
-        registros_db,
-        anio
-    )
-
-    return {
-        "registros": registros,
-        "total_clientes": total_clientes,
-        "anios": anios,
-        "anio_seleccionado": anio
-    }
-
-
-def obtener_datos_ganancias():
-
-    fecha_desde_default = f"{datetime.now().year}-01-01"
-    fecha_hasta_default = datetime.now().strftime("%Y-%m-%d")
-    fecha_desde = request.args.get(
-        "desde",
-        default=fecha_desde_default
-    )
-
-    fecha_hasta = request.args.get(
-        "hasta",
-        default=fecha_hasta_default
-    )
+    registros, total_clientes = preparar_registros_para_grafico(registros_db, anio)
     
-    if fecha_desde > fecha_hasta:
-        fecha_desde = fecha_hasta
+    # Ganancias
+    ganancias_db = obtener_ganancias_mensuales(anio)
+    ganancias, total_ganancias = preparar_ganancias_para_grafico(ganancias_db, anio)
 
-    ganancias_db = obtener_ganancias_periodo(
-        fecha_desde,
-        fecha_hasta
-    )
+    # Asistencias
+    asistencias_db = obtener_asistencias_mensuales(anio)
+    asistencias, total_presentes, total_ausentes = preparar_asistencias_para_grafico(asistencias_db, anio)
 
-    ganancias = preparar_ganancias_para_grafico(
-        ganancias_db,
-        fecha_desde,
-        fecha_hasta
+    # Suspendidos
+    suspendidos_db = obtener_suspendidos_mensuales(anio)
+    suspendidos, total_suspendidos = preparar_suspendidos_para_grafico(suspendidos_db, anio)
+
+    return render_template(
+        "estadisticas/listar.html",
+        registros=registros,
+        total_clientes=total_clientes,
+        ganancias=ganancias,
+        total_ganancias=total_ganancias,
+        asistencias=asistencias,
+        total_presentes=total_presentes,
+        total_ausentes=total_ausentes,
+        suspendidos=suspendidos,
+        total_suspendidos=total_suspendidos,
+        anios=anios,
+        anio_seleccionado=anio,
+        is_search=is_search
     )
 
     total_ganancias = sum(

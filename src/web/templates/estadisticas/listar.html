@@ -1,358 +1,374 @@
 {% extends "layout.html" %}
 
-{% block title %}
-Estadísticas
-{% endblock %}
+{% block title %}Estadísticas - RehabilitAR{% endblock %}
 
 {% block content %}
-
-<section class="section">
-    <div class="container">
-
-        <h1 class="title">
-            Estadísticas del sistema
-        </h1>
-
-        <div class="columns is-multiline">
-
-            <!-- Nuevos registros -->
-            <div class="column is-6">
-                <div class="box">
-                    <h2 class="title is-5">
-                        <span class="icon mr-2">
-                            <i class="fas fa-user-plus"></i>
-                        </span>
-                        Nuevos registros mensuales
-                    </h2>
-
-                    <div class="columns is-vcentered mb-4">
-
-                        <!-- Filtro -->
-                        <div class="column">
-                            <form method="GET" class="js-preserve-filters">
-                                <div class="field">
-                                    <label class="label">Año</label>
-
-                                    <div class="control">
-                                        <div class="select">
-                                            <select name="anio" onchange="this.form.submit()">
-                                                {% for anio in anios %}
-                                                <option value="{{ anio }}" {% if anio==anio_seleccionado %}selected{%
-                                                    endif %}>
-                                                    {{ anio }}
-                                                </option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-
-                        <!-- Tarjeta con el total -->
-                        <div class="column is-narrow mt-1">
-                            <div class="column is-narrow mt-3 has-text-right">
-                                <p class="heading mb-1">
-                                    Nuevos clientes
-                                </p>
-
-                                <p class="title is-5 mb-0">
-                                    {{ total_clientes }}
-                                </p>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <div class="content">
-                        <div id="datos-registros" data-registros='{{ registros | tojson }}'></div>
-
-                        <canvas id="registrosChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- Ganancias -->
-            <div class="column is-6">
-                <div class="box">
-                    <h2 class="title is-5">
-                        <span class="icon mr-2">
-                            <i class="fas fa-money-bill-wave"></i>
-                        </span>
-                        Ganancias
-                    </h2>
-
-                    <form method="GET" class="js-preserve-filters">
-
-                        <div class="columns">
-                            <div class="column">
-                                <label class="label">Desde</label>
-                                <div class="control is-relative date-control">
-                                    <!-- El data-default guarda la variable de Flask de forma invisible -->
-                                    <input type="date" name="desde" class="input js-date-input" id="fecha_desde" value="{{ fecha_desde }}" data-default="{{ fecha_desde_default }}" max="{{ fecha_hasta_default }}">
-                                    
-                                    <!-- Ícono de reset -->
-                                    <span class="icon is-small reset-date-icon" title="Volver a fecha original" data-target="fecha_desde">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- Campo: Fecha Hasta -->
-                            <div class="column">
-                                <label class="label">Hasta</label>
-                                <div class="control is-relative date-control">
-                                    <input type="date" name="hasta" class="input js-date-input" id="fecha_hasta"  value="{{ fecha_hasta }}" data-default="{{ fecha_hasta_default }}" max="{{ fecha_hasta_default }}">
-                                        
-                                    <span class="icon is-small reset-date-icon" title="Volver a fecha original" data-target="fecha_hasta">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="columns is-vcentered mb-4">
-
-                            <!-- Botón filtrar -->
-                            <div class="column">
-                                <button
-                                    class="button is-link"
-                                    type="submit">
-                                    Filtrar
-                                </button>
-                            </div>
-
-                            <!-- Total ganancias -->
-                            <div class="column is-narrow has-text-right">
-                                <p class="heading mb-1">
-                                    Total ganancias
-                                </p>
-
-                                <p class="title is-5 mb-0">
-                                    ${{ total_ganancias }}
-                                </p>
-                            </div>
-
-                        </div>
-
-                    </form>
-
-                    <div id="datos-ganancias"
-                        data-ganancias='{{ ganancias | tojson }}'>
-                    </div>
-
-                    <canvas id="gananciasChart"></canvas>
-
-                </div>
-            </div>
-
-
-            <!-- Suspendidos -->
-            <div class="column is-6">
-                <div class="box">
-                    <h2 class="title is-5">
-                        <span class="icon mr-2">
-                            <i class="fas fa-user-slash"></i>
-                        </span>
-                        Clientes suspendidos
-                    </h2>
-
-                    <div class="content">
-                        Próximamente cantidad de suspendidos.
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- Asistencias -->
-            <div class="column is-6">
-                <div class="box">
-                    <h2 class="title is-5">
-                        <span class="icon mr-2">
-                            <i class="fas fa-calendar-check"></i>
-                        </span>
-                        Asistencias y ausencias
-                    </h2>
-
-                    <div class="content">
-                        Próximamente historial de asistencias.
-                    </div>
-                </div>
-            </div>
-
+<div class="box">
+    <!-- Encabezado -->
+    <div class="columns is-vcentered mb-4">
+        <div class="column">
+            <h1 class="title is-3">
+                <span class="icon-text">
+                    <span class="icon has-text-primary">
+                        <i class="fas fa-chart-line"></i>
+                    </span>
+                    <span>Estadísticas del Sistema</span>
+                </span>
+            </h1>
+            <p class="subtitle is-6 has-text-grey">Visualización de datos y métricas clave.</p>
         </div>
-
+        <div class="column is-narrow">
+            <button class="button is-info is-outlined" id="toggle-filters-btn">
+                <span class="icon"><i class="fas fa-filter"></i></span>
+                <span>Buscar y Filtrar</span>
+            </button>
+        </div>
     </div>
 
-    <!--Ruedita de actualización para poner las fechas de pago default-->
-    <style>
-        .date-control .input {
-            /* Le damos un poco más de espacio a la derecha para que no se superponga el texto con los dos íconos */
-            padding-right: 2.5rem; 
+    <hr>
+
+    <!-- Filtros -->
+    <div id="filters-container" class="is-hidden">
+        <div class="notification is-light p-4 mb-5">
+            <form method="GET" action="{{ url_for('estadisticas.listar_estadisticas') }}">
+                <input type="hidden" name="is_search" value="1">
+                <div class="columns is-multiline">
+                    <div class="column is-4-desktop is-6-tablet">
+                        <div class="field">
+                            <label class="label is-small">Año</label>
+                            <div class="control has-icons-left">
+                                <div class="select is-fullwidth">
+                                    <select name="anio">
+                                        {% for anio_option in anios %}
+                                        <option value="{{ anio_option }}" {% if anio_option == anio_seleccionado %}selected{% endif %}>
+                                            {{ anio_option }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <span class="icon is-small is-left"><i class="fas fa-calendar-alt"></i></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="field is-grouped is-grouped-right mt-4">
+                    <div class="control">
+                        <button class="button is-primary" type="submit">
+                            <span class="icon"><i class="fas fa-search"></i></span>
+                            <span>Buscar</span>
+                        </button>
+                    </div>
+                    <div class="control">
+                        <a href="{{ url_for('estadisticas.listar_estadisticas') }}" class="button is-light">
+                             <span class="icon"><i class="fas fa-eraser"></i></span>
+                            <span>Limpiar filtros</span>
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="columns is-multiline">
+        <!-- Nuevos registros -->
+        <div class="column is-6">
+            <div class="box" style="height: 100%;">
+                <h2 class="title is-5">
+                    <span class="icon mr-2">
+                        <i class="fas fa-user-plus"></i>
+                    </span>
+                    Nuevos registros mensuales ({{ anio_seleccionado }})
+                </h2>
+                
+                <div class="has-text-right">
+                    <p class="heading mb-1">
+                        Total nuevos clientes en {{ anio_seleccionado }}
+                    </p>
+                    <p class="title is-4 mb-0 has-text-success">
+                        {{ total_clientes }}
+                    </p>
+                </div>
+
+                <div class="content mt-4">
+                    <div id="datos-registros" data-registros='{{ registros | tojson }}' class="is-hidden"></div>
+                    <canvas id="registrosChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Ganancias -->
+        <div class="column is-6">
+            <div class="box" style="height: 100%;">
+                <h2 class="title is-5">
+                    <span class="icon mr-2">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </span>
+                    Ganancias Mensuales ({{ anio_seleccionado }})
+                </h2>
+
+                <div class="has-text-right">
+                    <p class="heading mb-1">
+                        Total ganado en {{ anio_seleccionado }}
+                    </p>
+                    <p class="title is-4 mb-0 has-text-success">
+                        ${{ "%.2f"|format(total_ganancias) }}
+                    </p>
+                </div>
+
+                <div class="content mt-4">
+                    <div id="datos-ganancias" data-ganancias='{{ ganancias | tojson }}' class="is-hidden"></div>
+                    <canvas id="gananciasChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Suspendidos -->
+        <div class="column is-6">
+            <div class="box" style="height: 100%;">
+                <h2 class="title is-5">
+                    <span class="icon mr-2">
+                        <i class="fas fa-user-slash"></i>
+                    </span>
+                    Clientes Suspendidos Mensuales ({{ anio_seleccionado }})
+                </h2>
+
+                <div class="has-text-right">
+                    <p class="heading mb-1">
+                        Total suspendidos en {{ anio_seleccionado }}
+                    </p>
+                    <p class="title is-4 mb-0 has-text-danger">
+                        {{ total_suspendidos }}
+                    </p>
+                </div>
+
+                <div class="content mt-4">
+                    <div id="datos-suspendidos" data-suspendidos='{{ suspendidos | tojson }}' class="is-hidden"></div>
+                    <canvas id="suspendidosChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Asistencias -->
+        <div class="column is-6">
+            <div class="box" style="height: 100%;">
+                <h2 class="title is-5">
+                    <span class="icon mr-2">
+                        <i class="fas fa-calendar-check"></i>
+                    </span>
+                    Asistencias y Ausencias Mensuales ({{ anio_seleccionado }})
+                </h2>
+                <div class="columns is-multiline is-vcentered">
+                    <div class="column">
+                        <div class="content">
+                            <div id="datos-asistencias" data-asistencias='{{ asistencias | tojson }}' class="is-hidden"></div>
+                            <canvas id="asistenciasChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="column is-narrow">
+                        <div class="level">
+                            <div class="level-item has-text-centered">
+                                <div>
+                                    <p class="heading">Presentes</p>
+                                    <p class="title has-text-success">{{ total_presentes }}</p>
+                                </div>
+                            </div>
+                            <div class="level-item has-text-centered">
+                                <div>
+                                    <p class="heading">Ausentes</p>
+                                    <p class="title has-text-danger">{{ total_ausentes }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Toggle filters
+    const toggleBtn = document.getElementById('toggle-filters-btn');
+    const filtersContainer = document.getElementById('filters-container');
+    if (toggleBtn && filtersContainer) {
+        const isSearch = new URLSearchParams(window.location.search).has('is_search');
+        if (isSearch) {
+            filtersContainer.classList.remove('is-hidden');
         }
-
-        .date-control .reset-date-icon {
-            position: absolute;
-            right: 10px; /* Lo acercamos al borde derecho porque ya no compite con el calendario */
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            color: #b5b5b5;
-            transition: color 0.2s ease, transform 0.3s ease;
-            z-index: 10;
-        }
-
-        /* Efecto al pasar el mouse: se oscurece y gira */
-        .date-control .reset-date-icon:hover {
-            color: #4a4a4a;
-            transform: translateY(-50%) rotate(180deg);
-        }
-
-        .js-date-input::-webkit-calendar-picker-indicator {
-            display: none;
-            -webkit-appearance: none;
-        }
-    </style>
-
-    <!--Importación de chart-->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <!--No se pierden los filtros al filtrar en otra parte-->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Seleccionamos todos los formularios de filtros
-            const filterForms = document.querySelectorAll('.js-preserve-filters');
-
-            filterForms.forEach(form => {
-                form.addEventListener('submit', (e) => {
-                    // 1. Frenamos el envío nativo del HTML que borraría nuestra URL
-                    e.preventDefault();
-
-                    // 2. Obtenemos los parámetros de la URL en la que estamos parados ahora mismo
-                    const currentParams = new URLSearchParams(window.location.search);
-
-                    // 3. Extraemos los datos del formulario que el usuario acaba de enviar
-                    const formData = new FormData(form);
-
-                    // 4. Mezclamos ambos: actualizamos los parámetros viejos con los valores nuevos
-                    for (const [key, value] of formData.entries()) {
-                        if (value) {
-                            currentParams.set(key, value); // Si hay valor, lo actualiza o lo agrega
-                        } else {
-                            currentParams.delete(key); // Si el input está vacío, lo borra para mantener la URL limpia
-                        }
-                    }
-
-                    // 5. Recargamos la página pasándole la nueva cadena unificada de parámetros
-                    window.location.search = currentParams.toString();
-                });
-            });
+        toggleBtn.addEventListener('click', () => {
+            filtersContainer.classList.toggle('is-hidden');
         });
-    </script>
+    }
 
-    <!--Renderización de gráfico de registros mensuales-->
-    <script>
-        const elementoDatos = document.getElementById("datos-registros");
-
-        const datosRegistros = JSON.parse(
-            elementoDatos.dataset.registros
-        );
-
+    // Chart
+    const elementoDatos = document.getElementById("datos-registros");
+    if (elementoDatos) {
+        const datosRegistros = JSON.parse(elementoDatos.dataset.registros);
         const meses = datosRegistros.map(registro => registro.mes);
         const cantidades = datosRegistros.map(registro => registro.cantidad);
 
-        const ctx = document.getElementById('registrosChart');
-
+        const ctx = document.getElementById('registrosChart').getContext('2d');
         new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: meses,
                 datasets: [{
                     label: 'Nuevos clientes',
-                    data: cantidades
+                    data: cantidades,
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
                 }]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 scales: {
                     y: {
-                        beginAtZero: true
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
                     }
                 }
             }
         });
-    </script>
+    }
 
-    <!--Funcionalidad aún no implementada ¿?-->
-    <script>
-        document.getElementById("filtroTiempo").addEventListener("change", function () {
-            const meses = this.value;
+    // Ganancias Chart
+    const elementoDatosGanancias = document.getElementById("datos-ganancias");
+    if (elementoDatosGanancias) {
+        const datosGanancias = JSON.parse(elementoDatosGanancias.dataset.ganancias);
+        const meses = datosGanancias.map(ganancia => ganancia.mes);
+        const totales = datosGanancias.map(ganancia => ganancia.total);
 
-            window.location.href = `/estadisticas/?meses=${meses}`;
-        });
-    </script>
-
-    <!--Renderización de las ganancias-->
-    <script>
-        const datosGanancias = JSON.parse(
-            document
-                .getElementById("datos-ganancias")
-                .dataset
-                .ganancias
-        );
-
-        const mesesGanancias = datosGanancias.map(g => g.mes);
-        const totalesGanancias = datosGanancias.map(g => g.total);
-
-        const ctxGanancias = document.getElementById("gananciasChart");
-
-        new Chart(ctxGanancias, {
-            type: "bar",
+        const ctx = document.getElementById('gananciasChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
             data: {
-                labels: mesesGanancias,
+                labels: meses,
                 datasets: [{
-                    label: "Ganancias ($)",
-                    data: totalesGanancias
+                    label: 'Ganancias',
+                    data: totales,
+                    backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
                 }]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 scales: {
                     y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+
+    // Asistencias Chart
+    const elementoDatosAsistencias = document.getElementById("datos-asistencias");
+    if (elementoDatosAsistencias) {
+        const datosAsistencias = JSON.parse(elementoDatosAsistencias.dataset.asistencias);
+        const meses = datosAsistencias.map(asistencia => asistencia.mes);
+        const presentes = datosAsistencias.map(asistencia => asistencia.presentes);
+        const ausentes = datosAsistencias.map(asistencia => asistencia.ausentes);
+
+        const ctx = document.getElementById('asistenciasChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: meses,
+                datasets: [
+                    {
+                        label: 'Presentes',
+                        data: presentes,
+                        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Ausentes',
+                        data: ausentes,
+                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        stacked: true,
+                    },
+                    y: {
+                        stacked: true,
                         beginAtZero: true
                     }
                 }
             }
         });
-    </script>
+    }
 
-    <!--Ganancias: reseteo de fecha-->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Seleccionamos todas las rueditas
-            const resetIcons = document.querySelectorAll('.reset-date-icon');
+    // Suspendidos Chart
+    const elementoDatosSuspendidos = document.getElementById("datos-suspendidos");
+    if (elementoDatosSuspendidos) {
+        const datosSuspendidos = JSON.parse(elementoDatosSuspendidos.dataset.suspendidos);
+        const meses = datosSuspendidos.map(suspendido => suspendido.mes);
+        const cantidades = datosSuspendidos.map(suspendido => suspendido.cantidad);
 
-            resetIcons.forEach(icon => {
-                icon.addEventListener('click', () => {
-                    // Buscamos a qué input pertenece este ícono
-                    const targetId = icon.getAttribute('data-target');
-                    const input = document.getElementById(targetId);
-                    
-                    // Obtenemos la fecha original que inyectó Flask
-                    const defaultValue = input.getAttribute('data-default');
-
-                    // Solo hacemos el cambio si la fecha actual es distinta a la original
-                    if (input.value !== defaultValue) {
-                        input.value = defaultValue;
-                        
-                        // ¡Magia! Disparamos el evento 'change'.
-                        // Si tus gráficos escuchan el cambio de fecha para actualizarse, 
-                        // esto hará que lo hagan automáticamente.
-                        input.dispatchEvent(new Event('change', { bubbles: true }));
+        const ctx = document.getElementById('suspendidosChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: meses,
+                datasets: [{
+                    label: 'Suspendidos',
+                    data: cantidades,
+                    backgroundColor: 'rgba(255, 159, 64, 0.5)',
+                    borderColor: 'rgba(255, 159, 64, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
                     }
-                });
-            });
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
         });
-    </script>
+    }
+});
+</script>
 {% endblock %}

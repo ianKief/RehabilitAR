@@ -1,0 +1,256 @@
+{% extends "layout.html" %}
+
+{% block title %}Auditoría de Logs - RehabilitAR{% endblock %}
+
+{% block content %}
+<div class="box">
+    <!-- Encabezado -->
+    <div class="columns is-vcentered mb-4">
+        <div class="column">
+            <h1 class="title is-3">
+                <span class="icon-text">
+                    <span class="icon has-text-primary">
+                        <i class="fas fa-history"></i>
+                    </span>
+                    <span>Auditoría de Logs</span>
+                </span>
+            </h1>
+            <p class="subtitle is-6 has-text-grey">Registro de acciones importantes realizadas en la plataforma.</p>
+        </div>
+        <div class="column is-narrow">
+            <button class="button is-info is-outlined" id="toggle-filters-btn">
+                <span class="icon"><i class="fas fa-filter"></i></span>
+                <span>Buscar y Filtrar</span>
+            </button>
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- Filtros -->
+    <div id="filters-container" class="is-hidden">
+        <div class="notification is-light p-4 mb-5">
+            <form method="GET" action="{{ url_for('auditoria.listar_logs_web') }}" id="filtro-form">
+                <input type="hidden" name="is_search" value="1">
+                <div class="columns is-multiline is-vcentered">
+                    <!-- Filtro por Tipo de Acción -->
+                    <div class="column is-4-desktop is-6-tablet">
+                        <div class="field">
+                            <label class="label is-small">Tipo de Acción</label>
+                            <div class="control has-icons-left">
+                                <div class="select is-fullwidth">
+                                    <select name="tipo_accion">
+                                        <option value="">Todos los tipos</option>
+                                        {% for tipo in tipos_accion %}
+                                        <option value="{{ tipo.name }}" {% if filtros.tipo_accion == tipo.name %}selected{% endif %}>
+                                            {{ tipo.name.replace('_', ' ') | title }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <span class="icon is-small is-left"><i class="fas fa-tasks"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtro por ID de Usuario -->
+                    <div class="column is-4-desktop is-6-tablet">
+                        <div class="field">
+                            <label class="label is-small">ID Usuario Actor</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="number" name="id_usuario_actor" placeholder="Ej: 123" value="{{ filtros.id_usuario_actor or '' }}">
+                                <span class="icon is-small is-left"><i class="fas fa-user"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtro por Rango de Fechas Predefinido -->
+                    <div class="column is-4-desktop is-6-tablet">
+                        <div class="field">
+                            <label class="label is-small">Rango de Fechas</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select name="rango_fecha" id="rango_fecha_select">
+                                        <option value="">Personalizado</option>
+                                        <option value="hoy" {% if filtros.rango_fecha == 'hoy' %}selected{% endif %}>Hoy</option>
+                                        <option value="ayer" {% if filtros.rango_fecha == 'ayer' %}selected{% endif %}>Ayer</option>
+                                        <option value="7dias" {% if filtros.rango_fecha == '7dias' %}selected{% endif %}>Últimos 7 días</option>
+                                        <option value="30dias" {% if filtros.rango_fecha == '30dias' %}selected{% endif %}>Últimos 30 días</option>
+                                        <option value="mes_actual" {% if filtros.rango_fecha == 'mes_actual' %}selected{% endif %}>Este mes</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtro por Fecha Desde -->
+                    <div class="column is-4-desktop is-6-tablet">
+                        <div class="field">
+                            <label class="label is-small">Desde</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="date" name="fecha_desde" id="fecha_desde" value="{{ filtros.fecha_desde_str or '' }}">
+                                <span class="icon is-small is-left"><i class="fas fa-calendar-day"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtro por Fecha Hasta -->
+                    <div class="column is-4-desktop is-6-tablet">
+                        <div class="field">
+                            <label class="label is-small">Hasta</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="date" name="fecha_hasta" id="fecha_hasta" value="{{ filtros.fecha_hasta_str or '' }}">
+                                <span class="icon is-small is-left"><i class="fas fa-calendar-day"></i></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="field is-grouped is-grouped-right mt-4">
+                    <div class="control">
+                        <button class="button is-primary" type="submit">
+                            <span class="icon"><i class="fas fa-search"></i></span>
+                            <span>Buscar</span>
+                        </button>
+                    </div>
+                    <div class="control">
+                        <a href="{{ url_for('auditoria.listar_logs_web') }}" class="button is-light">
+                             <span class="icon"><i class="fas fa-eraser"></i></span>
+                            <span>Limpiar filtros</span>
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Tabla de Logs -->
+    <div class="table-container" style="max-height: 60vh; overflow-y: auto;">
+        <table class="table is-fullwidth is-hoverable is-striped is-size-7 is-vcentered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Fecha y Hora (UTC)</th>
+                    <th>Tipo de Acción</th>
+                    <th>ID Usuario Actor</th>
+                    <th>Rol Usuario Actor</th>
+                    <th>ID Entidad</th>
+                    <th>Detalles</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.id }}</td>
+                    <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>
+                        <span class="tag is-info is-light">{{ log.tipo_accion.name.replace('_', ' ') | title }}</span>
+                    </td>
+                    <td>{{ log.id_usuario_actor or 'N/A' }}</td>
+                    <td>{{ log.rol_usuario_actor or 'N/A' }}</td>
+                    <td>{{ log.id_entidad_objetivo or 'N/A' }}</td>
+                    <td style="max-width: 400px;">
+                        {% if log.detalles %}
+                        <pre style="white-space: pre-wrap; word-break: break-all; background-color: transparent; padding: 0; font-size: inherit; font-family: inherit;">{{ log.detalles | tojson(indent=2) }}</pre>
+                        {% else %}
+                        <span class="has-text-grey-light">Sin detalles</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="has-text-centered py-5 has-text-grey">
+                        <span class="icon is-large mb-2"><i class="fas fa-search fa-2x"></i></span>
+                        <p>No se encontraron registros de auditoría con los filtros aplicados.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const rangoSelect = document.getElementById('rango_fecha_select');
+    const fechaDesdeInput = document.getElementById('fecha_desde');
+    const fechaHastaInput = document.getElementById('fecha_hasta');
+    const filtroForm = document.getElementById('filtro-form');
+    const toggleBtn = document.getElementById('toggle-filters-btn');
+    const filtersContainer = document.getElementById('filters-container');
+
+    const today = new Date().toISOString().split('T')[0];
+    fechaDesdeInput.setAttribute('max', today);
+    fechaHastaInput.setAttribute('max', today);
+
+    function applyDateInputState() {
+        if (rangoSelect.value === '') { // "Personalizado" selected
+            fechaDesdeInput.disabled = false;
+            fechaHastaInput.disabled = false;
+        } else { // A predefined range is selected
+            fechaDesdeInput.disabled = true;
+            fechaHastaInput.disabled = true;
+        }
+        updateFechaHastaMin();
+        updateFechaDesdeMax();
+    }
+
+    function updateFechaHastaMin() {
+        if (fechaDesdeInput.value) {
+            fechaHastaInput.setAttribute('min', fechaDesdeInput.value);
+            // If fecha_hasta is earlier than new fecha_desde, clear fecha_hasta
+            if (fechaHastaInput.value && fechaHastaInput.value < fechaDesdeInput.value) {
+                fechaHastaInput.value = '';
+            }
+        } else {
+            fechaHastaInput.removeAttribute('min');
+        }
+    }
+
+    function updateFechaDesdeMax() {
+        if (fechaHastaInput.value) {
+            // fecha_desde max is today, but also cannot be later than fecha_hasta
+            fechaDesdeInput.setAttribute('max', Math.min(today, fechaHastaInput.value));
+            // If fecha_desde is later than new fecha_hasta, clear fecha_desde
+            if (fechaDesdeInput.value && fechaDesdeInput.value > fechaHastaInput.value) {
+                fechaDesdeInput.value = '';
+            }
+        } else {
+            fechaDesdeInput.setAttribute('max', today);
+        }
+    }
+
+    rangoSelect.addEventListener('change', function() {
+        if (this.value !== '') { // If a predefined range is selected, submit the form
+            // Clear manual dates to ensure only the predefined range is considered by the backend
+            fechaDesdeInput.value = '';
+            fechaHastaInput.value = '';
+            filtroForm.submit();
+        } else { // If "Personalizado" is selected
+            applyDateInputState();
+            // Re-apply current values as min/max
+            updateFechaDesdeMax();
+            updateFechaHastaMin();
+        }
+    });
+
+    fechaDesdeInput.addEventListener('change', updateFechaHastaMin);
+    fechaHastaInput.addEventListener('change', updateFechaDesdeMax);
+
+    if (toggleBtn && filtersContainer) {
+        const isSearch = new URLSearchParams(window.location.search).has('is_search');
+        if (isSearch) {
+            filtersContainer.classList.remove('is-hidden');
+        }
+
+        toggleBtn.addEventListener('click', () => {
+            filtersContainer.classList.toggle('is-hidden');
+        });
+    }
+
+    applyDateInputState();
+});
+</script>
+{% endblock %}
