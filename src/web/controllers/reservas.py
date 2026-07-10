@@ -52,10 +52,7 @@ def calendario_cliente():
     usuario = obtener_usuario_por_id_core(usuario_id)
     abonado = estado_abono_usuario(usuario_id) == "activo"
     
-    # El cliente debe estar "activo" para acceder.
-    if usuario.estado != EstadoUsuario.ACTIVO:
-        flash("Tu cuenta debe estar activa para acceder al calendario y realizar reservas.", "warning")
-        return redirect(url_for("home"))
+    # El cliente debe estar "activo" para acceder --> EDIT: borrado porque si no está activo no entra a la sesión, código innecesario.
 
     hoy = date.today()
     fecha_str = request.args.get("fecha", default=hoy.strftime("%Y-%m-%d"))
@@ -75,6 +72,11 @@ def calendario_cliente():
         
     # Si hay filtros y el día elegido no tiene clases, saltamos al primer día disponible
     fechas_con_clases = obtener_fechas_con_clases(tipo=tipo, especialidad=especialidad)
+
+    # En caso de que no haya fechas con clases, no entro al calendario
+    if not fechas_con_clases:
+        flash ("Actualmente no hay clases disponibles", "info")
+        return redirect(url_for("home"))
     
     # Filtramos los feriados y fines de semana (Sábado=5, Domingo=6) para que no se puedan seleccionar
     fechas_con_clases = [f for f in fechas_con_clases if f not in dias_no_laborables]
