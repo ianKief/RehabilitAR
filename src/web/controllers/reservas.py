@@ -74,7 +74,7 @@ def calendario_cliente():
     fechas_con_clases = obtener_fechas_con_clases(tipo=tipo, especialidad=especialidad)
 
     # En caso de que no haya fechas con clases, no entro al calendario
-    if not fechas_con_clases:
+    if not fechas_con_clases and not (especialidad or tipo):
         flash ("Actualmente no hay clases disponibles", "info")
         return redirect(url_for("home"))
     
@@ -411,7 +411,7 @@ def abonar_individual(id_clase):
             registrar_pago_con_credito (cliente, clase, precio)
         except ValueError as e:
             flash (str(e))
-        flash ("Se ha usado el crédito con éxitos", "success")
+        flash ("Se ha usado el crédito con éxito", "success")
         return redirect(url_for("reservas.calendario_cliente"))
 
 

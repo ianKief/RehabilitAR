@@ -288,16 +288,16 @@ def registrar_pago_con_credito (cliente, clase, precio):
     db.session.flush()
 
     try:
-        devolver_credito_y_marcar_como_usado (cliente.id, pago.id, db.session)
-    except:
-        raise ValueError("El cliente no tiene un crédito habilitado")
+        devolver_credito_y_marcar_como_usado (cliente.id, pago.id)
+    except ValueError as e:
         db.session.rollback()
+        raise ValueError("El cliente no tiene un crédito habilitado: ", str(e))
     
     try:
         reserva = crear_reserva(cliente.id, clase.id)
     except:
-        raise ValueError("Ha habido un problema al crear la reserva")
         db.session.rollback()
+        raise ValueError("Ha habido un problema al crear la reserva")
     
     db.session.flush()
 
@@ -555,7 +555,7 @@ def devolver_credito_y_marcar_como_usado (id_cliente, id_pago):
     credito = db.session.query(Beneficio).filter(Beneficio.tipo == TipoBeneficio.CREDITO).filter(Beneficio.id_cliente == id_cliente).filter(Beneficio.usado == False).first()
     
     if credito == None:
-        raise ValueError()
+        raise ValueError("No existe ningún crédito a usar")
     
     credito.usado = True
     credito.id_pago = id_pago
