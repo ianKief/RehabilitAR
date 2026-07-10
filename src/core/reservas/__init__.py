@@ -28,7 +28,7 @@ def listar_clases_disponibles_para_cliente(fecha=None, tipo=None, especialidad=N
         Clase.aprobada == True,
         Clase.aviso_alta_demanda == False,
         _filtro_clase_futura()
-    )
+    ).join(ProfesorDictaClase, ProfesorDictaClase.id_clase == Clase.id)
     
     if fecha:
         query = query.filter(Clase.fecha_clase == fecha)
@@ -46,7 +46,7 @@ def obtener_fechas_con_clases(tipo=None, especialidad=None):
         Clase.suspendida == False,
         Clase.aprobada == True,
         _filtro_clase_futura()
-    )
+    ).join(ProfesorDictaClase, ProfesorDictaClase.id_clase == Clase.id)
     
     if tipo:
         query = query.filter(Clase.tipo.ilike(f"%{tipo}%"))
