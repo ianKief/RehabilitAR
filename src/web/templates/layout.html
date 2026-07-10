@@ -289,7 +289,7 @@
                                 </a>
                             </li>
                             <!-- Navegación para personal (ocultar según rol) -->
-                             {% if session.get('rol') == 'ADMINISTRADOR' %}
+                            {% if session.get('rol') == 'ADMINISTRADOR' %}
                             <li>
                                 <a href="{{ url_for('usuarios.listar_usuarios') }}"
                                     class="py-2.5 px-3 {% if request.path.startswith('/usuarios/lista') or request.path.startswith('/usuarios/detalle') or request.path.startswith('/usuarios/crear') %}menu-item-active{% endif %}">

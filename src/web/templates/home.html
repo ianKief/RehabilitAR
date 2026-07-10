@@ -231,17 +231,102 @@
         <!-- ========================================== -->
         <!-- DASHBOARD PROFESOR                         -->
         <!-- ========================================== -->
-        <div class="columns is-multiline">
-            <div class="column is-12">
-                <div class="box has-text-centered py-6">
-                    <span class="icon is-large has-text-primary mb-3"><i class="far fa-bookmark fa-3x"></i></span>
-                    <h3 class="title is-4">Panel de Profesor</h3>
-                    <p class="subtitle is-6 has-text-grey mb-5">Bienvenido. Desde aquí podés gestionar la asistencia de tus alumnos y realizar el seguimiento de su evolución.</p>
-                    <a href="{{ url_for('profesor.index_profesor') }}" class="button is-primary is-medium is-rounded shadow-button">
-                        <span class="icon"><i class="fas fa-clipboard-list"></i></span>
-                        <span>Ir a Asistencia y Seguimiento</span>
+        <div class="container prof-dashboard-container py-4">
+            
+            <!-- TARJETA PRINCIPAL: Bienvenida y Asistencia -->
+            <div class="box welcome-hero-box mb-6 is-relative overflow-hidden">
+                <div class="columns is-vcentered">
+                    <div class="column is-8">
+                        <h1 class="title is-3 mb-2">Asistencia y Seguimiento</h1>
+                        <p class="is-size-5 has-text-grey mb-4">
+                            Bienvenido. Desde aquí podés gestionar la asistencia de tus alumnos y realizar el seguimiento de su evolución.
+                        </p>
+                        <!-- Asumo que usarás url_for en Flask para los href -->
+                        <a href="{{ url_for ('profesor.index_profesor') }}" class="button btn-aqua is-medium has-text-weight-semibold">
+                            <span class="icon"><i class="fas fa-clipboard-check"></i></span>
+                            <span>Gestionar Asistencias</span>
+                        </a>
+                    </div>
+                    <div class="column is-4 has-text-centered is-hidden-mobile">
+                        <!-- Un ícono gigante decorativo -->
+                        <span class="icon is-large has-text-aqua" style="opacity: 0.2; transform: scale(4);">
+                            <i class="fas fa-user-graduate"></i>
+                        </span>
+                    </div>
+                </div>
+                <!-- Decoración lateral acuamarina -->
+                <div class="aqua-sidebar"></div>
+            </div>
+
+            <!-- CUADRÍCULA DE MÓDULOS (2x2) -->
+            <h2 class="title is-5 has-text-grey mb-4">Gestión Académica</h2>
+            
+            <div class="columns is-multiline">
+                
+                <!-- Módulo 1: Mis Clases -->
+                <div class="column is-6">
+                    <a href="{{ url_for('clases.ver_clases_asignadas') }}" class="box dashboard-card h-100 is-flex is-flex-direction-column">
+                        <div class="is-flex is-align-items-center mb-3">
+                            <div class="icon-wrapper bg-aqua-light mr-3">
+                                <i class="fas fa-chalkboard-teacher has-text-aqua fa-lg"></i>
+                            </div>
+                            <h3 class="title is-5 mb-0">Mis Clases</h3>
+                        </div>
+                        <p class="has-text-grey flex-grow-1">Visualiza los horarios y el estado de las clases que tenés asignadas.</p>
+                        <div class="mt-4 has-text-aqua has-text-weight-bold is-size-7 is-uppercase tracking-wide">
+                            Ver clases <i class="fas fa-arrow-right ml-1"></i>
+                        </div>
                     </a>
                 </div>
+
+                <!-- Módulo 2: Postulación a Clases -->
+                <div class="column is-6">
+                    <a href="{{ url_for('clases.ver_clases_para_postularse') }}" class="box dashboard-card h-100 is-flex is-flex-direction-column">
+                        <div class="is-flex is-align-items-center mb-3">
+                            <div class="icon-wrapper bg-aqua-light mr-3">
+                                <i class="fas fa-hand-paper has-text-aqua fa-lg"></i>
+                            </div>
+                            <h3 class="title is-5 mb-0">Postulación a Clases</h3>
+                        </div>
+                        <p class="has-text-grey flex-grow-1">Buscá vacantes disponibles y postulate para dictar nuevas materias que aún no tienen un profesor asignado.</p>
+                        <div class="mt-4 has-text-aqua has-text-weight-bold is-size-7 is-uppercase tracking-wide">
+                            Ver vacantes <i class="fas fa-arrow-right ml-1"></i>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Módulo 3: Proponer Clase -->
+                <div class="column is-6">
+                    <a href="{{ url_for('clases.proponer_clase_vista') }}" class="box dashboard-card h-100 is-flex is-flex-direction-column">
+                        <div class="is-flex is-align-items-center mb-3">
+                            <div class="icon-wrapper bg-aqua-light mr-3">
+                                <i class="fas fa-lightbulb has-text-aqua fa-lg"></i>
+                            </div>
+                            <h3 class="title is-5 mb-0">Proponer Clase</h3>
+                        </div>
+                        <p class="has-text-grey flex-grow-1">¿Tenés una idea innovadora? Enviá una propuesta detallada para abrir una nueva clase y mandala a revisión.</p>
+                        <div class="mt-4 has-text-aqua has-text-weight-bold is-size-7 is-uppercase tracking-wide">
+                            Crear propuesta <i class="fas fa-arrow-right ml-1"></i>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Módulo 4: Historial de Propuestas -->
+                <div class="column is-6">
+                    <a href="{{ url_for('clases.historial_propuestas_profesor') }}" class="box dashboard-card h-100 is-flex is-flex-direction-column">
+                        <div class="is-flex is-align-items-center mb-3">
+                            <div class="icon-wrapper bg-aqua-light mr-3">
+                                <i class="fas fa-history has-text-aqua fa-lg"></i>
+                            </div>
+                            <h3 class="title is-5 mb-0">Historial de Propuestas</h3>
+                        </div>
+                        <p class="has-text-grey flex-grow-1">Revisá el estado (pendiente, aprobada, rechazada) de todas las propuestas de clases que realizaste previamente.</p>
+                        <div class="mt-4 has-text-aqua has-text-weight-bold is-size-7 is-uppercase tracking-wide">
+                            Ver historial <i class="fas fa-arrow-right ml-1"></i>
+                        </div>
+                    </a>
+                </div>
+
             </div>
         </div>
     {% endif %}
@@ -371,6 +456,89 @@
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
             border-color: var(--bulma-primary) !important;
+        }
+    </style>
+
+    <!--Estilos para el panel del profesor-->
+    <style>
+        /* --- VARIABLES PRINCIPALES --- */
+        :root {
+            --color-aqua: #4fd1c5;         /* Verde acuamarino principal */
+            --color-aqua-hover: #38b2a6;   /* Un tono más oscuro para el hover del botón */
+            --color-aqua-light: rgba(79, 209, 197, 0.15); /* Fondo sutil para íconos */
+        }
+
+        /* --- UTILIDADES --- */
+        .h-100 { height: 100%; }
+        .flex-grow-1 { flex-grow: 1; }
+        .overflow-hidden { overflow: hidden; }
+        .tracking-wide { letter-spacing: 0.5px; }
+
+        /* --- COLORES ACUAMARINOS --- */
+        .has-text-aqua { color: var(--color-aqua) !important; }
+        .bg-aqua-light { background-color: var(--color-aqua-light) !important; }
+
+        /* Botón sólido Acuamarino */
+        .btn-aqua {
+            background-color: var(--color-aqua);
+            color: white;
+            border: none;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+        .btn-aqua:hover {
+            background-color: var(--color-aqua-hover);
+            color: white;
+            transform: translateY(-2px); /* Pequeño salto al hacer hover */
+        }
+
+        /* --- TARJETA PRINCIPAL (HERO) --- */
+        .welcome-hero-box {
+            border: 1px solid rgba(128, 128, 128, 0.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.04);
+        }
+        /* Barra lateral decorativa para la tarjeta principal */
+        .aqua-sidebar {
+            position: absolute;
+            top: 0; left: 0; bottom: 0;
+            width: 6px;
+            background-color: var(--color-aqua);
+        }
+
+        /* --- TARJETAS DE MÓDULOS (GRILLA) --- */
+        .dashboard-card {
+            border: 1px solid rgba(128, 128, 128, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            text-decoration: none !important; /* Quita el subrayado del <a> */
+            color: inherit; /* Hereda el color del texto nativo de Bulma */
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px); /* Se levanta un poco */
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.06);
+            border-color: var(--color-aqua); /* El borde se pinta de acuamarino */
+        }
+
+        /* Círculo contenedor para los íconos de las tarjetas */
+        .icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- SOPORTE PARA MODO OSCURO --- */
+        @media (prefers-color-scheme: dark) {
+            /* Ajustes sutiles si usas el modo oscuro nativo de tu SO/Navegador */
+            .dashboard-card:hover {
+                box-shadow: 0 12px 25px rgba(0, 0, 0, 0.3);
+            }
+            
+            .welcome-hero-box p.has-text-grey-darker {
+                color: #b5b5b5 !important; /* Has-text-grey-light en Bulma */
+            }
         }
     </style>
 {% endif %}
