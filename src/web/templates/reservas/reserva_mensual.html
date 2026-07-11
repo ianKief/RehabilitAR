@@ -84,6 +84,35 @@
             {% endif %}
         </div>
         
+        {% if conflictos_calendario %}
+            <h3 class="title is-5 mt-4"><span class="icon has-text-danger"><i class="fas fa-calendar-times"></i></span> Conflictos con clases actuales</h3>
+            <div class="notification is-danger is-light">
+                <p class="is-size-7 mb-3">Las siguientes clases generan conflictos con clases previamente reservadas. Elige una opción para estas semanas:</p>
+                {% for c in conflictos_calendario %}
+                <div class="box mb-2 p-3">
+                    <p class="has-text-weight-bold mb-2">Clase del {{ c.fecha_clase.strftime('%d/%m/%Y') }} a las {{ c.horario.strftime('%H:%M') }}</p>
+                    <div class="control">
+                        <label class="radio is-block mb-1">
+                            <input type="radio" name="conflicto_{{ c.id }}" value="descuento" required> 
+                            Cancelar esta sesión (aplica descuento)
+                        </label>
+                        {% if alternativas_conflictos[c.id] %}
+                            {% for alt in alternativas_conflictos[c.id] %}
+                            <label class="radio is-block mb-1">
+                                <input type="radio" name="conflicto_{{ c.id }}" value="{{ alt.id }}" required> 
+                                Reprogramar: {{ alt.fecha_clase.strftime('%d/%m/%Y') }} a las {{ alt.horario.strftime('%H:%M') }}
+                            </label>
+                            {% endfor %}
+                        {% else %}
+                            <p class="is-size-7 has-text-grey mt-1 mb-0"><i class="fas fa-info-circle"></i> No hay alternativas disponibles para reprogramar en esta semana.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
         <!-- Se enviará la cantidad de descuentos elegidos por el usuario -->
         <input type="hidden" name="canceladas_con_descuento" id="canceladas_con_descuento" value="0">
 

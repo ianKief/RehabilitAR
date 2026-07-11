@@ -52,10 +52,7 @@ def calendario_cliente():
     usuario = obtener_usuario_por_id_core(usuario_id)
     abonado = estado_abono_usuario(usuario_id) == "activo"
     
-    # El cliente debe estar "activo" para acceder.
-    if usuario.estado != EstadoUsuario.ACTIVO:
-        flash("Tu cuenta debe estar activa para acceder al calendario y realizar reservas.", "warning")
-        return redirect(url_for("home"))
+    # El cliente debe estar "activo" para acceder --> EDIT: borrado porque si no está activo no entra a la sesión, código innecesario.
 
     hoy = date.today()
     fecha_str = request.args.get("fecha", default=hoy.strftime("%Y-%m-%d"))
@@ -75,6 +72,11 @@ def calendario_cliente():
         
     # Si hay filtros y el día elegido no tiene clases, saltamos al primer día disponible
     fechas_con_clases = obtener_fechas_con_clases(tipo=tipo, especialidad=especialidad)
+
+    # En caso de que no haya fechas con clases, no entro al calendario
+    if not fechas_con_clases and not (especialidad or tipo):
+        flash ("Actualmente no hay clases disponibles", "info")
+        return redirect(url_for("home"))
     
     # Filtramos los feriados y fines de semana (Sábado=5, Domingo=6) para que no se puedan seleccionar
     fechas_con_clases = [f for f in fechas_con_clases if f not in dias_no_laborables]
@@ -409,7 +411,7 @@ def abonar_individual(id_clase):
             registrar_pago_con_credito (cliente, clase, precio)
         except ValueError as e:
             flash (str(e))
-        flash ("Se ha usado el crédito con éxitos", "success")
+        flash ("Se ha usado el crédito con éxito", "success")
         return redirect(url_for("reservas.calendario_cliente"))
 
 
@@ -497,18 +499,25 @@ def reservar_mensual(id_clase):
     # GET: Construir la pantalla de confirmación previa
     conflictos_cupo = []
     conflictos_feriado = []
+    conflictos_calendario = []
     clases_ok = []
     alternativas_conflictos = {}
 
     for c in clases_mensuales:
+        conflicto = False
         fecha_str = c.fecha_clase.strftime("%Y-%m-%d")
-        if fecha_str in dias_no_laborables or not clase_tiene_lugar(c):
-            if fecha_str in dias_no_laborables:
-                conflictos_feriado.append(c)
-            else:
-                conflictos_cupo.append(c)
-                
-            alternativas_db = obtener_alternativas_semana_para_clase(c)
+        if fecha_str in dias_no_laborables:
+            conflicto = True
+            conflictos_feriado.append(c)
+        elif not clase_tiene_lugar(c):
+            conflicto = True
+            conflictos_cupo.append(c)
+        elif cliente_tiene_conflicto_horario(c, usuario_id):
+            conflicto = True
+            conflictos_calendario.append(c)
+        
+        if conflicto:
+            alternativas_db = obtener_alternativas_semana_para_clase(c, usuario_id)
             alternativas_conflictos[c.id] = [alt for alt in alternativas_db if clase_tiene_lugar(alt) and alt.fecha_clase.strftime("%Y-%m-%d") not in dias_no_laborables]
         else:
             clases_ok.append(c)
@@ -521,6 +530,7 @@ def reservar_mensual(id_clase):
                            clases_ok=clases_ok, 
                            conflictos_cupo=conflictos_cupo, 
                            conflictos_feriado=conflictos_feriado,
+                           conflictos_calendario=conflictos_calendario,
                            alternativas_conflictos=alternativas_conflictos,
                            mes_nombre=meses_espanol[clase_base.fecha_clase.month],
                            dia_nombre=dias_semana_espanol[clase_base.fecha_clase.weekday()])

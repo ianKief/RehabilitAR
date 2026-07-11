@@ -28,7 +28,7 @@ def listar_clases_disponibles_para_cliente(fecha=None, tipo=None, especialidad=N
         Clase.aprobada == True,
         Clase.aviso_alta_demanda == False,
         _filtro_clase_futura()
-    )
+    ).join(ProfesorDictaClase, ProfesorDictaClase.id_clase == Clase.id)
     
     if fecha:
         query = query.filter(Clase.fecha_clase == fecha)
@@ -46,7 +46,7 @@ def obtener_fechas_con_clases(tipo=None, especialidad=None):
         Clase.suspendida == False,
         Clase.aprobada == True,
         _filtro_clase_futura()
-    )
+    ).join(ProfesorDictaClase, ProfesorDictaClase.id_clase == Clase.id)
     
     if tipo:
         query = query.filter(Clase.tipo.ilike(f"%{tipo}%"))
@@ -182,7 +182,7 @@ def verificar_limite_reservas_mensuales(id_cliente, clase_base):
                 return True
     return False
 
-def obtener_alternativas_semana_para_clase(clase_base):
+def obtener_alternativas_semana_para_clase(clase_base, id_cliente):
     """Busca clases de la misma especialidad/nombre en la misma semana para reprogramar."""
     start_of_week = clase_base.fecha_clase - timedelta(days=clase_base.fecha_clase.weekday())
     end_of_week = start_of_week + timedelta(days=6)
@@ -198,7 +198,14 @@ def obtener_alternativas_semana_para_clase(clase_base):
         _filtro_clase_futura()
     ).order_by(Clase.fecha_clase.asc(), Clase.horario.asc())
     
-    return db.session.scalars(query).all()
+    clases_sin_filtrar_disponibilidad_del_cliente = db.session.scalars(query).all()
+    alternativas_considerando_calendario = []
+    
+    for clase in clases_sin_filtrar_disponibilidad_del_cliente:
+        if not cliente_tiene_conflicto_horario (clase, id_cliente):
+            alternativas_considerando_calendario.push (clase)
+    
+    return alternativas_considerando_calendario
 
 def obtener_profesor_de_clase(id_clase):
     from src.core.usuarios.usuarios import Usuario
