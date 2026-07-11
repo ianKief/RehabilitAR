@@ -182,6 +182,10 @@ def precio_clase():
         precio_individual = request.form.get("precio_individual")
         precio_fija = request.form.get("precio_fija")
 
+        if not (precio_individual or precio_fija):
+            flash("Se debe ingresar al menos un valor", "warning")
+            return redirect(url_for("pagos.precio_clase"))
+
         try:
             # Usamos el core para actualizar los precios
             actualizar_precios_clase(

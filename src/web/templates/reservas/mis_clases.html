@@ -91,13 +91,13 @@
                                 </td>
                                 <td>
                                     {% if reserva.asiste.name == 'PRESENTE' %}
-                                        <span class="tag is-success is-light">Asistió</span>
+                                        <span class="tag is-success is-light">Presente</span>
                                     {% else %}
                                         <span class="tag is-light">Ausente / Finalizada</span>
                                     {% endif %}
                                 </td>
                                 <td class="has-text-centered">
-                                    <a href="{{ url_for('reservas.detalle_clase', id_clase=reserva.clase.id, next=request.url) }}" class="button is-small is-light is-rounded has-text-grey-dark">
+                                    <a href="{{ url_for('reservas.detalle_clase', id_clase=reserva.clase.id, next=request.url) }}" class="button is-small is-light is-rounded has-text-grey">
                                         <span class="icon is-small"><i class="fas fa-info-circle"></i></span>
                                         <span>Ver detalles</span>
                                     </a>

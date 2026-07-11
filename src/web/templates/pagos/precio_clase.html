@@ -22,20 +22,22 @@
                 <div class="field">
                     <label class="label">Precio Clase Individual</label>
                     <div class="control has-icons-left">
-                        <input class="input is-medium" type="number" name="precio_individual" placeholder="Ej: 7500" value="{{ precio_individual.precio if precio_individual else '' }}" required>
+                        <input class="input is-medium" type="number" name="precio_individual" placeholder="Ej: 7500">
                         <span class="icon is-small is-left"><i class="fas fa-user"></i></span>
                     </div>
                     <p class="help">Valor para clases de un solo alumno.</p>
+                    <p class="help">Precio actual: {{ precio_individual.precio if precio_individual else "Ninguno" }}</p>
                 </div>
             </div>
             <div class="column is-5">
                 <div class="field">
                     <label class="label">Precio Clase Fija (Grupal)</label>
                     <div class="control has-icons-left">
-                        <input class="input is-medium" type="number" name="precio_fija" placeholder="Ej: 5000" value="{{ precio_fija.precio if precio_fija else '' }}" required>
+                        <input class="input is-medium" type="number" name="precio_fija" placeholder="Ej: 5000">
                         <span class="icon is-small is-left"><i class="fas fa-users"></i></span>
                     </div>
                     <p class="help">Valor por clase para el abono mensual y clases fijas extra.</p>
+                    <p class="help">Precio actual: {{ precio_fija.precio if precio_fija else "Ninguno" }}</p>
                 </div>
             </div>
         </div>

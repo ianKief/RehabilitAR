@@ -369,30 +369,32 @@ def obtener_precio_clase_actual(tipo_clase: str):
 
 def actualizar_precios_clase(precio_individual: str, precio_fija: str):
     """
-    Actualiza los precios para las clases individuales y fijas.
+    Actualiza los precios para las clases individuales o fijas.
     Invalida los precios anteriores y crea nuevos registros.
     """
-    try:
-        nuevo_precio_individual = int(precio_individual)
-        nuevo_precio_fija = int(precio_fija)
-        if nuevo_precio_individual <= 0 or nuevo_precio_fija <= 0:
-            raise ValueError("Los precios deben ser mayores a cero.")
-    except (ValueError, TypeError):
-        raise ValueError("Por favor, ingrese valores numéricos válidos para los precios.")
 
     ahora = datetime.now()
 
-    # Invalidar precios anteriores
-    for tipo in ["Individual", "Fija"]:
-        precio_anterior = conseguir_precio_actual(tipo)
-        if precio_anterior:
-            precio_anterior.fecha_hasta = ahora
-
-    # Crear nuevos precios
-    db.session.add(PrecioClase(tipo_clase="Individual", precio=nuevo_precio_individual))
-    db.session.add(PrecioClase(tipo_clase="Fija", precio=nuevo_precio_fija))
-    db.session.commit()
-
+    try:
+        if precio_individual:
+            nuevo_precio_individual = int(precio_individual)
+            if nuevo_precio_individual <= 0:
+                raise ValueError("Los precios deben ser mayores a cero.")
+            precio_anterior = conseguir_precio_actual("Individual")
+            if precio_anterior:
+                precio_anterior.fecha_hasta = ahora
+            db.session.add(PrecioClase(tipo_clase="Individual", precio=nuevo_precio_individual))
+        if precio_fija:
+            nuevo_precio_fija = int(precio_fija)
+            if nuevo_precio_fija <= 0:
+                raise ValueError("Los precios deben ser mayores a cero.")
+            precio_anterior = conseguir_precio_actual("Fija")
+            if precio_anterior:
+                precio_anterior.fecha_hasta = ahora
+            db.session.add(PrecioClase(tipo_clase="Fija", precio=nuevo_precio_fija))
+        db.session.commit()
+    except (ValueError, TypeError) as e:
+        raise ValueError(str(e))
 
 def bloquear_morosos_abono():
     from core.usuarios.usuarios import Cliente, EstadoUsuario
@@ -494,8 +496,8 @@ def devolver_pagos_de_reservas_de_usuarios (id_usuario):
     stmt = (
         select(Pago)
         .where(Pago.concepto_pago == ConceptoPago.RESERVA)
-        .options(selectinload(Pago.detalle_pago))
         .where(Pago.id_cliente == id_usuario)
+        .options(selectinload(Pago.detalle_pago))
         .order_by(Pago.fecha_creacion.desc())
     )
 
