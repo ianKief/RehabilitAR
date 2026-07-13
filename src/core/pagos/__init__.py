@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 
-from sqlalchemy import select
+from sqlalchemy import select, text, cast, String, DateTime
 from sqlalchemy.orm import selectinload
 
 from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago, Beneficio, TipoBeneficio
@@ -563,3 +563,57 @@ def devolver_credito_y_marcar_como_usado (id_cliente, id_pago):
     credito.id_pago = id_pago
 
     return credito
+
+def devolver_clases_futuras_con_seña_incompleta_con_datos_de_clase_y_sala (dni_cliente):
+    from src.core.reservas import Reserva
+    from src.core.clases import Clase
+    from src.core.salas import Sala
+    from src.core.functions import devolver_fecha_hora_actual
+    from sqlalchemy.dialects.postgresql import INTERVAL
+
+    """formato json (ejemplo): 
+    [
+        {"id": 12, "clase_nombre": "Pilates Reformer", "fecha": "15/07/2026", "hora": "18:00", "sala": "A", "monto": 3500.00},
+        {"id": 18, "clase_nombre": "Yoga Funcional", "fecha": "18/07/2026", "hora": "09:00", "sala": "B", "monto": 2800.00}
+    ]
+    """
+
+    precio_clase = db.session.query(PrecioClase).filter_by(tipo_clase='Individual', fecha_hasta=None).first().precio
+    cliente = db.session.query(Cliente.id).filter_by(dni=dni_cliente).first()
+    if not cliente:
+        return []
+    id_cliente = cliente.id
+
+    intervalo = cast(
+        cast(Clase.duracion, String) + " minutes",
+        INTERVAL
+    )
+    datetime_fin = (
+        cast(Clase.fecha_clase + Clase.horario, DateTime)
+        + intervalo
+    )
+
+    query = (db.session.query(Clase.id.label("id"), Clase.nombre.label("clase_nombre"), Clase.fecha_clase.label("fecha"), Clase.horario.label("hora"), Sala.numero_puerta.label("sala"), DetallePago.precio_unitario.label("pagado"))
+        .join (Reserva, Reserva.id_clase == Clase.id)
+        .join (DetallePago, Reserva.id == DetallePago.id_reserva)
+        .join (Sala, Clase.sala_id == Sala.id)
+        .group_by(Reserva.id, Clase.id, Clase.nombre, Clase.fecha_clase, Clase.horario,Sala.numero_puerta, DetallePago.precio_unitario)
+        .filter(Clase.tipo == "Individual")
+        .filter(Reserva.id_cliente == id_cliente)
+        .filter(devolver_fecha_hora_actual() < datetime_fin)
+        .filter(DetallePago.precio_unitario < precio_clase)
+    )
+
+    resultado = []
+
+    for fila in query.all():
+        resultado.append({
+            "id": fila.id,
+            "clase_nombre": fila.clase_nombre,
+            "fecha": fila.fecha.strftime("%d/%m"),
+            "hora": fila.hora.strftime("%H:%M"),
+            "sala": fila.sala,
+            "monto": precio_clase - fila.pagado
+        })
+    
+    return resultado

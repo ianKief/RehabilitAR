@@ -3,6 +3,7 @@ def correos_bypass ():
         "pruebasrehabilitar@gmail.com",
         "clienteprueba@gmail.com",
         "profesorprueba@gmail.com",
+        "recepcionistaprueba@gmail.com",
         "profesorays1@gmail.com",
         "profesorays2@gmail.com",
         "clienteclasecanceladaays@gmail.com",
