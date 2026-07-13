@@ -371,15 +371,19 @@
                 </div>
 
                 <!-- PANEL DE COBRO (Se habilita al seleccionar una reserva) -->
-                <div class="box has-background-light is-flex is-align-items-center is-justify-content-space-between p-4" style="border: 2px dashed #dbdbdb;">
-                    <div>
-                        <p class="is-size-6 has-text-grey mb-0">Monto a pagar</p>
-                        <p class="title is-3 has-text-dark mb-0" id="texto_monto">$0.00</p>
+                <div id="seccion_pago_wrapper" class="is-hidden">
+                    
+                    <div class="box is-flex is-align-items-center is-justify-content-space-between p-4" style="border: 2px dashed #dbdbdb;">
+                        <div>
+                            <p class="is-size-6 has-text-grey mb-0">Monto a pagar</p>
+                            <p class="title is-3 has-text-dark mb-0" id="texto_monto">$0.00</p>
+                        </div>
+                        <button type="submit" class="button is-success is-large" id="btn_pagar" disabled>
+                            <span class="icon"><i class="fas fa-check-circle"></i></span>
+                            <span class="has-text-weight-bold">Confirmar Pago</span>
+                        </button>
                     </div>
-                    <button type="submit" class="button is-success is-large" id="btn_pagar" disabled>
-                        <span class="icon"><i class="fas fa-check-circle"></i></span>
-                        <span class="has-text-weight-bold">Confirmar Pago</span>
-                    </button>
+                    
                 </div>
             </form>
 
@@ -662,6 +666,7 @@
         const textoMonto = document.getElementById('texto_monto');
         const btnPagar = document.getElementById('btn_pagar');
         const tituloResultados = document.getElementById('titulo_resultados');
+        const seccionPago = document.getElementById('seccion_pago_wrapper');
 
         btnBuscar.addEventListener('click', async () => {
             console.log ("En addeventlistener")
@@ -679,6 +684,7 @@
                 // Limpiamos resultados anteriores y mostramos el formulario
                 contenedorReservas.innerHTML = '';
                 formCobro.classList.remove('is-hidden');
+                seccionPago.classList.add('is-hidden')
                 
                 // Reseteamos el panel de pago
                 inputReservaId.value = '';
@@ -714,8 +720,10 @@
                     return;
                 }
 
+                seccionPago.classList.remove('is-hidden');
+
                 tituloResultados.textContent = `Reservas Pendientes (${reservas.length})`;
-                btnPagar.closest('.box').style.display = 'flex'; // Volvemos a mostrar la caja de pago
+                // btnPagar.closest('.box').style.display = 'flex'; // Volvemos a mostrar la caja de pago
 
                 // Dibujamos las tarjetas
                 reservas.forEach(reserva => {
@@ -731,9 +739,6 @@
                                 <span class="mr-4"><i class="far fa-calendar-alt mr-1"></i> ${reserva.fecha} - ${reserva.hora}</span>
                                 <span><i class="fas fa-door-open mr-1"></i> Sala: ${reserva.sala}</span>
                             </div>
-                        </div>
-                        <div class="has-text-right">
-                            <span class="tag is-warning is-light is-medium font-weight-bold">$${reserva.monto}</span>
                         </div>
                     `;
 
