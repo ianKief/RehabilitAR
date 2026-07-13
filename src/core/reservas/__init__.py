@@ -119,9 +119,9 @@ def cancelar_cola_core(cola):
     cola.estado = EstadoCola.EN_RESERVA
     db.session.commit()
 
-def crear_reserva(id_cliente, id_clase):
+def crear_reserva(id_cliente, id_clase, estado_asistencia=AsistenciaReserva.AUSENTE):
     """Crea y registra una nueva reserva con estado 'ausente' para el cliente y la clase indicados."""
-    nueva_reserva = Reserva(id_cliente=id_cliente, id_clase=id_clase, asiste=AsistenciaReserva.AUSENTE)
+    nueva_reserva = Reserva(id_cliente=id_cliente, id_clase=id_clase, asiste=estado_asistencia)
     db.session.add(nueva_reserva)
     db.session.flush()
     return nueva_reserva

@@ -113,6 +113,7 @@ def consumir_descuentos(id_cliente, pago, limite):
             restante = 0
 
 def registrar_pago_desde_payment(payment_id, payment):
+    from src.core.reservas import AsistenciaReserva
     monto = payment.get("transaction_amount")
     estado = payment.get("status")
 
@@ -216,15 +217,16 @@ def registrar_pago_desde_payment(payment_id, payment):
 
         db.session.add(pago)
 
-        # 3. crear reserva REAL
-        reserva = crear_reserva(usuario_id, id_clase)
-        
+        # 2. crear reserva
+        if estado_final == EstadoPago.COMPLETADO:
+            reserva = crear_reserva(usuario_id, id_clase)
+        else:
+            reserva = crear_reserva (usuario_id, id_clase, estado_asistencia=AsistenciaReserva.PENDIENTE_DE_PAGO)
 
         db.session.flush()
         print ("EL ID CLASE ES:", id_clase)
 
-
-        # 2. detalle
+        # 3. detalle
         detalle = DetallePago(
             id_pago=pago.id,
             cantidad=1,
@@ -429,7 +431,6 @@ def bloquear_morosos_abono():
     db.session.commit()
     return bloqueados
 
-
 def notificar_ultimo_dia_de_pago():
     """
     Notifica a los clientes abonados que su abono esta proximo a vencer. 
@@ -480,7 +481,6 @@ def notificar_ultimo_dia_de_pago():
                 print(f"Error al enviar correo a {cliente.email}: {e}")
     
     return correos_enviados
-
 
 def devolver_abonos_de_usuarios (id_usuario):
     stmt = (
@@ -617,3 +617,78 @@ def devolver_clases_futuras_con_seña_incompleta_con_datos_de_clase_y_sala (dni_
         })
     
     return resultado
+
+def resolver_pago_pendiente (reserva_id, cliente_id):
+    from src.core.reservas import Reserva, AsistenciaReserva
+    from src.core.mail import enviar_correo
+    """Crea el pago que estaba pendiente, establece el estado de la reserva como pagado (ausente) y envía el comprobante por mail"""
+    monto_restante = obtener_precio_clase_actual("Individual") - conseguir_monto_pagado (reserva_id)
+    primer_pago = conseguir_pago_por_reserva (reserva_id)
+    primer_pago.estado_pago = EstadoPago.COMPLETADO
+
+    # Sinceramente, no sé si tengo que crear un pago, dado que no hay una pestaña para asociar pagos :P
+    pago = Pago (
+        id_cliente = cliente_id,
+        payment_id = f"clase {reserva_id} pago {cliente_id}",
+        monto_total = monto_restante,
+        estado_pago = EstadoPago.COMPLETADO,
+        concepto_pago = ConceptoPago.RESERVA,
+    )
+
+    db.session.add(pago)
+    db.session.flush()
+
+    detalle_pago = DetallePago (
+        pago = pago,
+        id_reserva = reserva_id,
+        cantidad = 1,
+        precio_unitario = obtener_precio_clase_actual("Individual"),
+        subtotal = monto_restante
+    )
+    db.session.add(detalle_pago)
+
+    reserva = db.session.query(Reserva).filter_by(id=reserva_id).first()
+    clase = obtener_clase_por_id(reserva.id_clase)
+    reserva.asiste = AsistenciaReserva.AUSENTE
+    
+    db.session.commit()
+
+    ahora = datetime.now()
+    cliente = obtener_usuario_por_id_core(cliente_id)
+
+    contenido = f"""Centro de Rehabilitación:
+    
+    COMPROBANTE DE PAGO
+    
+    Cliente: {cliente.nombre} {cliente.apellido}
+    DNI: {cliente.dni}
+
+    Clase: {clase.nombre}
+    Fecha de la clase: {clase.fecha_clase}
+    Horario de clase: {clase.horario}
+
+    Concepto: Pago de saldo pendiente
+    Importe abonado: {monto_restante}
+    Fecha del pago: {ahora.strftime("%d/%m/%Y")}
+    
+    Muchas gracias."""
+
+    enviar_correo (subject="Pago confirmado", recipients=cliente.email, body=contenido)
+
+def conseguir_monto_pagado (reserva_id):
+    from src.core.reservas import Reserva
+    query = (db.session.query(DetallePago.subtotal)
+        .join(Reserva, Reserva.id == DetallePago.id_reserva)
+        .filter(Reserva.id == reserva_id)
+    )
+
+    return db.session.scalar(query)
+
+def conseguir_pago_por_reserva (reserva_id):
+    from src.core.reservas import Reserva
+    query = (db.session.query(Pago)
+        .join (DetallePago)
+        .join (Reserva, Reserva.id == DetallePago.id_reserva)
+        .filter (Reserva.id == reserva_id)
+    )
+    return db.session.scalar(query)

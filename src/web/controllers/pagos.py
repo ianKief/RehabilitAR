@@ -20,7 +20,8 @@ from src.core.pagos import (
     pago_ya_procesado,
     procesar_mercado_pago_webhook,
     registrar_pago_abono_mensual,
-    devolver_clases_futuras_con_seña_incompleta_con_datos_de_clase_y_sala
+    devolver_clases_futuras_con_seña_incompleta_con_datos_de_clase_y_sala,
+    resolver_pago_pendiente
 )
 from src.core.reservas import obtener_clase_por_id
 from src.web.helpers.decorator import requiere_rol
@@ -255,4 +256,11 @@ def devolver_reservas_pendientes_de_pago (dni_cliente):
 @bp.route("/cobrar-saldo-pendiente", methods=["POST"])
 @requiere_rol(["RECEPCIONISTA"])
 def cobrar_saldo_pendiente ():
-    return 
+    reserva_id = request.form.get("reserva_id")
+    cliente_id = session.get("usuario_id")
+
+    try:
+        pago = resolver_pago_pendiente (reserva_id, cliente_id)
+    except Exception as e:
+        flash(str(e))
+    # 1. Generar un nuevo pago 2. 
