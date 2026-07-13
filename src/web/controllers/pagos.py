@@ -260,7 +260,6 @@ def cobrar_saldo_pendiente ():
     cliente_id = session.get("usuario_id")
 
     try:
-        pago = resolver_pago_pendiente (reserva_id, cliente_id)
+        resolver_pago_pendiente (reserva_id, cliente_id)
     except Exception as e:
         flash(str(e))
-    # 1. Generar un nuevo pago 2. 

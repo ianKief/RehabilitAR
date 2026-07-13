@@ -32,6 +32,8 @@ def registrar_asistencia_qr(token):
             return render_template('profesor/resultado_qr.html', estado='no_pertenece')
         if reserva.asiste == AsistenciaReserva.CANCELADA:
             return render_template('profesor/resultado_qr.html', estado='suspendido')
+        if reserva.asiste == AsistenciaReserva.PENDIENTE_DE_PAGO:
+            return render_template('profesor/resultado_qr.html', estado='pago_pendiente')
     except:
         return render_template('profesor/resultado_qr.html', estado='no_pertenece')
 
