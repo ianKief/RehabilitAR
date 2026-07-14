@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 from src.core.usuarios import Cliente, EstadoUsuario, AptoFisico, EstadoAptoFisico
 from src.core.reservas.reservas import Comentario
-from src.core.pagos import Beneficio, TipoBeneficio, Pago, EstadoPago, ConceptoPago
+from src.core.pagos import Beneficio, TipoBeneficio, Pago, EstadoPago, ConceptoPago, PrecioClase
 
 tz_arg = ZoneInfo("America/Argentina/Buenos_Aires")
 
@@ -95,6 +95,18 @@ class SeedPagosSprint1 ():
                 fecha_carga = datetime.now(tz_arg).replace(tzinfo=None),
             )
             self.db.session.add(apto_fisico)
+
+            precio_clase_individual = PrecioClase (
+                tipo_clase = "Individual",
+                precio = 7500,
+            )
+            self.db.session.add(precio_clase_individual)
+
+            precio_clase_fija = PrecioClase (
+                tipo_clase = "Fija",
+                precio = 5000
+            )
+            self.db.session.add(precio_clase_fija)
 
             self.db.session.commit()
             print("✅ Datos de Pagos (Sprint 1.5) poblados con éxito.")
