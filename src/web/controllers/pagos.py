@@ -247,19 +247,23 @@ def devolver_reservas_pendientes_de_pago (dni_cliente):
     from src.core.database import db
     from src.core.usuarios import Cliente
     if not es_dni(dni_cliente):
-        return jsonify("dni_invalido")
+        return jsonify({"estado": "dni_invalido"})
     cliente = db.session.query(Cliente.id).filter_by(dni=dni_cliente).first()
     if not cliente:
-        return jsonify("no_es_cliente")
-    return jsonify(devolver_clases_futuras_con_seña_incompleta_con_datos_de_clase_y_sala (dni_cliente))
+        return jsonify({"estado": "no_es_cliente"})
+    return jsonify({
+        "estado": "200",
+        "reservas": devolver_clases_futuras_con_seña_incompleta_con_datos_de_clase_y_sala(dni_cliente)
+    })
 
 @bp.route("/cobrar-saldo-pendiente", methods=["POST"])
 @requiere_rol(["RECEPCIONISTA"])
 def cobrar_saldo_pendiente ():
-    reserva_id = request.form.get("reserva_id")
-    cliente_id = session.get("usuario_id")
+    from src.core.usuarios import conseguir_cliente_por_dni
+    clase_id = request.form.get("clase_id")
+    dni_cliente = request.form.get('dni')
 
-    try:
-        resolver_pago_pendiente (reserva_id, cliente_id)
-    except Exception as e:
-        flash(str(e))
+    resolver_pago_pendiente (clase_id, conseguir_cliente_por_dni(dni_cliente))
+
+    flash ("Se ha registrado el pago exitosamente", "success")
+    return redirect(url_for("home"))

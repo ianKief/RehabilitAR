@@ -584,6 +584,10 @@ def devolver_clases_futuras_con_seña_incompleta_con_datos_de_clase_y_sala (dni_
         return []
     id_cliente = cliente.id
 
+    if not precio_clase:
+        print ("Debe añadirse un seed de precios de clases")
+        return []
+
     intervalo = cast(
         cast(Clase.duracion, String) + " minutes",
         INTERVAL
@@ -601,6 +605,7 @@ def devolver_clases_futuras_con_seña_incompleta_con_datos_de_clase_y_sala (dni_
         .filter(Clase.tipo == "Individual")
         .filter(Reserva.id_cliente == id_cliente)
         .filter(devolver_fecha_hora_actual() < datetime_fin)
+        .filter(Pago.estado_pago == EstadoPago.PENDIENTE)
         .filter(DetallePago.precio_unitario < precio_clase)
     )
 
@@ -618,18 +623,22 @@ def devolver_clases_futuras_con_seña_incompleta_con_datos_de_clase_y_sala (dni_
     
     return resultado
 
-def resolver_pago_pendiente (reserva_id, cliente_id):
-    from src.core.reservas import Reserva, AsistenciaReserva
+def resolver_pago_pendiente (clase_id, cliente):
+    from src.core.reservas import AsistenciaReserva, obtener_reserva
     from src.core.mail import enviar_correo
     """Crea el pago que estaba pendiente, establece el estado de la reserva como pagado (ausente) y envía el comprobante por mail"""
-    monto_restante = obtener_precio_clase_actual("Individual") - conseguir_monto_pagado (reserva_id)
-    primer_pago = conseguir_pago_por_reserva (reserva_id)
+
+    print ("Clase id:", clase_id, "cliente_id:", cliente.id)
+    reserva = obtener_reserva (cliente.id, clase_id)
+    monto_restante = obtener_precio_clase_actual("Individual") - conseguir_monto_pagado (reserva.id).subtotal
+    primer_pago = conseguir_pago_por_reserva (reserva.id)
+    print ("El pago anterior es", primer_pago)
     primer_pago.estado_pago = EstadoPago.COMPLETADO
 
     # Sinceramente, no sé si tengo que crear un pago, dado que no hay una pestaña para asociar pagos :P
     pago = Pago (
-        id_cliente = cliente_id,
-        payment_id = f"clase {reserva_id} pago {cliente_id}",
+        id_cliente = cliente.id,
+        payment_id = f"clase {reserva.id} pago {cliente.id}",
         monto_total = monto_restante,
         estado_pago = EstadoPago.COMPLETADO,
         concepto_pago = ConceptoPago.RESERVA,
@@ -640,21 +649,19 @@ def resolver_pago_pendiente (reserva_id, cliente_id):
 
     detalle_pago = DetallePago (
         pago = pago,
-        id_reserva = reserva_id,
+        reserva = reserva,
         cantidad = 1,
         precio_unitario = obtener_precio_clase_actual("Individual"),
         subtotal = monto_restante
     )
     db.session.add(detalle_pago)
 
-    reserva = db.session.query(Reserva).filter_by(id=reserva_id).first()
     clase = obtener_clase_por_id(reserva.id_clase)
     reserva.asiste = AsistenciaReserva.AUSENTE
     
     db.session.commit()
 
     ahora = datetime.now()
-    cliente = obtener_usuario_por_id_core(cliente_id)
 
     contenido = f"""Centro de Rehabilitación:
     
@@ -676,19 +683,15 @@ def resolver_pago_pendiente (reserva_id, cliente_id):
     enviar_correo (subject="Pago confirmado", recipients=cliente.email, body=contenido)
 
 def conseguir_monto_pagado (reserva_id):
-    from src.core.reservas import Reserva
-    query = (db.session.query(DetallePago.subtotal)
-        .join(Reserva, Reserva.id == DetallePago.id_reserva)
-        .filter(Reserva.id == reserva_id)
+    query = (db.session.query(DetallePago)
+        .filter(DetallePago.id_reserva == reserva_id)
     )
-
-    return db.session.scalar(query)
+    return query.first()
 
 def conseguir_pago_por_reserva (reserva_id):
-    from src.core.reservas import Reserva
+    print ("El id reserva que llega es", reserva_id)
     query = (db.session.query(Pago)
-        .join (DetallePago)
-        .join (Reserva, Reserva.id == DetallePago.id_reserva)
-        .filter (Reserva.id == reserva_id)
+        .join (DetallePago, Pago.id == DetallePago.id_pago)
+        .filter (DetallePago.id_reserva == reserva_id)
     )
-    return db.session.scalar(query)
+    return query.first()

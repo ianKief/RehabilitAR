@@ -361,8 +361,9 @@
             <!-- Todo esto es un formulario que Flask procesará -->
             <form action="{{ url_for('pagos.cobrar_saldo_pendiente') }}" method="POST" id="form_cobro" class="is-hidden">
                 
-                <!-- Aquí guardaremos el ID de la reserva seleccionada con JS -->
-                <input type="hidden" name="reserva_id" id="input_reserva_id" value="">
+                <!-- Aquí guardaremos el ID de la clase seleccionada con JS -->
+                <input type="hidden" name="clase_id" id="input_clase_id" value="">
+                <input type="hidden" name="dni" id="input_dni_hidden" value="">
 
                 <!-- Lista de Resultados generada por JS -->
                 <h2 class="title is-5 mb-4 mt-5" id="titulo_resultados">Reservas Pendientes</h2>
@@ -375,8 +376,8 @@
                     
                     <div class="box is-flex is-align-items-center is-justify-content-space-between p-4" style="border: 2px dashed #dbdbdb;">
                         <div>
-                            <p class="is-size-6 has-text-grey mb-0">Monto a pagar</p>
-                            <p class="title is-3 has-text-dark mb-0" id="texto_monto">$0.00</p>
+                            <p class="is-size-6 mb-0">Monto a pagar</p>
+                            <p class="title is-3 mb-0" id="texto_monto">$0.00</p>
                         </div>
                         <button type="submit" class="button is-success is-large" id="btn_pagar" disabled>
                             <span class="icon"><i class="fas fa-check-circle"></i></span>
@@ -662,7 +663,8 @@
         const dniInput = document.getElementById('dni_input');
         const formCobro = document.getElementById('form_cobro');
         const contenedorReservas = document.getElementById('contenedor_reservas');
-        const inputReservaId = document.getElementById('input_reserva_id');
+        const inputClaseId = document.getElementById('input_clase_id');
+        const inputDniHidden = document.getElementById('input_dni_hidden');
         const textoMonto = document.getElementById('texto_monto');
         const btnPagar = document.getElementById('btn_pagar');
         const tituloResultados = document.getElementById('titulo_resultados');
@@ -679,7 +681,9 @@
             try {
                 // Reemplaza esta URL con la ruta de tu API en Flask
                 const response = await fetch(`/pagos/devolver-reservas-pendientes-de-pago/${dni}`);
-                const reservas = await response.json(); // Debería ser un array de diccionarios
+                const datos = await response.json(); // Debería ser un array de diccionarios
+                const reservas = datos.reservas
+                const estado = datos.estado
 
                 // Limpiamos resultados anteriores y mostramos el formulario
                 contenedorReservas.innerHTML = '';
@@ -687,11 +691,11 @@
                 seccionPago.classList.add('is-hidden')
                 
                 // Reseteamos el panel de pago
-                inputReservaId.value = '';
+                inputClaseId.value = '';
                 textoMonto.textContent = '$0.00';
                 btnPagar.disabled = true;
 
-                if (reservas == "dni_invalido") {
+                if (estado == "dni_invalido") {
                     tituloResultados.textContent = "El DNI ingresado es inválido";
                     contenedorReservas.innerHTML = `
                         <div class="notification is-light has-text-centered">
@@ -699,7 +703,7 @@
                             <p class="mt-2">Error en el DNI ingresado: Debe ingresar 7 u 8 números</p>
                         </div>`;
                     return
-                } else if (reservas == "no_es_cliente") {
+                } else if (estado == "no_es_cliente") {
                     tituloResultados.textContent = "El DNI ingresado es inválido";
                     contenedorReservas.innerHTML = `
                         <div class="notification is-light has-text-centered">
@@ -751,7 +755,8 @@
                         card.classList.add('is-selected');
                         
                         // Actualizamos los datos para el pago
-                        inputReservaId.value = reserva.id;
+                        inputClaseId.value = reserva.id;
+                        inputDniHidden.value = dni;
                         textoMonto.textContent = `$${reserva.monto}`;
                         btnPagar.disabled = false; // ¡Se habilita el botón!
                     });
