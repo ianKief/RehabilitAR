@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, desc
 
 from src.core.database import db
 from src.core.creditos_descuentos.creditos_descuentos import (
@@ -10,7 +10,10 @@ from src.core.creditos_descuentos.creditos_descuentos import (
 
 def obtener_creditos_descuentos(dni=None):
 
-    stmt = select(CreditoDescuento)
+    stmt = (
+        select(CreditoDescuento)
+        .order_by(desc(CreditoDescuento.fecha_creacion))
+    )
 
     if dni:
         from src.core.usuarios.usuarios import Cliente
@@ -80,6 +83,12 @@ def generar_beneficio_por_cancelacion(cancelacion):
     clase = reserva.clase
 
     from datetime import datetime, timedelta
+    from src.core.pagos import estado_abono_usuario
+
+    estado_abono = estado_abono_usuario(cliente.id)
+
+    if estado_abono != "activo":
+        return None
 
     fecha_hora_clase = datetime.combine(
         clase.fecha_clase,
@@ -96,7 +105,7 @@ def generar_beneficio_por_cancelacion(cancelacion):
                 id_cliente=cliente.id,
                 id_cancelacion=cancelacion.id,
                 tipo=TipoBeneficio.CREDITO,
-                cantidad="1 clase",
+                cantidad="1",
                 motivo="Cancelación de clase fija"
             )
 

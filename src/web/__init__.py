@@ -49,6 +49,7 @@ def create_app():
     from src.web.controllers.notificaciones import bp as notificaciones_bp
     from src.web.controllers.estadisticas import bp as estadisticas_bp
     from src.web.controllers.auditoria import bp as auditoria_bp
+    from src.web.controllers.creditos_descuentos import bp as creditos_descuentos_bp
 
     app.register_blueprint(salas_bp)
     app.register_blueprint(profesor_bp)
@@ -61,6 +62,7 @@ def create_app():
     app.register_blueprint(notificaciones_bp)
     app.register_blueprint(estadisticas_bp)
     app.register_blueprint(auditoria_bp)
+    app.register_blueprint(creditos_descuentos_bp)
 
     # Registrar CLI commands
     @app.cli.command("reset-db")

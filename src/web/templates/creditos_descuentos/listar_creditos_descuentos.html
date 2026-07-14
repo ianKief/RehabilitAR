@@ -1,4 +1,3 @@
-
 {% extends "layout.html" %}
 
 {% block title %}Créditos y Descuentos{% endblock %}
@@ -14,7 +13,6 @@
                 </h1>
             </div>
         </div>
-
 
         <div class="box">
 
@@ -51,7 +49,6 @@
 
         </div>
 
-
         <div class="box">
 
             <table class="table is-fullwidth is-striped is-hoverable">
@@ -66,7 +63,6 @@
                         <th>Fecha</th>
                     </tr>
                 </thead>
-
 
                 <tbody>
 
@@ -96,11 +92,10 @@
                         </td>
 
                         <td>
-                            {{ beneficio.fecha_creacion.strftime('%d/%m/%Y') }}
+                            {{ beneficio.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}
                         </td>
 
                     </tr>
-
 
                     {% else %}
 
@@ -111,7 +106,6 @@
                     </tr>
 
                     {% endfor %}
-
 
                 </tbody>
 
