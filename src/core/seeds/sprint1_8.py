@@ -5,6 +5,7 @@ from src.core.usuarios import Usuario, Profesor, Cliente, EstadoUsuario
 from src.core.reservas.reservas import Reserva, Comentario, AsistenciaReserva
 from src.core.clases import Clase, ProfesorDictaClase
 from src.core.salas.salas import Sala
+from src.core.pagos import Pago, EstadoPago, ConceptoPago, DetallePago
 
 from src.core.functions import filtro_clase_actual
 
@@ -48,6 +49,7 @@ class SeedAsistenciaYSeguimientoSprint1 ():
             )
             self.db.session.add(profesor2)
 
+            # Acá las salas de ambas clases
             sala_sprint1_1 = Sala(
                 numero_puerta="101-S1",
                 descripcion="Sala Sprint 1 (Capacidad 4)",
@@ -64,9 +66,10 @@ class SeedAsistenciaYSeguimientoSprint1 ():
             self.db.session.add(sala_sprint1_2)
             self.db.session.flush()
 
+            # Las clases
             clase1 = Clase(
                 nombre= "Clase 1 de profesor 1 con reservas",
-                especialidad= "Programación",
+                especialidad= "Individual",
                 duracion=180,
                 descripcion = "Otorgamos una clase de 3 horas para 4 personas para que nuestro cliente pueda apreciar la implementación de la HU sin inconvenientes",
                 fecha_clase = datetime.now(tz_arg).replace(tzinfo=None).date(),
@@ -79,7 +82,7 @@ class SeedAsistenciaYSeguimientoSprint1 ():
 
             clase2 = Clase(
                 nombre= "Clase 2 de profesor 2 sin reservas",
-                especialidad= "Programación",
+                especialidad= "Individual",
                 duracion=180,
                 descripcion = "Otorgamos una clase de 3 horas para 4 personas para que nuestro cliente pueda apreciar la implementación de la HU sin inconvenientes",
                 fecha_clase = datetime.now(tz_arg).replace(tzinfo=None).date(),
@@ -92,6 +95,7 @@ class SeedAsistenciaYSeguimientoSprint1 ():
 
             self.db.session.flush()
 
+            # Relacionamos los datos
             profesor_dicta_clase1 = ProfesorDictaClase (
                 id_profesor = profesor1.id,
                 id_clase = clase1.id
@@ -110,6 +114,7 @@ class SeedAsistenciaYSeguimientoSprint1 ():
                 .filter(*filtro_clase_actual())
             )
 
+            # Consigo clientes que pueda meter en la clase que sucede ahora
             clientes_con_clase_actual = self.db.session.scalars(query).all()
 
             clientes = self.db.session.query(Cliente).filter(Cliente.id.notin_(clientes_con_clase_actual)).all()
@@ -135,6 +140,7 @@ class SeedAsistenciaYSeguimientoSprint1 ():
             )
             self.db.session.add(profesor_dicta_clase_viejo)
 
+            # Agregamos clientes a la clase vieja de profesorays1
             i = 0
             for cliente in clientes:
                 nueva_reserva = Reserva (
@@ -207,6 +213,44 @@ class SeedAsistenciaYSeguimientoSprint1 ():
                 asiste = AsistenciaReserva.CANCELADA
             )
             self.db.session.add(reserva)
+
+            # Alguien con la clase a medio pagar
+
+            cliente_medio_pago = Cliente (
+                nombre="a medio pago",
+                apellido = "ays",
+                dni="80000005",
+                password="123456",
+                estado=EstadoUsuario.ACTIVO,
+                email="clientemediopagoays@gmail.com"
+            )
+            self.db.session.add(cliente_medio_pago)
+            self.db.session.flush()
+
+            reserva_cliente_medio_pago = Reserva (
+                cliente = cliente_medio_pago,
+                clase = clase1,
+                asiste = AsistenciaReserva.PENDIENTE_DE_PAGO
+            )
+            pago_cliente_medio_pago = Pago (
+                id_cliente = cliente_medio_pago.id,
+                payment_id = "prueba asistencia y seguimiento",
+                monto_total = 4000,
+                estado_pago = EstadoPago.PENDIENTE,
+                concepto_pago = ConceptoPago.RESERVA
+            )
+            self.db.session.add(reserva_cliente_medio_pago)
+            self.db.session.add(pago_cliente_medio_pago)
+            self.db.session.flush()
+
+            detalle_pago_cliente_medio_pago = DetallePago (
+                pago = pago_cliente_medio_pago,
+                reserva = reserva_cliente_medio_pago,
+                cantidad = 1,
+                precio_unitario = 4000,
+                subtotal = 4000
+            )
+            self.db.session.add (detalle_pago_cliente_medio_pago)
 
             self.db.session.commit()
             print("✅ Datos de Asistencia y Seguimiento (Sprint 1.8) poblados con éxito.")

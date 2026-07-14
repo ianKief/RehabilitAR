@@ -48,7 +48,7 @@ class DetallePago (Base):
     id_reserva: Mapped[int] = mapped_column(ForeignKey("reserva.id"), nullable=True)
 
     cantidad: Mapped[int] = mapped_column(Integer, nullable=False)
-    precio_unitario: Mapped[int] = mapped_column(Integer, nullable=False)
+    precio_unitario: Mapped[int] = mapped_column(Integer, nullable=False) # ¿Celda inutil?
     subtotal: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # Relationships

@@ -7,6 +7,7 @@ def correos_bypass ():
         "profesorays1@gmail.com",
         "profesorays2@gmail.com",
         "clienteclasecanceladaays@gmail.com",
+        "clientemediopagoays@gmail.com",
         "clienteespera1@gmail.com",
         "clienteespera2@gmail.com",
         "clientecondescuento1@gmail.com",
