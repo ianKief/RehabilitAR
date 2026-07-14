@@ -3,14 +3,13 @@ from sqlalchemy.orm import contains_eager
 
 from src.core.database import db
 from src.core.clases.clases import Clase, ProfesorDictaClase
-
+from src.core.creditos_descuentos import generar_beneficio_por_cancelacion
 from src.core.reservas.reservas import Reserva, AsistenciaReserva, Cola, Cancelacion, EstadoCola, EstadoCancelacion
 from datetime import date, timedelta, datetime
 import calendar
 from src.core.salas.salas import Sala
 from src.core.functions import filtro_cliente_abonado
 from src.core.notificaciones import enviar_notificaciones, TipoNotificacion
-
 def _filtro_clase_futura():
     ahora = datetime.now()
     return or_(
@@ -110,9 +109,14 @@ def cancelar_reserva_core(reserva):
         estado = EstadoCancelacion.CORRESPONDE_ACREDITAR
     )
     db.session.add(nueva_cancelacion)
+    db.session.flush()
+
     if hay_cola (obtener_clase_por_id(reserva.id_clase)):
         dar_acceso_segun_orden_cola (reserva.id_clase)
+    generar_beneficio_por_cancelacion(nueva_cancelacion)
+    
     db.session.commit()
+
 
 def cancelar_cola_core(cola):
     """Cambia el estado de una reserva a 'cancelada', liberando el cupo."""
