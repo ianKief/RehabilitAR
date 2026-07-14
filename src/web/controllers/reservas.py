@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, session, flash, redirect, url_for, current_app
 from datetime import datetime, date, timedelta
 import os
-
+from src.core.pagos import devolver_beneficios_activos
+from src.core.pagos.pagos import TipoBeneficio
 from src.web.helpers.decorator import requiere_rol
 from src.web.helpers.feriados import obtener_dias_no_laborables
 from src.web.functions import devolver_enlace_absoluto_actual
@@ -524,16 +525,34 @@ def reservar_mensual(id_clase):
             
     meses_espanol = {1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"}
     dias_semana_espanol = {0: "Lunes", 1: "Martes", 2: "Miércoles", 3: "Jueves", 4: "Viernes", 5: "Sábado", 6: "Domingo"}
+    
+    # Buscar descuentos disponibles del cliente
+    descuentos_disponibles = devolver_beneficios_activos(
+    usuario_id,
+    TipoBeneficio.DESCUENTO
+    )
 
-    return render_template("reservas/reserva_mensual.html", 
-                           clase_base=clase_base, 
-                           clases_ok=clases_ok, 
-                           conflictos_cupo=conflictos_cupo, 
-                           conflictos_feriado=conflictos_feriado,
-                           conflictos_calendario=conflictos_calendario,
-                           alternativas_conflictos=alternativas_conflictos,
-                           mes_nombre=meses_espanol[clase_base.fecha_clase.month],
-                           dia_nombre=dias_semana_espanol[clase_base.fecha_clase.weekday()])
+    descuento_total = sum(
+        beneficio.porcentaje_descuento 
+        for beneficio in descuentos_disponibles
+        if beneficio.porcentaje_descuento
+    )
+
+    # máximo permitido 30%
+    descuento_aplicable = min(descuento_total, 0.30)
+
+    return render_template(
+                        "reservas/reserva_mensual.html",
+                        clase_base=clase_base,
+                        clases_ok=clases_ok,
+                        conflictos_cupo=conflictos_cupo,
+                        conflictos_feriado=conflictos_feriado,
+                        conflictos_calendario=conflictos_calendario,
+                        alternativas_conflictos=alternativas_conflictos,
+                        mes_nombre=meses_espanol[clase_base.fecha_clase.month],
+                        dia_nombre=dias_semana_espanol[clase_base.fecha_clase.weekday()],
+                        descuento_disponible=descuento_aplicable
+                    )
 
 @reservas_bp.post("/<int:id_clase>/confirmar-abono")
 @requiere_rol(["CLIENTE"])

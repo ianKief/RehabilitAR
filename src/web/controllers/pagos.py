@@ -8,7 +8,7 @@ from flask import (
     session,
     url_for,
 )
-
+from src.core.pagos import TipoBeneficio,devolver_beneficios_activos
 from src.core.pagos import (
     actualizar_precios_clase,
     conseguir_precio_actual,
@@ -42,8 +42,23 @@ def pagar_abono():
     reserva_data = session.get('reserva_mensual_post_data', {})
     clases_seleccionadas_ids = reserva_data.get('clases_seleccionadas', [])
     precio_clase_fija = obtener_precio_clase_actual("Fija")
-    valor_final = len(clases_seleccionadas_ids) * precio_clase_fija
+    usar_descuento = request.form.get("usar_descuento")
 
+    if usar_descuento:
+        descuentos = devolver_beneficios_activos(
+            user_id,
+            TipoBeneficio.DESCUENTO
+        )
+
+        descuento_total = sum(
+            d.porcentaje_descuento 
+            for d in descuentos
+            if d.porcentaje_descuento
+        )
+
+        descuento_aplicado = min(descuento_total, 0.30)
+
+        valor_final = valor_final * (1 - descuento_aplicado)
     if not clases_seleccionadas_ids or valor_final <= 0:
         flash("El monto a pagar no puede ser cero. Por favor, revisá las clases seleccionadas.", "danger")
         return redirect(url_for("reservas.calendario_cliente"))
