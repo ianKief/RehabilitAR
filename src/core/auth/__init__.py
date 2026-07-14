@@ -71,11 +71,8 @@ def login(email, password):
         else:
             # Bloqueo indefinido por un administrador
             raise ValueError("Inicio de sesión fallido: Su cuenta ha sido bloqueada por un administrador. Por favor, contacte a soporte.")
-    # 3. Cuenta pendiente de verificación
-    if usuario.estado == EstadoUsuario.PENDIENTE:
-        raise ValueError("Inicio de sesión fallido: La cuenta aún no ha sido verificada. Por favor, revise su correo para obtener el código de verificación.")
     
-    # 4. Contraseña incorrecta
+    # 3. Contraseña incorrecta
     if usuario.password != password:
         usuario.intentos_login += 1
 
