@@ -7,6 +7,7 @@ from flask import (
     request,
     session,
     url_for,
+    jsonify
 )
 
 from src.core.pagos import (
@@ -19,12 +20,15 @@ from src.core.pagos import (
     pago_ya_procesado,
     procesar_mercado_pago_webhook,
     registrar_pago_abono_mensual,
+    devolver_clases_futuras_con_seña_incompleta_con_datos_de_clase_y_sala,
+    resolver_pago_pendiente
 )
 from src.core.reservas import obtener_clase_por_id
 from src.web.helpers.decorator import requiere_rol
 from src.web.functions import devolver_enlace_absoluto_actual
 from src.core.auditoria import registrar_log, TipoAccion
-
+from src.core.usuarios import obtener_usuario_por_id_core
+from src.web.functions import es_dni
 
 bp = Blueprint("pagos", __name__, url_prefix="/pagos")
 
@@ -236,3 +240,30 @@ def historial_pagos():
         "pagos/historial_pagos.html",
         historial=historial
     )
+
+@bp.route("/devolver-reservas-pendientes-de-pago/<dni_cliente>", methods=["GET"])
+@requiere_rol(["RECEPCIONISTA"])
+def devolver_reservas_pendientes_de_pago (dni_cliente):
+    from src.core.database import db
+    from src.core.usuarios import Cliente
+    if not es_dni(dni_cliente):
+        return jsonify({"estado": "dni_invalido"})
+    cliente = db.session.query(Cliente.id).filter_by(dni=dni_cliente).first()
+    if not cliente:
+        return jsonify({"estado": "no_es_cliente"})
+    return jsonify({
+        "estado": "200",
+        "reservas": devolver_clases_futuras_con_seña_incompleta_con_datos_de_clase_y_sala(dni_cliente)
+    })
+
+@bp.route("/cobrar-saldo-pendiente", methods=["POST"])
+@requiere_rol(["RECEPCIONISTA"])
+def cobrar_saldo_pendiente ():
+    from src.core.usuarios import conseguir_cliente_por_dni
+    clase_id = request.form.get("clase_id")
+    dni_cliente = request.form.get('dni')
+
+    resolver_pago_pendiente (clase_id, conseguir_cliente_por_dni(dni_cliente))
+
+    flash ("Se ha registrado el pago exitosamente", "success")
+    return redirect(url_for("home"))

@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 
-from sqlalchemy import select
+from sqlalchemy import select, text, cast, String, DateTime
 from sqlalchemy.orm import selectinload
 
 from src.core.pagos.pagos import Pago, DetallePago, PrecioClase, ConceptoPago, EstadoPago, Beneficio, TipoBeneficio
@@ -113,6 +113,7 @@ def consumir_descuentos(id_cliente, pago, limite):
             restante = 0
 
 def registrar_pago_desde_payment(payment_id, payment):
+    from src.core.reservas import AsistenciaReserva
     monto = payment.get("transaction_amount")
     estado = payment.get("status")
 
@@ -216,15 +217,16 @@ def registrar_pago_desde_payment(payment_id, payment):
 
         db.session.add(pago)
 
-        # 3. crear reserva REAL
-        reserva = crear_reserva(usuario_id, id_clase)
-        
+        # 2. crear reserva
+        if estado_final == EstadoPago.COMPLETADO:
+            reserva = crear_reserva(usuario_id, id_clase)
+        else:
+            reserva = crear_reserva (usuario_id, id_clase, estado_asistencia=AsistenciaReserva.PENDIENTE_DE_PAGO)
 
         db.session.flush()
         print ("EL ID CLASE ES:", id_clase)
 
-
-        # 2. detalle
+        # 3. detalle
         detalle = DetallePago(
             id_pago=pago.id,
             cantidad=1,
@@ -429,7 +431,6 @@ def bloquear_morosos_abono():
     db.session.commit()
     return bloqueados
 
-
 def notificar_ultimo_dia_de_pago():
     """
     Notifica a los clientes abonados que su abono esta proximo a vencer. 
@@ -480,7 +481,6 @@ def notificar_ultimo_dia_de_pago():
                 print(f"Error al enviar correo a {cliente.email}: {e}")
     
     return correos_enviados
-
 
 def devolver_abonos_de_usuarios (id_usuario):
     stmt = (
@@ -563,3 +563,135 @@ def devolver_credito_y_marcar_como_usado (id_cliente, id_pago):
     credito.id_pago = id_pago
 
     return credito
+
+def devolver_clases_futuras_con_seña_incompleta_con_datos_de_clase_y_sala (dni_cliente):
+    from src.core.reservas import Reserva
+    from src.core.clases import Clase
+    from src.core.salas import Sala
+    from src.core.functions import devolver_fecha_hora_actual
+    from sqlalchemy.dialects.postgresql import INTERVAL
+
+    """formato json (ejemplo): 
+    [
+        {"id": 12, "clase_nombre": "Pilates Reformer", "fecha": "15/07/2026", "hora": "18:00", "sala": "A", "monto": 3500.00},
+        {"id": 18, "clase_nombre": "Yoga Funcional", "fecha": "18/07/2026", "hora": "09:00", "sala": "B", "monto": 2800.00}
+    ]
+    """
+
+    precio_clase = db.session.query(PrecioClase).filter_by(tipo_clase='Individual', fecha_hasta=None).first().precio
+    cliente = db.session.query(Cliente.id).filter_by(dni=dni_cliente).first()
+    if not cliente:
+        return []
+    id_cliente = cliente.id
+
+    if not precio_clase:
+        print ("Debe añadirse un seed de precios de clases")
+        return []
+
+    intervalo = cast(
+        cast(Clase.duracion, String) + " minutes",
+        INTERVAL
+    )
+    datetime_fin = (
+        cast(Clase.fecha_clase + Clase.horario, DateTime)
+        + intervalo
+    )
+
+    query = (db.session.query(Clase.id.label("id"), Clase.nombre.label("clase_nombre"), Clase.fecha_clase.label("fecha"), Clase.horario.label("hora"), Sala.numero_puerta.label("sala"), DetallePago.precio_unitario.label("pagado"))
+        .join (Reserva, Reserva.id_clase == Clase.id)
+        .join (DetallePago, Reserva.id == DetallePago.id_reserva)
+        .join (Sala, Clase.sala_id == Sala.id)
+        .group_by(Reserva.id, Clase.id, Clase.nombre, Clase.fecha_clase, Clase.horario,Sala.numero_puerta, DetallePago.precio_unitario)
+        .filter(Clase.tipo == "Individual")
+        .filter(Reserva.id_cliente == id_cliente)
+        .filter(devolver_fecha_hora_actual() < datetime_fin)
+        .filter(Pago.estado_pago == EstadoPago.PENDIENTE)
+        .filter(DetallePago.precio_unitario < precio_clase)
+    )
+
+    resultado = []
+
+    for fila in query.all():
+        resultado.append({
+            "id": fila.id,
+            "clase_nombre": fila.clase_nombre,
+            "fecha": fila.fecha.strftime("%d/%m"),
+            "hora": fila.hora.strftime("%H:%M"),
+            "sala": fila.sala,
+            "monto": precio_clase - fila.pagado
+        })
+    
+    return resultado
+
+def resolver_pago_pendiente (clase_id, cliente):
+    from src.core.reservas import AsistenciaReserva, obtener_reserva
+    from src.core.mail import enviar_correo
+    """Crea el pago que estaba pendiente, establece el estado de la reserva como pagado (ausente) y envía el comprobante por mail"""
+
+    print ("Clase id:", clase_id, "cliente_id:", cliente.id)
+    reserva = obtener_reserva (cliente.id, clase_id)
+    monto_restante = obtener_precio_clase_actual("Individual") - conseguir_monto_pagado (reserva.id).subtotal
+    primer_pago = conseguir_pago_por_reserva (reserva.id)
+    print ("El pago anterior es", primer_pago)
+    primer_pago.estado_pago = EstadoPago.COMPLETADO
+
+    # Sinceramente, no sé si tengo que crear un pago, dado que no hay una pestaña para asociar pagos :P
+    pago = Pago (
+        id_cliente = cliente.id,
+        payment_id = f"clase {reserva.id} pago {cliente.id}",
+        monto_total = monto_restante,
+        estado_pago = EstadoPago.COMPLETADO,
+        concepto_pago = ConceptoPago.RESERVA,
+    )
+
+    db.session.add(pago)
+    db.session.flush()
+
+    detalle_pago = DetallePago (
+        pago = pago,
+        reserva = reserva,
+        cantidad = 1,
+        precio_unitario = obtener_precio_clase_actual("Individual"),
+        subtotal = monto_restante
+    )
+    db.session.add(detalle_pago)
+
+    clase = obtener_clase_por_id(reserva.id_clase)
+    reserva.asiste = AsistenciaReserva.AUSENTE
+    
+    db.session.commit()
+
+    ahora = datetime.now()
+
+    contenido = f"""Centro de Rehabilitación:
+    
+    COMPROBANTE DE PAGO
+    
+    Cliente: {cliente.nombre} {cliente.apellido}
+    DNI: {cliente.dni}
+
+    Clase: {clase.nombre}
+    Fecha de la clase: {clase.fecha_clase}
+    Horario de clase: {clase.horario}
+
+    Concepto: Pago de saldo pendiente
+    Importe abonado: {monto_restante}
+    Fecha del pago: {ahora.strftime("%d/%m/%Y")}
+    
+    Muchas gracias."""
+
+    enviar_correo (subject="Pago confirmado", recipients=cliente.email, body=contenido)
+
+def conseguir_monto_pagado (reserva_id):
+    query = (db.session.query(DetallePago)
+        .filter(DetallePago.id_reserva == reserva_id)
+    )
+    return query.first()
+
+def conseguir_pago_por_reserva (reserva_id):
+    print ("El id reserva que llega es", reserva_id)
+    query = (db.session.query(Pago)
+        .join (DetallePago, Pago.id == DetallePago.id_pago)
+        .filter (DetallePago.id_reserva == reserva_id)
+    )
+    return query.first()

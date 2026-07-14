@@ -48,6 +48,21 @@
                 </div>
             </div>
 
+            {% elif estado == 'pago_pendiente' %}
+
+            <div class="result-content animate-pop">
+                <span class="icon is-large has-text-danger mb-4 result-icon">
+                    <i class="fas fa-ban fa-4x"></i>
+                </span>
+                <h1 class="title is-3 mb-2">Aún no has completado el pago</h1>
+                <p class="subtitle is-5 has-text-grey mt-2">Has señado la clase, pero no se acreditó el monto faltante</p>
+                
+                <div class="notification is-danger is-light mt-4 p-3 rounded-notification">
+                    <span class="icon is-small mr-1"><i class="fas fa-user-tie"></i></span>
+                    Por favor, acércate a la mesa de entradas para pagar lo que queda.
+                </div>
+            </div>
+
             {% else %}
             <div class="result-content">
                 <span class="icon is-large has-text-grey-light mb-4 result-icon">

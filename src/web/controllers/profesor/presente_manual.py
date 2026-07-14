@@ -65,6 +65,11 @@ def registrar_asistencia_manual ():
             flash ("El DNI del alumno no corresponde a la clase del profesor o no existe", "warning")
             return render_template('profesor/presente_manual.html')
         
+        # Comprobación 8: el alumno no realizó el pago completo (solo válido en clases individuales)
+        if estado_asistencia_alumno == AsistenciaReserva.PENDIENTE_DE_PAGO:
+            flash ("El alumno no ha realizado la totalidad del pago. Puede acercarse a la mesa de entradas y pagar el monto restante.", "info")
+            return render_template('profesor/presente_manual.html')
+        
         exito = registrar_presente_alumno (dni_alumno=dni_alumno)
 
         if not exito:

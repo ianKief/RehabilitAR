@@ -334,3 +334,6 @@ def modificar_usuario_core(usuario_id, nombre, direccion, email, telefono):
 
     db.session.commit()
     return usuario
+
+def conseguir_cliente_por_dni (dni_cliente):
+    return db.session.query(Cliente).filter_by(dni=dni_cliente).first()

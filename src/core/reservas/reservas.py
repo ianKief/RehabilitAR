@@ -11,6 +11,7 @@ class AsistenciaReserva(enum.Enum):
     AUSENTE = "ausente"
     PRESENTE = "presente"
     CANCELADA = "cancelada"
+    PENDIENTE_DE_PAGO = "pendiente_de_pago"
 
 class EstadoCola(enum.Enum):
     CANCELADO = "cancelado"

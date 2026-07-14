@@ -329,6 +329,67 @@
 
             </div>
         </div>
+
+    {% elif session.get('rol') == 'RECEPCIONISTA' %}
+
+        <div class="container py-5" style="max-width: 800px;">
+            
+            <div class="box shadow-sm mb-5">
+                <h1 class="title is-4 mb-5">
+                    <span class="icon has-text-aqua mr-2"><i class="fas fa-cash-register"></i></span>
+                    Cobro de Clases
+                </h1>
+
+                <!-- BUSCADOR DE DNI -->
+                <div class="field has-addons mb-0">
+                    <div class="control has-icons-left is-expanded">
+                        <input class="input is-medium" type="text" id="dni_input" maxlength="8" placeholder="Ingresar DNI del cliente..." autocomplete="off">
+                        <span class="icon is-small is-left has-text-grey">
+                            <i class="fas fa-id-card"></i>
+                        </span>
+                    </div>
+                    <div class="control">
+                        <button class="button is-medium btn-aqua" id="btn_buscar">
+                            <span class="icon"><i class="fas fa-search"></i></span>
+                            <span>Buscar</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTENEDOR PRINCIPAL (Oculto hasta que se busca) -->
+            <!-- Todo esto es un formulario que Flask procesará -->
+            <form action="{{ url_for('pagos.cobrar_saldo_pendiente') }}" method="POST" id="form_cobro" class="is-hidden">
+                
+                <!-- Aquí guardaremos el ID de la clase seleccionada con JS -->
+                <input type="hidden" name="clase_id" id="input_clase_id" value="">
+                <input type="hidden" name="dni" id="input_dni_hidden" value="">
+
+                <!-- Lista de Resultados generada por JS -->
+                <h2 class="title is-5 mb-4 mt-5" id="titulo_resultados">Reservas Pendientes</h2>
+                <div id="contenedor_reservas" class="mb-5">
+                    <!-- Las tarjetas de reservas irán aquí -->
+                </div>
+
+                <!-- PANEL DE COBRO (Se habilita al seleccionar una reserva) -->
+                <div id="seccion_pago_wrapper" class="is-hidden">
+                    
+                    <div class="box is-flex is-align-items-center is-justify-content-space-between p-4" style="border: 2px dashed #dbdbdb;">
+                        <div>
+                            <p class="is-size-6 mb-0">Monto a pagar</p>
+                            <p class="title is-3 mb-0" id="texto_monto">$0.00</p>
+                        </div>
+                        <button type="submit" class="button is-success is-large" id="btn_pagar" disabled>
+                            <span class="icon"><i class="fas fa-check-circle"></i></span>
+                            <span class="has-text-weight-bold">Confirmar Pago</span>
+                        </button>
+                    </div>
+                    
+                </div>
+            </form>
+
+        </div>
+
     {% endif %}
 
 {% else %}
@@ -542,5 +603,182 @@
         }
     </style>
 {% endif %}
+
+<!--Estilos para el panel del recepcionista-->
+    <style>
+        /* --- TARJETAS SELECCIONABLES (RECEPCIÓN) --- */
+        .reserva-card {
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: var(--bulma-scheme-main, #ffffff);
+        }
+
+        .reserva-card:hover {
+            border-color: rgba(79, 209, 197, 0.4); /* Aqua transparente */
+            transform: translateX(5px);
+        }
+
+        /* Estado cuando el recepcionista hace clic en una */
+        .reserva-card.is-selected {
+            border-color: var(--color-aqua, #4fd1c5);
+            background-color: rgba(79, 209, 197, 0.05);
+            box-shadow: 0 4px 15px rgba(79, 209, 197, 0.15);
+        }
+
+        /* Círculo indicador dentro de la tarjeta */
+        .reserva-radio {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            border: 2px solid #dbdbdb;
+            display: inline-block;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .reserva-card.is-selected .reserva-radio {
+            border-color: var(--color-aqua);
+        }
+
+        /* El puntito verde del medio al seleccionar */
+        .reserva-card.is-selected .reserva-radio::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background-color: var(--color-aqua);
+        }
+    </style>
+
+    <!--Muestra dinámica de reservas pendientes de pago - Recepcionista-->
+    <script>
+        console.log ("No cargué nada")
+        document.addEventListener('DOMContentLoaded', () => {
+        console.log ("Cargué todo")
+        
+        const btnBuscar = document.getElementById('btn_buscar');
+        const dniInput = document.getElementById('dni_input');
+        const formCobro = document.getElementById('form_cobro');
+        const contenedorReservas = document.getElementById('contenedor_reservas');
+        const inputClaseId = document.getElementById('input_clase_id');
+        const inputDniHidden = document.getElementById('input_dni_hidden');
+        const textoMonto = document.getElementById('texto_monto');
+        const btnPagar = document.getElementById('btn_pagar');
+        const tituloResultados = document.getElementById('titulo_resultados');
+        const seccionPago = document.getElementById('seccion_pago_wrapper');
+
+        btnBuscar.addEventListener('click', async () => {
+            console.log ("En addeventlistener")
+            const dni = dniInput.value.trim();
+            if (!dni) return;
+
+            // Mostramos que está cargando
+            btnBuscar.classList.add('is-loading');
+
+            try {
+                // Reemplaza esta URL con la ruta de tu API en Flask
+                const response = await fetch(`/pagos/devolver-reservas-pendientes-de-pago/${dni}`);
+                const datos = await response.json(); // Debería ser un array de diccionarios
+                const reservas = datos.reservas
+                const estado = datos.estado
+
+                // Limpiamos resultados anteriores y mostramos el formulario
+                contenedorReservas.innerHTML = '';
+                formCobro.classList.remove('is-hidden');
+                seccionPago.classList.add('is-hidden')
+                
+                // Reseteamos el panel de pago
+                inputClaseId.value = '';
+                textoMonto.textContent = '$0.00';
+                btnPagar.disabled = true;
+
+                if (estado == "dni_invalido") {
+                    tituloResultados.textContent = "El DNI ingresado es inválido";
+                    contenedorReservas.innerHTML = `
+                        <div class="notification is-light has-text-centered">
+                            <span class="icon is-large has-text-grey"><i class="fas fa-check-circle fa-2x"></i></span>
+                            <p class="mt-2">Error en el DNI ingresado: Debe ingresar 7 u 8 números</p>
+                        </div>`;
+                    return
+                } else if (estado == "no_es_cliente") {
+                    tituloResultados.textContent = "El DNI ingresado es inválido";
+                    contenedorReservas.innerHTML = `
+                        <div class="notification is-light has-text-centered">
+                            <span class="icon is-large has-text-grey"><i class="fas fa-check-circle fa-2x"></i></span>
+                            <p class="mt-2">El cliente con DNI <strong>${dni}</strong> no está registrado en el sistema.</p>
+                        </div>`;
+                    return
+                }
+                else if (reservas.length === 0) {
+                    tituloResultados.textContent = "No hay reservas pendientes";
+                    contenedorReservas.innerHTML = `
+                        <div class="notification is-light has-text-centered">
+                            <span class="icon is-large has-text-grey"><i class="fas fa-check-circle fa-2x"></i></span>
+                            <p class="mt-2">El cliente con DNI <strong>${dni}</strong> no tiene pagos pendientes.</p>
+                        </div>`;
+                    // Ocultamos el botón de pagar porque no hay nada que cobrar
+                    btnPagar.closest('.box').style.display = 'none';
+                    return;
+                }
+
+                seccionPago.classList.remove('is-hidden');
+
+                tituloResultados.textContent = `Reservas Pendientes (${reservas.length})`;
+                // btnPagar.closest('.box').style.display = 'flex'; // Volvemos a mostrar la caja de pago
+
+                // Dibujamos las tarjetas
+                reservas.forEach(reserva => {
+                    const card = document.createElement('div');
+                    card.className = 'box p-4 mb-3 reserva-card is-flex is-align-items-center';
+                    
+                    // Formateamos el HTML interno de la tarjeta
+                    card.innerHTML = `
+                        <div class="reserva-radio mr-4 flex-shrink-0"></div>
+                        <div class="flex-grow-1">
+                            <p class="has-text-weight-bold is-size-5 mb-1">${reserva.clase_nombre}</p>
+                            <div class="is-flex is-size-7 has-text-grey">
+                                <span class="mr-4"><i class="far fa-calendar-alt mr-1"></i> ${reserva.fecha} - ${reserva.hora}</span>
+                                <span><i class="fas fa-door-open mr-1"></i> Sala: ${reserva.sala}</span>
+                            </div>
+                        </div>
+                    `;
+
+                    // Agregamos el evento de selección
+                    card.addEventListener('click', () => {
+                        // Quitamos la selección a todas
+                        document.querySelectorAll('.reserva-card').forEach(c => c.classList.remove('is-selected'));
+                        
+                        // Seleccionamos esta
+                        card.classList.add('is-selected');
+                        
+                        // Actualizamos los datos para el pago
+                        inputClaseId.value = reserva.id;
+                        inputDniHidden.value = dni;
+                        textoMonto.textContent = `$${reserva.monto}`;
+                        btnPagar.disabled = false; // ¡Se habilita el botón!
+                    });
+
+                    contenedorReservas.appendChild(card);
+                });
+
+            } catch (error) {
+                console.error("Error al buscar las reservas:", error);
+                alert("Hubo un error al buscar las reservas. Intente nuevamente.");
+            } finally {
+                btnBuscar.classList.remove('is-loading');
+            }
+        });
+
+        // Permitir buscar apretando "Enter" en el input
+        dniInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                btnBuscar.click();
+            }
+        });
+    });
+    </script>
 
 {% endblock %}

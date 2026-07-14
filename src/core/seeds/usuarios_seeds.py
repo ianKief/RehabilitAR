@@ -57,10 +57,23 @@ class UsuarioSeeder:
                 )
                 self.db.session.add(profesor)
 
-            # Si ya existen los 3 usuarios base, no creamos los de prueba
+            # 4. Creación de recepcionista de prueba
+
+            recepcionista = Recepcionista (
+                nombre="Recepcionista",
+                apellido="Prueba",
+                dni="19283764",
+                email="recepcionistaprueba@gmail.com",
+                password="123456",
+                estado=Estado.ACTIVO,
+            )
+            self.db.session.add(recepcionista)
+
             if admin_existente and cliente_existente and profesor_existente:
                 print("💡 Usuarios base ya existentes, no se realizaron cambios.")
                 return
+
+            self.db.session.flush()
 
             usuarios_a_crear = []
             roles = [RolUsuario.CLIENTE, RolUsuario.RECEPCIONISTA, RolUsuario.PROFESOR]
@@ -99,7 +112,7 @@ class UsuarioSeeder:
 
             self.db.session.add_all(usuarios_a_crear)
             self.db.session.commit()
-            print(f"✅ Usuarios poblados con éxito (3 base + {len(usuarios_a_crear)} de prueba).")
+            print(f"✅ Usuarios poblados con éxito (4 base + {len(usuarios_a_crear)} de prueba).")
         except Exception as e:
             self.db.session.rollback()
             print(f"❌ Error al poblar usuarios: {e}")
