@@ -20,6 +20,7 @@ def reset_db():
     from src.core.usuarios import Usuario
     from src.core.reservas.reservas import Reserva, Comentario, Cola, Cancelacion
     from src.core.pagos.pagos import Pago, DetallePago, Beneficio, PrecioClase
+    from src.core.creditos_descuentos.creditos_descuentos import CreditoDescuento
     from src.core import events
     
     """Reinicia la base de datos eliminando todas las tablas y volviéndolas a crear."""
@@ -36,9 +37,9 @@ def seed_db():
     from src.core.database import db
 
     from src.core.seeds.salas_seeds import SalaSeeder
-    #from src.core.seeds.profesores_seeds import ProfesorSeeder
-    #from src.core.seeds.postulacionSeeder import PostulacionSeeder
-    #from src.core.seeds.clases_seeds2 import ClaseSeeder2
+    from src.core.seeds.profesores_seeds import ProfesorSeeder
+    from src.core.seeds.postulacionSeeder import PostulacionSeeder
+    from src.core.seeds.clases_seeds2 import ClaseSeeder2
     from src.core.seeds.clases_seeds import ClaseSeeder, ProfesorDictaClaseSeeder
     from src.core.seeds.especialidades_seeds import EspecialidadSeeder
     from src.core.seeds.usuarios_seeds import UsuarioSeeder
@@ -51,12 +52,12 @@ def seed_db():
 
     # Definimos el orden lógico de ejecución de los seeders
     seeders = [
-        #SalaSeeder(db),
+        SalaSeeder(db),
         EspecialidadSeeder(db),
         UsuarioSeeder(db),
-        #ProfesorSeeder(db),
-        #ClaseSeeder(db),
-        #PostulacionSeeder(db),
+        ProfesorSeeder(db),
+        ClaseSeeder(db),
+        PostulacionSeeder(db),
         ProfesorDictaClaseSeeder(db),
         SeedPagosSprint1(db),
         SeedAsistenciaYSeguimientoSprint1(db),
