@@ -565,7 +565,7 @@ def devolver_credito_y_marcar_como_usado (id_cliente, id_pago):
     return credito
 
 def devolver_clases_futuras_con_seña_incompleta_con_datos_de_clase_y_sala (dni_cliente):
-    from src.core.reservas import Reserva
+    from src.core.reservas import Reserva, AsistenciaReserva
     from src.core.clases import Clase
     from src.core.salas import Sala
     from src.core.functions import devolver_fecha_hora_actual
@@ -606,6 +606,7 @@ def devolver_clases_futuras_con_seña_incompleta_con_datos_de_clase_y_sala (dni_
         .filter(Reserva.id_cliente == id_cliente)
         .filter(devolver_fecha_hora_actual() < datetime_fin)
         .filter(Pago.estado_pago == EstadoPago.PENDIENTE)
+        .filter(Reserva.asiste == AsistenciaReserva.PENDIENTE_DE_PAGO)
         .filter(DetallePago.precio_unitario < precio_clase)
     )
 
