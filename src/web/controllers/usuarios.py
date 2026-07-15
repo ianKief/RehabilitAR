@@ -1,7 +1,7 @@
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, request
-from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_aptos_en_revision, obtener_usuario_por_id_core, actualizar_rol_usuario, bloquear_usuario, habilitar_usuario, eliminar_usuario, revisar_y_aprobar_apto, revisar_y_rechazar_apto, modificar_usuario_core, actualizar_especialidad_profesor
-from src.core.usuarios.usuarios import Usuario, EstadoAptoFisico, Cliente, AptoFisico, EstadoUsuario
+from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_aptos_en_revision, obtener_usuario_por_id_core, actualizar_rol_usuario, bloquear_usuario, habilitar_usuario, eliminar_usuario, revisar_y_aprobar_apto, revisar_y_rechazar_apto, modificar_usuario_core
+from src.core.usuarios.usuarios import Usuario, EstadoAptoFisico, Cliente, AptoFisico, EstadoUsuario, Profesor, Especialidad
 from src.web.helpers.decorator import requiere_rol
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
@@ -158,6 +158,7 @@ def perfil():
         return redirect(url_for('auth.login'))
     
     dias_restantes = 0
+    especialidad = None
 
     if isinstance(usuario, Cliente) and usuario.apto_fisico:
         apto = usuario.apto_fisico
@@ -165,9 +166,13 @@ def perfil():
             fecha_vencimiento = apto.fecha_carga + timedelta(days=365)
             dias_restantes = (fecha_vencimiento - datetime.now()).days
 
-    print (usuario)
+    if isinstance(usuario, Profesor):
+        if usuario.id_especialidad:
+            especialidad_obj = db.session.get(Especialidad, usuario.id_especialidad)
+            if especialidad_obj:
+                especialidad = especialidad_obj.nombre.value
     
-    return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes)
+    return render_template('usuarios/perfil.html', usuario=usuario, dias_restantes=dias_restantes, especialidad=especialidad)
 
 allowed_extensions = ('pdf', 'jpeg', 'jpg', 'png')
 

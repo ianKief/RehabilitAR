@@ -1,5 +1,6 @@
 from flask_mail import Message
 import threading
+import time
 
 def enviar_email_asincrono(app, msg):
     from src.web import mail
@@ -7,19 +8,23 @@ def enviar_email_asincrono(app, msg):
         mail.send(msg)
 
 def enviar_correo(subject="Asunto", recipients=["destino@correo.com"], body="Contenido"):
-    """Recipients recibe SOLO MAILS, uno o varios"""
+    """
+    Recipients recibe SOLO MAILS, uno o varios.
+    Modificado para enviar correos individualmente con un retardo para evitar rate-limiting.
+    """
     from flask import current_app
-    # Esta comprobación se hace en las notificaciones, pero la dejo por si se llega a usar la función desde otra parte del sistema
-    if isinstance(recipients, list):
-        iterable = recipients
-    else:
-        iterable = [recipients]
+    import time
 
-    msg = Message(
-        subject=subject,
-        recipients=iterable,
-        body=body,
-        bcc=iterable # Esto sirve para que no se vean otros destinatarios
-    )
-        # Este sistema no está adaptado para enviar múltiples correos con contenido personalizado (por ejemplo, nombre del receptor). Esto es así porque no me pareció necesario hacerlo. Asumo que no se envía contenido que no sea texto
-    threading.Thread(target=enviar_email_asincrono, args=(current_app._get_current_object(), msg)).start()
+    if not isinstance(recipients, list):
+        recipients = [recipients]
+
+    for recipient in recipients:
+        msg = Message(
+            subject=subject,
+            recipients=[recipient],
+            body=body
+        )
+        # Iniciar el envío en un hilo separado para no bloquear la aplicación
+        threading.Thread(target=enviar_email_asincrono, args=(current_app._get_current_object(), msg)).start()
+        # Esperar 1 segundo entre cada correo para no saturar el servidor SMTP
+        time.sleep(1)

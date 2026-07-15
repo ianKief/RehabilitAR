@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from src.core.database import db
 from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, session, url_for
-from src.core.clases import crear_clases_agenda, listar_clases, listar_especialidades_activas, obtener_clase_por_id, obtener_horarios_disponibles, obtener_postulantes_clase, procesar_suspension_o_reactivacion, proponer_clase_profesor, resolver_postulacion_clase
+from src.core.clases import crear_clases_agenda, listar_clases, listar_especialidades_activas, obtener_clase_por_id, obtener_horarios_disponibles, obtener_postulantes_clase, procesar_suspension_clase, proponer_clase_profesor, resolver_postulacion_clase
 from src.core.salas import listar_salas_habilitadas, obtener_sala
 from src.core.clases.clases import Clase, PostulacionClase, ProfesorDictaClase
 from src.web.helpers.feriados import obtener_dias_no_laborables
@@ -421,7 +421,7 @@ def ver_clases_asignadas():
 def alternar_suspension(clase_id):
     from src.core.clases.clases import tz_arg
 
-    resultado = procesar_suspension_o_reactivacion(clase_id, tz_arg)
+    resultado = procesar_suspension_clase(clase_id, tz_arg)
     
     # Se manda el flash dinámico según lo que devolvió el motor de servicios
     flash(resultado["message"], resultado["status"])
@@ -459,12 +459,16 @@ def proponer_clase_vista():
     
     salas = listar_salas_habilitadas()
 
+    # Obtenemos los días no laborables para el año actual y el siguiente para el calendario
+    año_actual = datetime.now().year
+    dias_no_laborables = obtener_dias_no_laborables(año_actual) + obtener_dias_no_laborables(año_actual + 1)
+
     # 3. Renderizamos pasando las variables que el HTML y el JS modularizado esperan
     return render_template(
         'clases/proponer_clase.html',
         templates_especialidades=especialidades_profesor, # 👈 Modificado de forma segura
         puertas_salas=salas,
-        dias_no_laborables=[] # Pasamos array vacío por defecto para que Flatpickr no pinche
+        dias_no_laborables=dias_no_laborables
     )
 
 @bp.route('/proponer', methods=['POST'])
@@ -527,24 +531,6 @@ def proponer_clase_post():
     except (ValueError, TypeError):
         flash('Error en el formato de los datos obligatorios.', 'danger')
         return redirect(url_for('clases.proponer_clase_vista'))
-    
-    propuesta_duplicada = db.session.scalar(
-        select(Clase)
-        .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
-        .where(
-            ProfesorDictaClase.id_profesor == user_id,
-            Clase.fecha_clase == fecha_clase,
-            Clase.horario == horario,
-            Clase.especialidad == especialidad_nombre,
-            Clase.aprobada == False,
-            Clase.suspendida == False,
-            Clase.sala_id == sala_id
-        )
-    )
-
-    if propuesta_duplicada:
-        flash("Ya enviaste una propuesta exactamente para esa fecha y horario. Está pendiente de revisión.", "warning")
-        return redirect(url_for('clases.historial_propuestas_profesor'))
 
     # 4. Delegación al Core pasando el ID del profesor proponent
     exito = proponer_clase_profesor(
@@ -610,116 +596,97 @@ def revisar_propuesta_vista(clase_id):
 @bp.route('/admin/propuestas/procesar/<int:clase_id>', methods=['POST'])
 @requiere_rol(['ADMINISTRADOR'])
 def procesar_propuesta_post(clase_id):
-    from src.core.clases import _limpiar_propuestas_por_colision
-    from src.core.clases import validar_disponibilidad_extendida
+    from src.core.clases import _limpiar_propuestas_por_colision, validar_disponibilidad_extendida
+    from src.core.clases.clases import ProfesorDictaClase
+    from src.core.usuarios import obtener_usuario_por_id_core
+    from src.core.notificaciones import enviar_notificaciones, TipoNotificacion
 
-    """
-    Procesa la propuesta del profesor de manera atómica y segura contra condiciones de carrera.
-    El administrador únicamente puede alterar el tipo de clase (Fija o Individual).
-    """
     propuesta = db.session.get(Clase, clase_id)
     if not propuesta:
         flash("La propuesta seleccionada no existe.", "danger")
         return redirect(url_for('clases.listar_propuestas_pendientes'))
 
-    # El administrador SOLO define el Tipo de Clase desde el formulario
-    tipo_clase = request.form.get('tipo_clase')
-    if tipo_clase not in ["Fija", "Individual"]:
-        flash('El tipo de clase seleccionado no es válido.', 'danger')
-        return redirect(url_for('clases.revisar_propuesta_vista', clase_id=clase_id))
-
-    # --- 🛡️ CONTROL DE CONCURRENCIA (ÚLTIMO SEGUNDO) ---
-    disponible, fecha_conflicto = validar_disponibilidad_extendida(
-        db.session, Clase, propuesta.sala_id, propuesta.fecha_clase, 
-        propuesta.horario, propuesta.duracion, tipo_clase
+    # Get the proposing professor
+    relacion = db.session.scalar(
+        select(ProfesorDictaClase).where(ProfesorDictaClase.id_clase == propuesta.id)
     )
+    if not relacion:
+        flash("Error: No se encontró un profesor asociado a esta propuesta.", "danger")
+        return redirect(url_for('clases.listar_propuestas_pendientes'))
+    profesor = obtener_usuario_por_id_core(relacion.id_profesor)
 
-    if not disponible:
+    # Get the action from the form (Aprobar or Rechazar)
+    accion = request.form.get('accion')
+
+    if accion == "rechazar":
         try:
-            if tipo_clase == "Individual":
-                # Si colisiona de forma individual, no hay segundas oportunidades: se suspende.
-                propuesta.suspendida = True 
-                db.session.commit()
-                flash("No se pudo procesar: La sala se encuentra ocupada en ese horario.", "danger")
-                return redirect(url_for('clases.listar_propuestas_pendientes'))
-            
-            else:
-                # 🔄 NUEVO COMPORTAMIENTO PARA FIJAS: No alteramos el estado en BD.
-                # Devolvemos al Admin a la vista de la propuesta para que intente consolidarla como Individual.
-                msg = f"La sala se ocupó el día {fecha_conflicto.strftime('%d/%m/%Y')} en ese horario. Podés aprobarla como una clase Individual únicamente."
-                flash(f"No se pudo consolidar como Fija: {msg}", "warning")
-                return redirect(url_for('clases.revisar_propuesta_vista', clase_id=clase_id))
-
-        except Exception as e:
-            db.session.rollback()
-            print(f"❌ Error al manejar conflicto de propuesta: {str(e)}")
-            flash("Error interno al procesar el conflicto de agenda.", "danger")
-            return redirect(url_for('clases.listar_propuestas_pendientes'))
-
-    # --- FLUJO DE APROBACIÓN ---
-    
-    if tipo_clase == "Fija":
-        try:
-            relacion_original = db.session.scalar(
-                select(ProfesorDictaClase).where(ProfesorDictaClase.id_clase == propuesta.id)
+            propuesta.suspendida = True # Mark as rejected/suspended
+            db.session.commit()
+            flash("La propuesta ha sido rechazada.", "info")
+            enviar_notificaciones(
+                destinatarios=profesor,
+                titulo="Propuesta de Clase Rechazada",
+                contenido=f"Te informamos que tu propuesta para la clase '{propuesta.nombre}' del día {propuesta.fecha_clase.strftime('%d/%m/%Y')} a las {propuesta.horario.strftime('%H:%M')}hs ha sido rechazada por la administración.",
+                tipo_notificacion=TipoNotificacion.ESTADO_POSTULACION_CLASE
             )
-            if not relacion_original:
-                flash("No se encontró un profesor asociado a esta propuesta original.", "danger")
-                return redirect(url_for('clases.revisar_propuesta_vista', clase_id=clase_id))
-            
-            # Resguardamos el ID del profesor para usarlo después en la expansión
-            profesor_id = relacion_original.id_profesor
-
-            # Resguardamos los parámetros limpios del objeto antes de su remoción física
-            esp_nombre = propuesta.especialidad   
-                     
-            datos_clase = {
-                "nombre": propuesta.nombre,
-                "especialidad": esp_nombre,
-                "tipo": tipo_clase,
-                "fecha_clase": propuesta.fecha_clase,
-                "horario": propuesta.horario,
-                "duracion": propuesta.duracion,
-                "descripcion": propuesta.descripcion,
-                "sala_id": propuesta.sala_id
-            }
-
-            db.session.delete(relacion_original)
-            db.session.delete(propuesta)
-            db.session.flush() # Sincroniza remoción en memoria antes de expandir
-            
-            if crear_clases_agenda(id_profesor=profesor_id, **datos_clase):
-                # El Core internamente ejecuta el commit si todo sale bien
-                flash("La propuesta fue consolidada y expandida como Clase Fija hasta fin de mes.", "success")
-            else:
-                db.session.rollback()
-                flash("No se pudieron generar las instancias de la clase fija.", "danger")
-                return redirect(url_for('clases.revisar_propuesta_vista', clase_id=clase_id))
-                
+            return redirect(url_for('clases.listar_propuestas_pendientes'))
         except Exception as e:
             db.session.rollback()
-            print(f"❌ Error en conversión Fija: {str(e)}")
-            flash("Error interno al procesar la conversión de la clase.", "danger")
+            print(f"❌ Error al rechazar propuesta: {str(e)}")
+            flash("Error interno al rechazar la propuesta.", "danger")
             return redirect(url_for('clases.revisar_propuesta_vista', clase_id=clase_id))
 
-    else:
-        # Individual: Consolidamos el mismo registro sin destruirlo
+    elif accion == "aprobar":
+        # Always treat as "Individual"
+        tipo_clase = "Individual"
+
+        # --- 🛡️ CONTROL DE CONCURRENCIA (ÚLTIMO SEGUNDO) ---
+        disponible, _ = validar_disponibilidad_extendida(
+            db.session, Clase, propuesta.sala_id, propuesta.fecha_clase,
+            propuesta.horario, propuesta.duracion, tipo_clase
+        )
+
+        if not disponible:
+            try:
+                propuesta.suspendida = True
+                db.session.commit()
+                flash("No se pudo aprobar la propuesta: la sala/horario ya no está disponible.", "danger")
+                enviar_notificaciones(
+                    destinatarios=profesor,
+                    titulo="Propuesta de Clase Rechazada por Conflicto",
+                    contenido=f"Tu propuesta para la clase '{propuesta.nombre}' del día {propuesta.fecha_clase.strftime('%d/%m/%Y')} no pudo ser aprobada porque el horario o la sala ya no se encontraban disponibles en el momento de la revisión.",
+                    tipo_notificacion=TipoNotificacion.ESTADO_POSTULACION_CLASE
+                )
+                return redirect(url_for('clases.listar_propuestas_pendientes'))
+            except Exception as e:
+                db.session.rollback()
+                print(f"❌ Error al manejar conflicto de aprobación individual: {str(e)}")
+                flash("Error interno al procesar el conflicto de agenda.", "danger")
+                return redirect(url_for('clases.listar_propuestas_pendientes'))
+
+        # --- FLUJO DE APROBACIÓN INDIVIDUAL ---
         try:
             propuesta.tipo = "Individual"
-            propuesta.aprobada = True 
-            
-            _limpiar_propuestas_por_colision(propuesta) # Limpia baches competidores
-            
+            propuesta.aprobada = True
+            _limpiar_propuestas_por_colision(propuesta)
             db.session.commit()
-            flash("La propuesta de clase individual fue aprobada con éxito.", "success")
-            
+            flash("La propuesta de clase fue aprobada con éxito.", "success")
+            enviar_notificaciones(
+                destinatarios=profesor,
+                titulo="¡Propuesta de Clase Aprobada!",
+                contenido=f"¡Buenas noticias! Tu propuesta para la clase '{propuesta.nombre}' del día {propuesta.fecha_clase.strftime('%d/%m/%Y')} a las {propuesta.horario.strftime('%H:%M')}hs ha sido aprobada. La clase ya está visible en la agenda y disponible para reservas.",
+                tipo_notificacion=TipoNotificacion.ESTADO_POSTULACION_CLASE
+            )
+            return redirect(url_for('clases.listar_propuestas_pendientes'))
+
         except Exception as e:
             db.session.rollback()
             print(f"❌ Error en aprobación Individual: {str(e)}")
             flash("Error al actualizar la propuesta individual en la base de datos.", "danger")
             return redirect(url_for('clases.revisar_propuesta_vista', clase_id=clase_id))
-
-    return redirect(url_for('clases.listar_propuestas_pendientes'))
+    else:
+        flash("Acción no válida.", "danger")
+        return redirect(url_for('clases.revisar_propuesta_vista', clase_id=clase_id))
 
 @bp.route('/profesor/historial', methods=['GET'])
 @requiere_rol(['PROFESOR'])
@@ -728,23 +695,16 @@ def historial_propuestas_profesor():
     if not user_id:
         flash("Debes iniciar sesión para acceder.", "warning")
         return redirect(url_for('auth.login'))
-        
-    hoy = date.today()
 
-    # Query robusta cruzando la intermedia y aplicando las reglas de negocio
-    propuestas_pendientes = db.session.scalars(
+    # Query robusta cruzando la intermedia para obtener todas las propuestas del profesor.
+    propuestas = db.session.scalars(
         select(Clase)
         .join(ProfesorDictaClase, Clase.id == ProfesorDictaClase.id_clase)
-        .where(
-            ProfesorDictaClase.id_profesor == user_id,
-            Clase.aprobada == False,
-            Clase.suspendida == False,       # No suspendidas
-            Clase.fecha_clase > hoy          # Estrictamente mayor a hoy (futuras)
-        )
-        .order_by(Clase.fecha_clase.asc(), Clase.horario.asc())
+        .where(ProfesorDictaClase.id_profesor == user_id)
+        .order_by(Clase.id.desc())  # Ordenar por ID descendente para ver las más nuevas primero
     ).all()
 
     return render_template(
         'clases/historial_propuesta_profesor.html',
-        propuestas=propuestas_pendientes
+        propuestas=propuestas
     )

@@ -8,13 +8,12 @@
         <span class="icon mr-2 has-text-primary"><i class="fas fa-history"></i></span>
         Mis Propuestas Enviadas
     </h1>
-    <p class="subtitle is-6 has-text-grey">Listado de espacios horarios que enviaste a revisión y aún están pendientes de aprobación.</p>
+    <p class="subtitle is-6 has-text-grey">Listado de espacios horarios que enviaste a revisión</p>
     <hr>
 
     {% if not propuestas %}
         <div class="notification is-light has-text-centered">
-            <p class="has-text-grey">No tenés propuestas pendientes de revisión.</p>
-            <a href="{{ url_for('clases.proponer_clase_vista') }}" class="button is-primary is-small mt-3">Proponer una nueva</a>
+            <p class="has-text-grey">No tenés propuestas.</p>
         </div>
     {% else %}
         <div class="table-container">
@@ -35,7 +34,15 @@
                             <td>{{ prop.fecha_clase.strftime('%d/%m/%Y') }}</td>
                             <td>{{ prop.horario.strftime('%H:%M') }} hs</td>
                             <td>{{ prop.duracion }} min</td>
-                            <td><span class="tag is-warning is-light">Pendiente de Revisión</span></td>
+                            <td>
+                                {% if prop.aprobada %}
+                                    <span class="tag is-success is-light">Aprobada</span>
+                                {% elif prop.suspendida %}
+                                    <span class="tag is-danger is-light">Rechazada</span>
+                                {% else %}
+                                    <span class="tag is-warning is-light">Pendiente de Revisión</span>
+                                {% endif %}
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>

@@ -54,14 +54,9 @@
         <div class="columns">
             <div class="column is-3">
                 <div class="field">
-                    <label class="label has-text-link">Tipo de Clase Final</label>
+                    <label class="label">Propuesta de Tipo</label>
                     <div class="control has-icons-left">
-                        <div class="select is-fullwidth is-link">
-                            <select name="tipo_clase" id="tipo_clase_select" required>
-                                <option value="Individual" {% if propuesta.tipo == 'Individual' %}selected{% endif %}>Individual (Solo esta fecha)</option>
-                                <option value="Fija" {% if propuesta.tipo == 'Fija' %}selected{% endif %}>Fija (Repetitiva mensual)</option>
-                            </select>
-                        </div>
+                        <input class="input is-static" type="text" value="Individual" readonly>
                         <span class="icon is-small is-left">
                             <i class="fas fa-fingerprint"></i>
                         </span>
@@ -135,13 +130,22 @@
                 <a href="{{ url_for('clases.listar_propuestas_pendientes') }}" class="button is-light is-fullwidth-mobile">Volver al listado</a>
             </p>
             <p class="control">
-                <button type="submit" class="button is-success is-fullwidth-mobile">
+                <button type="submit" class="button is-danger is-fullwidth-mobile" data-action="rechazar">
+                    <span class="icon">
+                        <i class="fas fa-times-circle"></i>
+                    </span>
+                    <span>Rechazar</span>
+                </button>
+            </p>
+            <p class="control">
+                <button type="submit" class="button is-success is-fullwidth-mobile" data-action="aprobar">
                     <span class="icon">
                         <i class="fas fa-check-circle"></i>
                     </span>
-                    <span>Aprobar y Consolidar</span>
+                    <span>Aprobar</span>
                 </button>
             </p>
+            <input type="hidden" name="accion" id="accion_input" value="">
         </div>
 
     </form>
@@ -152,13 +156,26 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const formulario = document.querySelector('form');
+    const accionInput = document.getElementById('accion_input');
+    const submitButtons = formulario.querySelectorAll('button[type="submit"]');
+
+    // 1. Set the 'accion' hidden input when a button is clicked
+    submitButtons.forEach(button => {
+        button.addEventListener('click', function(event) {
+            accionInput.value = this.dataset.action;
+        });
+    });
+
+    // 2. Handle the loading/disabled state when the form actually submits
     if (formulario) {
         formulario.addEventListener('submit', function() {
-            const btnSubmit = formulario.querySelector('button[type="submit"]');
-            if (btnSubmit) {
-                btnSubmit.classList.add('is-loading');
-                btnSubmit.disabled = true;
-            }
+            // Disable all submit buttons to prevent multiple submissions
+            submitButtons.forEach(button => {
+                // We can check which button was clicked if we want to only show loading on that one
+                // For simplicity, we'll show it on both but it will be instant
+                button.classList.add('is-loading');
+                button.disabled = true;
+            });
         });
     }
 });

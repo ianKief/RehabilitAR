@@ -68,19 +68,22 @@ def obtener_postulantes_clase(clase_id: int):
     Retorna los postulantes de una clase y la información del profesor asignado si existiese.
     Adaptado a la herencia polimórfica y Enums del nuevo esquema.
     """
+    # Se crea un alias para el modelo Profesor para evitar advertencias de SAWarning
+    # con uniones de tablas superpuestas en herencia de tabla unida.
+    profesor_alias = aliased(Profesor)
+
     # 1. 🔍 VERIFICAR SI ALGUIEN YA DICTA ESTA CLASE ACTUALMENTE
     query_asignado = (
         select(
-        Usuario.nombre,
-        Usuario.apellido,
-        Especialidad.nombre.label("especialidad_enum")
-    )
-    .join(ProfesorDictaClase, ProfesorDictaClase.id_profesor == Usuario.id)
-    .join(Profesor) # Mantenemos inner porque si dicta, debe ser Profesor
-    # Si el profesor no tiene especialidad, trae nombre/apellido y la especialidad vendrá como None
-    .join(Especialidad, Profesor.id_especialidad == Especialidad.id, isouter=True)
-    
-    .filter(ProfesorDictaClase.id_clase == clase_id)
+            Usuario.nombre,
+            Usuario.apellido,
+            Especialidad.nombre.label("especialidad_enum")
+        )
+        .join(ProfesorDictaClase, ProfesorDictaClase.id_profesor == Usuario.id)
+        .join(profesor_alias, profesor_alias.id == Usuario.id)  # Uso de alias
+        # Si el profesor no tiene especialidad, trae nombre/apellido y la especialidad vendrá como None
+        .join(Especialidad, profesor_alias.id_especialidad == Especialidad.id, isouter=True)
+        .filter(ProfesorDictaClase.id_clase == clase_id)
     )
     res_asignado = db.session.execute(query_asignado).first()
     
@@ -102,9 +105,8 @@ def obtener_postulantes_clase(clase_id: int):
             Especialidad.nombre.label("especialidad_enum")
         )
         .join(Usuario, PostulacionClase.profesor_id == Usuario.id)
-        .join(Profesor)
-
-        .join(Especialidad, Profesor.id_especialidad == Especialidad.id)
+        .join(profesor_alias, profesor_alias.id == Usuario.id)  # Uso de alias
+        .join(Especialidad, profesor_alias.id_especialidad == Especialidad.id, isouter=True)
         .filter(PostulacionClase.clase_id == clase_id)
     )
     resultados = db.session.execute(query_postulantes).all()
@@ -188,16 +190,51 @@ def obtener_horarios_disponibles(fecha_evaluar, duracion_minutos=45, sala_id_eva
             rangos_ocupados.append((inicio_dt, fin_dt))
 
     else:
-        # --- LÓGICA PARA CLASE INDIVIDUAL ---
-        query = select(Clase).filter(
+        # --- LÓGICA PARA CLASE INDIVIDUAL (Y PROPUESTAS DE PROFESOR) ---
+        
+        # 1. Traemos todas las clases YA APROBADAS en la sala seleccionada para ese día
+        query_sala = select(Clase).filter(
             Clase.fecha_clase == fecha_evaluar,
             Clase.sala_id == sala_id_evaluar,
             Clase.suspendida == False,
-            condicion_ocupacion #  Inyección del blindaje por rol
+            Clase.aprobada == True # Solo las clases confirmadas bloquean la sala
         )
-        clases_del_dia = db.session.scalars(query).all()
+        clases_en_sala = db.session.scalars(query_sala).all()
+        
+        clases_a_considerar = list(clases_en_sala)
+        ids_vistos = {c.id for c in clases_en_sala}
 
-        for c in clases_del_dia:
+        # 2. Si es un profesor, agregamos todos sus compromisos de ese día (en cualquier sala)
+        if profesor_id:
+            # Clases que el profesor TIENE (dicta o propuso y están pendientes)
+            clases_propias = db.session.scalars(
+                select(Clase)
+                .join(ProfesorDictaClase, ProfesorDictaClase.id_clase == Clase.id)
+                .filter(
+                    ProfesorDictaClase.id_profesor == profesor_id,
+                    Clase.fecha_clase == fecha_evaluar,
+                    Clase.suspendida == False
+                )
+            ).all()
+
+            # Postulaciones PENDIENTES o ACEPTADAS que tenga a otras clases
+            postulaciones = db.session.scalars(
+                select(Clase)
+                .join(PostulacionClase, PostulacionClase.clase_id == Clase.id)
+                .filter(
+                    PostulacionClase.profesor_id == profesor_id,
+                    Clase.fecha_clase == fecha_evaluar,
+                    PostulacionClase.estado.in_(['PENDIENTE', 'ACEPTADA'])
+                )
+            ).all()
+            
+            # Unificamos las listas evitando duplicados
+            for clase_prof in clases_propias + postulaciones:
+                if clase_prof.id not in ids_vistos:
+                    clases_a_considerar.append(clase_prof)
+                    ids_vistos.add(clase_prof.id)
+
+        for c in clases_a_considerar:
             inicio_dt = datetime.combine(fecha_evaluar, c.horario)
             fin_dt = inicio_dt + timedelta(minutes=c.duracion)
             rangos_ocupados.append((inicio_dt, fin_dt))
@@ -241,6 +278,8 @@ def crear_clases_agenda(id_profesor=None, **datos_clase):
     Permite opcionalmente vincular un profesor a cada instancia creada en la agenda.
     """
     try:
+        from src.core.clases import validar_disponibilidad_extendida
+        from src.web.helpers.feriados import obtener_dias_no_laborables
         fecha_inicial = datos_clase.get('fecha_clase')
         tipo = datos_clase.get('tipo') or datos_clase.get('tipo_clase')
         
@@ -252,12 +291,16 @@ def crear_clases_agenda(id_profesor=None, **datos_clase):
             mes = fecha_inicial.month
             dia_semana_objetivo = fecha_inicial.weekday()
 
+            # Obtenemos los feriados para evitar crear clases en esos días
+            feriados_del_anio = obtener_dias_no_laborables(anio)
+
             cal = calendar.monthcalendar(anio, mes)
             for semana in cal:
                 dia = semana[dia_semana_objetivo]
                 if dia != 0:
                     fecha_calculada = date(anio, mes, dia)
-                    if fecha_calculada >= hoy:
+                    # 🔥 NUEVA VALIDACIÓN: Solo procesar si es futuro Y NO es feriado
+                    if fecha_calculada >= hoy and fecha_calculada.strftime('%Y-%m-%d') not in feriados_del_anio:
                         fechas_a_procesar.append(fecha_calculada)
         else:
             fechas_a_procesar.append(fecha_inicial)
@@ -273,6 +316,20 @@ def crear_clases_agenda(id_profesor=None, **datos_clase):
 
         # Guardamos cada registro en la BD
         for f in fechas_a_procesar:
+            # 🔥 NUEVA VALIDACIÓN: Chequeo de disponibilidad de sala para esta fecha específica
+            disponible, _ = validar_disponibilidad_extendida(
+                db.session,
+                Clase,
+                datos_clase.get('sala_id'),
+                f, # La fecha que estamos por procesar
+                datos_clase.get('horario'),
+                datos_clase.get('duracion'),
+                "Individual" # Validamos como si fuera una clase individual para chequear solo este día
+            )
+            if not disponible:
+                print(f"⚠️ Omitiendo creación de clase en fecha {f.strftime('%Y-%m-%d')} por conflicto de horario/sala.")
+                continue # Saltamos a la siguiente fecha sin crear esta instancia
+
             nueva_clase = Clase(
                 nombre=datos_clase.get('nombre'),
                 especialidad=datos_clase.get('especialidad'),
@@ -691,7 +748,7 @@ def tiene_qr (clase_actual):
         query.exists()
     ).scalar()
 
-def procesar_suspension_o_reactivacion(clase_id, tz_arg=None):
+def procesar_suspension_clase(clase_id, tz_arg=None):
     """
     Orquestador del Core para alternar el estado de suspensión de una clase.
     Aplica compensaciones a alumnos y anula flujos de profesores en caso de suspensión.
@@ -713,20 +770,10 @@ def procesar_suspension_o_reactivacion(clase_id, tz_arg=None):
     # ------------------------------------------------------
 
     try:
-        # 🟢 CASO 1: REACTIVAR CLASE
-        if clase.suspendida:
-            clase.suspendida = False
-            db.session.commit()
-            return {
-                "status": "success", 
-                "message": f"¡La clase '{clase.nombre}' ha sido reactivada con éxito!"
-            }
-            
-        # 🔴 CASO 2: SUSPENDER CLASE
         clase.suspendida = True
         
         # 1. Modularización Alumnos: Compensación de Créditos y Cancelaciones
-        emails_alumnos = _procesar_compensacion_alumnos(clase, ahora)
+        _procesar_compensacion_alumnos(clase, ahora)
         
         # 2. Modularización Profesores: Anulación de Postulaciones y Asignaciones
         _procesar_baja_profesores_y_postulaciones(clase.id, clase.nombre, clase.fecha_clase)
@@ -734,19 +781,6 @@ def procesar_suspension_o_reactivacion(clase_id, tz_arg=None):
         # Confirmar toda la transacción unificada
         db.session.commit()
         
-        # 3. Disparar notificaciones por mail a alumnos afectados post-commit
-        if emails_alumnos:
-            asunto_mail = f"AVISO IMPORTANTE: Clase Suspendida - {clase.nombre}"
-            cuerpo_mail = (
-                f"Estimado paciente,\n\n"
-                f"Le informamos que la clase de '{clase.nombre}' programada para el día "
-                f"{clase.fecha_clase.strftime('%d/%m/%Y')} a las {clase.horario.strftime('%H:%M')} hs ha sido SUSPENDIDA.\n\n"
-                f"Se ha acreditado automáticamente un crédito en su cuenta para que pueda reprogramar su turno.\n\n"
-                f"Disculpe las molestias.\n"
-                f"Atentamente, Administración de RehabilitAR."
-            )
-            enviar_correo(subject=asunto_mail, recipients=emails_alumnos, body=cuerpo_mail)
-            
         return {
             "status": "success", 
             "message": f"La clase '{clase.nombre}' fue suspendida con éxito. Se liberaron profesores y se compensó a los alumnos."
@@ -763,7 +797,7 @@ def procesar_suspension_o_reactivacion(clase_id, tz_arg=None):
 
 # --- FUNCIONES AUXILIARES EXTRAÍDAS (MANTENIMIENTO LIMPIO) ---
 
-def _procesar_compensacion_alumnos(clase, ahora) -> list:
+def _procesar_compensacion_alumnos(clase, ahora):
     """Procesa el impacto de la suspensión sobre las reservas activas de los clientes."""
     query_reservas = select(Reserva).where(
         Reserva.id_clase == clase.id,
@@ -771,8 +805,10 @@ def _procesar_compensacion_alumnos(clase, ahora) -> list:
     )
     reservas_activas = db.session.scalars(query_reservas).all()
     
-    emails_alumnos = []
     for reserva in reservas_activas:
+        # Actualizar estado de la reserva
+        reserva.asiste = AsistenciaReserva.CANCELADA
+
         # Crear la cancelación institucional
         nueva_cancelacion = Cancelacion(
             id_reserva=reserva.id,
@@ -792,10 +828,17 @@ def _procesar_compensacion_alumnos(clase, ahora) -> list:
         )
         db.session.add(nuevo_credito)
         
-        if reserva.cliente.email:
-            emails_alumnos.append(reserva.cliente.email)
-            
-    return emails_alumnos
+        # Notificar al cliente
+        asunto = f"AVISO IMPORTANTE: Clase Suspendida - {clase.nombre}"
+        cuerpo = (
+            f"Estimado paciente,\n\n"
+            f"Le informamos que la clase de '{clase.nombre}' programada para el día "
+            f"{clase.fecha_clase.strftime('%d/%m/%Y')} a las {clase.horario.strftime('%H:%M')} hs ha sido SUSPENDIDA.\n\n"
+            f"Se ha acreditado automáticamente un crédito en su cuenta para que pueda reprogramar su turno.\n\n"
+            f"Disculpe las molestias.\n"
+            f"Atentamente, Administración de RehabilitAR."
+        )
+        enviar_notificaciones(reserva.cliente, asunto, cuerpo, TipoNotificacion.CLASE_SUSPENDIDA)
 
 
 def _procesar_baja_profesores_y_postulaciones(clase_id: int, clase_nombre: str, clase_fecha):
@@ -898,6 +941,53 @@ def _limpiar_propuestas_por_colision(nueva_clase_admin):
         # Superposición: InicioA < FinB and FinA > InicioB
         if inicio_admin < fin_propu and fin_admin > inicio_propu:
             propuesta.suspendida = True # Muta a Rechazada por Colisión
+
+def profesor_tiene_conflicto_horario_propuesta(id_profesor, fecha_clase, horario, duracion):
+    """
+    Dada la información de una propuesta de clase y el id_profesor, comprueba si existe
+    otra clase o postulación que se solape en el tiempo.
+    Devuelve el nombre de la clase conflictiva si existe, caso contrario False.
+    """
+    from src.core.clases.clases import PostulacionClase, ProfesorDictaClase
+
+    inicio_nuevo = datetime.combine(fecha_clase, horario)
+    fin_nuevo = inicio_nuevo + timedelta(minutes=duracion)
+
+    # Clases que el profesor TIENE (dicta o propuso y están pendientes)
+    clases_del_profesor = (db.session.query(Clase)
+        .join(ProfesorDictaClase, ProfesorDictaClase.id_clase == Clase.id)
+        .filter(ProfesorDictaClase.id_profesor == id_profesor)
+        .filter(Clase.fecha_clase == fecha_clase)
+        .filter(Clase.suspendida == False)
+        .all()
+    )
+
+    # Postulaciones PENDIENTES o ACEPTADAS que tenga el profesor a otras clases
+    postulaciones_del_profesor = (db.session.query(Clase)
+        .join(PostulacionClase, PostulacionClase.clase_id == Clase.id)
+        .filter(PostulacionClase.profesor_id == id_profesor)
+        .filter(Clase.fecha_clase == fecha_clase)
+        .filter(PostulacionClase.estado.in_(['PENDIENTE', 'ACEPTADA']))
+        .all()
+    )
+
+    # Combinamos ambas listas y eliminamos duplicados si los hubiera
+    ids_vistos = set()
+    todas_las_clases_relevantes = []
+    for clase in clases_del_profesor + postulaciones_del_profesor:
+        if clase.id not in ids_vistos:
+            todas_las_clases_relevantes.append(clase)
+            ids_vistos.add(clase.id)
+
+    for clase_existente in todas_las_clases_relevantes:
+        inicio_existente = datetime.combine(clase_existente.fecha_clase, clase_existente.horario)
+        fin_existente = inicio_existente + timedelta(minutes=clase_existente.duracion)
+
+        # Comprobación de solapamiento: (InicioA < FinB) y (FinA > InicioB)
+        if (inicio_nuevo < fin_existente and fin_nuevo > inicio_existente):
+            return clase_existente.nombre # Devuelve el nombre para el mensaje de error
+
+    return False
 
 def proponer_clase_profesor(profesor_id: int, **datos_propuesta) -> bool:
     """

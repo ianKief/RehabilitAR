@@ -88,10 +88,10 @@
                     </p>
         
                     {% if clase.suspendida %}
-                        <a class="button is-danger is-outlined" href="/clases/{{ clase.id }}/alternar-suspension">
-                            <span class="icon"><i class="fas fa-play"></i></span>
-                            <span>Reactivar Clase</span>
-                        </a>
+                        <p class="has-text-danger-dark has-text-weight-bold">
+                            <span class="icon"><i class="fas fa-info-circle"></i></span>
+                            Esta clase está suspendida y no puede ser reactivada.
+                        </p>
                     {% else %}
                         <a class="button is-danger" href="/clases/{{ clase.id }}/alternar-suspension" onclick="return confirm('¿Estás seguro de que deseas suspender esta clase? Se notificará a los alumnos.');">
                             <span class="icon"><i class="fas fa-ban"></i></span>
