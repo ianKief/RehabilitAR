@@ -13,41 +13,42 @@
                 </h1>
             </div>
         </div>
+        
+        {% if beneficios %}
+            <div class="box">
+                <form method="GET">
 
-        <div class="box">
+                    <div class="field">
+                        <label class="label">
+                            Buscar usuario por DNI
+                        </label>
 
-            <form method="GET">
+                        <div class="field has-addons">
 
-                <div class="field">
-                    <label class="label">
-                        Buscar usuario por DNI
-                    </label>
+                            <div class="control">
+                                <input
+                                    class="input"
+                                    style="width: 250px;"
+                                    type="text"
+                                    name="dni"
+                                    value="{{ request.args.get('dni', '') }}"
+                                    placeholder="Ingrese DNI">
+                            </div>
 
-                    <div class="field has-addons">
+                            <div class="control ml-2">
+                                <button class="button is-primary" type="submit">
+                                    Buscar
+                                </button>
+                            </div>
 
-                        <div class="control">
-                            <input
-                                class="input"
-                                style="width: 250px;"
-                                type="text"
-                                name="dni"
-                                value="{{ request.args.get('dni', '') }}"
-                                placeholder="Ingrese DNI">
-                        </div>
-
-                        <div class="control ml-2">
-                            <button class="button is-primary" type="submit">
-                                Buscar
-                            </button>
                         </div>
 
                     </div>
 
-                </div>
+                </form>
+            </div>
+        {% endif %}
 
-            </form>
-
-        </div>
 
         <div class="box">
 
