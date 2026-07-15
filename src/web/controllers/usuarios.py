@@ -1,6 +1,6 @@
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, request
-from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_aptos_en_revision, obtener_usuario_por_id_core, actualizar_rol_usuario, bloquear_usuario, habilitar_usuario, eliminar_usuario, revisar_y_aprobar_apto, revisar_y_rechazar_apto, modificar_usuario_core
+from src.core.usuarios import crear_usuario as crear, listar_usuarios as listar, obtener_aptos_en_revision, obtener_usuario_por_id_core, actualizar_rol_usuario, bloquear_usuario, habilitar_usuario, eliminar_usuario, revisar_y_aprobar_apto, revisar_y_rechazar_apto, modificar_usuario_core, actualizar_especialidad_profesor
 from src.core.usuarios.usuarios import Usuario, EstadoAptoFisico, Cliente, AptoFisico, EstadoUsuario
 from src.web.helpers.decorator import requiere_rol
 from datetime import datetime, timedelta
@@ -122,6 +122,25 @@ def cambiar_rol(id):
     except Exception as e:
         db.session.rollback() 
         flash("Ocurrió un error inesperado al actualizar el rol.", "danger")
+        
+    return redirect(url_for('usuarios.detalle_usuario', id=id))
+
+@users_bp.route('/<int:id>/cambiar_especialidad', methods=['POST'])
+@requiere_rol(['ADMINISTRADOR'])
+def cambiar_especialidad(id):
+    nueva_especialidad = request.form.get('especialidad')
+    
+    try:
+        actualizar_especialidad_profesor(id, nueva_especialidad)
+        # TODO registrar_log(TipoAccion.CAMBIO_ROL, id_entidad_objetivo=id, detalles={'nuevo_rol': nuevo_rol})
+        flash("La especialidad del profesor ha sido actualizada con éxito.", "success")
+        
+    except ValueError as e:
+        flash(str(e), "danger")
+    except Exception as e:
+        print (str(e))
+        db.session.rollback() 
+        flash("Ocurrió un error inesperado al actualizar la especialidad.", "danger")
         
     return redirect(url_for('usuarios.detalle_usuario', id=id))
 

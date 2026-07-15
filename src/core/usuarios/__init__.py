@@ -4,7 +4,7 @@ from sqlalchemy.orm import aliased
 from flask_mail import Message
 
 from src.core.database import db
-from src.core.usuarios.usuarios import AptoFisico, EstadoAptoFisico, Usuario, RolUsuario, EstadoUsuario
+from src.core.usuarios.usuarios import AptoFisico, EstadoAptoFisico, Usuario, RolUsuario, EstadoUsuario, Especialidad
 
 from src.core.clases.clases import Clase, ProfesorDictaClase
 from src.core.reservas.reservas import Reserva, AsistenciaReserva
@@ -337,3 +337,11 @@ def modificar_usuario_core(usuario_id, nombre, direccion, email, telefono):
 
 def conseguir_cliente_por_dni (dni_cliente):
     return db.session.query(Cliente).filter_by(dni=dni_cliente).first()
+
+def actualizar_especialidad_profesor (id, nueva_especialidad):
+    profesor = obtener_usuario_por_id_core (id)
+    if nueva_especialidad == "ninguno":
+        profesor.id_especialidad = None
+    else:
+        profesor.id_especialidad = nueva_especialidad
+    db.session.commit()

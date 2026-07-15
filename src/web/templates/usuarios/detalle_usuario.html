@@ -163,7 +163,7 @@
                         <span>Editar Datos</span>
                     </a>
                     
-                    <button class="button is-warning is-light js-modal-trigger" data-target="modal-cambiar-rol">
+                    <button class="button is-warning is-light" id="btn-abrir-rol" data-target="modal-cambiar-rol">
                         <span class="icon"><i class="fas fa-user-edit"></i></span>
                         <span>Modificar Rol</span>
                     </button>
@@ -189,6 +189,13 @@
                             <span>Eliminar Usuario</span>
                         </button>
                     </form>
+
+                    {% if usuario.rol.value == 'profesor' %}
+                        <button class="button is-success" id="btn-abrir-especialidad" data-target="modal-cambiar-especialidad">
+                            <span class="icon"><i class="fas fa-file-pen"></i></span>
+                            <span>Modificar especialidad</span>
+                        </button>
+                    {% endif %}
                 </div>
             </div>
 
@@ -196,6 +203,7 @@
     </div>
 </div>
 
+<!--Ventana de cambio de rol-->
 <div id="modal-cambiar-rol" class="modal">
     <div class="modal-background"></div>
     <div class="modal-card">
@@ -240,17 +248,93 @@
         
     </div>
 </div>
+
+<!--Ventana cambio de especialidad (solo para profesores)-->
+{% if usuario.rol.value == 'profesor' %}
+
+    <div id="modal-cambiar-especialidad" class="modal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            
+            <header class="modal-card-head">
+                <p class="modal-card-title has-text-weight-bold">
+                    <span class="icon mr-2 has-text-warning"><i class="fas fa-user-edit"></i></span>
+                    Modificar Especialidad
+                </p>
+                <button class="delete btn-cerrar-modal" aria-label="close"></button>
+            </header>
+            
+            <section class="modal-card-body">
+                <form id="form-cambiar-especialidad" action="{{ url_for('usuarios.cambiar_especialidad', id=usuario.id) }}" method="POST">
+                    <div class="field">
+                        <label class="label">Seleccione la nueva especialidad para {{ usuario.nombre }} {{ usuario.apellido }}:</label>
+                        <div class="control has-icons-left">
+                            <div class="select is-fullwidth">
+                                <select name="especialidad" required>
+                                    <option value="ninguno" {% if not usuario.id_especialidad %}selected{% endif %}>Ninguna</option>
+                                    <option value="1" {% if usuario.id_especialidad == 1 %}selected{% endif %}>Tren superior</option>
+                                    <option value="2" {% if usuario.id_especialidad == 2 %}selected{% endif %}>Tren medio</option>
+                                    <option value="3" {% if usuario.id_especialidad == 3 %}selected{% endif %}>Tren inferior</option>
+                                </select>
+                            </div>
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-user-tie"></i>
+                            </span>
+                        </div>
+                        <p class="help is-info mt-2">Al cambiar la especialidad, el profesor tendrá acceso inmediatamente a postularse y participar en otro tipo de clases. Esta operación no impide continuar con las clases previamente registradas del profesor.</p>
+                    </div>
+                </form>
+            </section>
+            
+            <footer class="modal-card-foot is-justify-content-flex-end">
+                <button type="button" class="button btn-cerrar-modal">Cancelar</button>
+                <button type="submit" form="form-cambiar-especialidad" class="button is-warning">
+                    <span class="icon"><i class="fas fa-save"></i></span>
+                    <span>Actualizar Especialidad</span>
+                </button>
+            </footer>
+            
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('modal-cambiar-especialidad');
+            const btnAbrir = document.getElementById('btn-abrir-especialidad');
+            const btnsCerrar = modal.querySelectorAll('.delete, .btn-cerrar-modal');
+            const fondoModal = modal.querySelector('.modal-background');
+
+            // Función para abrir
+            if (btnAbrir) {
+                btnAbrir.addEventListener('click', () => {
+                    modal.classList.add('is-active');
+                });
+            }
+
+            // Función para cerrar
+            const cerrarModal = () => {
+                modal.classList.remove('is-active');
+            };
+
+            fondoModal.addEventListener('click', cerrarModal);
+            btnsCerrar.forEach(btn => btn.addEventListener('click', cerrarModal));
+        });
+    </script>
+{% endif %}
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const modal = document.getElementById('modal-cambiar-rol');
-        const btnAbrir = document.querySelector('.js-modal-trigger');
+        const btnAbrir = document.getElementById('btn-abrir-rol');
         const btnsCerrar = modal.querySelectorAll('.delete, .btn-cerrar-modal');
         const fondoModal = modal.querySelector('.modal-background');
 
         // Función para abrir
-        btnAbrir.addEventListener('click', () => {
-            modal.classList.add('is-active');
-        });
+        if (btnAbrir) {
+            btnAbrir.addEventListener('click', () => {
+                modal.classList.add('is-active');
+            });
+        }
 
         // Función para cerrar
         const cerrarModal = () => {

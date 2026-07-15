@@ -49,6 +49,7 @@ class Especialidad(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     nombre: Mapped[TipoEspecialidad] = mapped_column(Enum(TipoEspecialidad), unique=True, nullable=False)
+
     profesores: Mapped[List["Profesor"]] = relationship(back_populates="especialidad")
 
 # ==========================================
@@ -126,7 +127,7 @@ class Cliente(Usuario):
 class Profesor(Usuario):
     __tablename__ = "profesores"
     id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), primary_key=True)
-    id_especialidad: Mapped[int] = mapped_column(ForeignKey("especialidades.id"), nullable=True)
+    id_especialidad: Mapped[int | None] = mapped_column(ForeignKey("especialidades.id"), nullable=True)
 
     # Relaciones
     especialidad: Mapped["Especialidad"] = relationship(back_populates="profesores")
