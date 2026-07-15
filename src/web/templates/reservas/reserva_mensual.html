@@ -11,7 +11,6 @@
         <h1 class="title is-3">Reserva Mensual</h1>
         <p class="subtitle is-6 mt-2">Estás a punto de suscribirte a <strong>{{ clase_base.nombre }}</strong> todos los {{ dia_nombre }} a las {{ clase_base.horario.strftime('%H:%M') }} para el mes de <strong>{{ mes_nombre }}</strong>.</p>
     </div>
-    
     <form id="form-reserva" action="{{ url_for('reservas.confirmar_abono', id_clase=clase_base.id) }}" method="POST">
         <div class="content">
             <h3 class="title is-5"><span class="icon has-text-success"><i class="fas fa-check-circle"></i></span> Clases disponibles</h3>
@@ -112,6 +111,21 @@
             </div>
             {% endif %}
         </div>
+        {% if tiene_descuento %}
+        <div class="notification is-success is-light mt-5">
+            <label class="checkbox">
+                <input 
+                    type="checkbox" 
+                    name="usar_descuento" 
+                    value="1">
+
+                Usar mi descuento disponible.
+                Se aplicará hasta un máximo del 
+                <strong>30%</strong>
+                del valor del abono mensual.
+            </label>
+        </div>
+        {% endif %}
 
         <!-- Se enviará la cantidad de descuentos elegidos por el usuario -->
         <input type="hidden" name="canceladas_con_descuento" id="canceladas_con_descuento" value="0">
@@ -122,6 +136,7 @@
                 <span>Confirmar Reserva Mensual</span>
             </button>
         </div>
+    
     </form>
     
     <div class="has-text-centered mt-4">

@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, session, flash, redirect, url_for, current_app
 from datetime import datetime, date, timedelta
 import os
-
+from src.core.pagos import devolver_beneficios_activos
+from src.core.pagos.pagos import TipoBeneficio
 from src.web.helpers.decorator import requiere_rol
 from src.web.helpers.feriados import obtener_dias_no_laborables
 from src.web.functions import devolver_enlace_absoluto_actual
@@ -524,17 +525,34 @@ def reservar_mensual(id_clase):
             
     meses_espanol = {1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"}
     dias_semana_espanol = {0: "Lunes", 1: "Martes", 2: "Miércoles", 3: "Jueves", 4: "Viernes", 5: "Sábado", 6: "Domingo"}
+    
+    # Buscar descuentos disponibles del cliente
+    descuentos_disponibles = devolver_beneficios_activos(
+    usuario_id,
+    TipoBeneficio.DESCUENTO
+    )
 
-    return render_template("reservas/reserva_mensual.html", 
-                           clase_base=clase_base, 
-                           clases_ok=clases_ok, 
-                           conflictos_cupo=conflictos_cupo, 
-                           conflictos_feriado=conflictos_feriado,
-                           conflictos_calendario=conflictos_calendario,
-                           alternativas_conflictos=alternativas_conflictos,
-                           mes_nombre=meses_espanol[clase_base.fecha_clase.month],
-                           dia_nombre=dias_semana_espanol[clase_base.fecha_clase.weekday()])
+    descuento_total = sum(
+        beneficio.porcentaje_descuento 
+        for beneficio in descuentos_disponibles
+        if beneficio.porcentaje_descuento
+    )
 
+    # máximo permitido 30%
+    descuento_aplicable = min(descuento_total, 0.30)
+
+    return render_template(
+                        "reservas/reserva_mensual.html",
+                        clase_base=clase_base,
+                        clases_ok=clases_ok,
+                        conflictos_cupo=conflictos_cupo,
+                        conflictos_feriado=conflictos_feriado,
+                        conflictos_calendario=conflictos_calendario,
+                        alternativas_conflictos=alternativas_conflictos,
+                        mes_nombre=meses_espanol[clase_base.fecha_clase.month],
+                        dia_nombre=dias_semana_espanol[clase_base.fecha_clase.weekday()],
+                        descuento_disponible=descuento_aplicable
+                    )
 @reservas_bp.post("/<int:id_clase>/confirmar-abono")
 @requiere_rol(["CLIENTE"])
 def confirmar_abono(id_clase):
@@ -542,24 +560,53 @@ def confirmar_abono(id_clase):
     Paso intermedio: recibe la selección de clases, calcula el precio
     y muestra la página de confirmación antes de pagar.
     """
+
+    usuario_id = session.get("usuario_id")
+
     clases_seleccionadas_ids = request.form.getlist("clases_seleccionadas")
 
     if not clases_seleccionadas_ids:
         flash("No seleccionaste ninguna clase para reservar.", "warning")
-        return redirect(url_for('reservas.reservar_mensual', id_clase=id_clase))
+        return redirect(url_for(
+            'reservas.reservar_mensual',
+            id_clase=id_clase
+        ))
 
-    # Calculamos el precio y lo pasamos a la plantilla de confirmación
     precio_clase_fija = obtener_precio_clase_actual("Fija")
     valor_abono = len(clases_seleccionadas_ids) * precio_clase_fija
 
-    # Guardamos las clases seleccionadas en la sesión para el siguiente paso (pago)
-    session['reserva_mensual_post_data'] = {'clases_seleccionadas': clases_seleccionadas_ids}
+
+# Obtener descuentos acumulados del cliente
+    descuentos = devolver_beneficios_activos(
+        usuario_id,
+        TipoBeneficio.DESCUENTO
+    )
+
+    descuento_acumulado = sum(
+        descuento.porcentaje_descuento
+        for descuento in descuentos
+        if descuento.porcentaje_descuento
+    )
+
+    # Máximo permitido: 30%
+    descuento_aplicable = min(descuento_acumulado, 0.30)
+
+
+
+    # Guardamos las clases seleccionadas para el pago
+    session['reserva_mensual_post_data'] = {
+        'clases_seleccionadas': clases_seleccionadas_ids
+    }
+
 
     clase_base = obtener_clase_por_id(id_clase)
+
     return render_template(
         "pagos/confirmar_abono_desde_reserva.html",
         clase_base=clase_base,
-        valor_abono=valor_abono
+        valor_abono=valor_abono,
+        descuento_acumulado=descuento_acumulado,
+        descuento_aplicable=descuento_aplicable
     )
 
 @reservas_bp.get("/mis-clases")

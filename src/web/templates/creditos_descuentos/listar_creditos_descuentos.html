@@ -1,0 +1,118 @@
+{% extends "layout.html" %}
+
+{% block title %}Créditos y Descuentos{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+
+        <div class="level">
+            <div class="level-left">
+                <h1 class="title">
+                    Gestión de Créditos y Descuentos
+                </h1>
+            </div>
+        </div>
+
+        <div class="box">
+
+            <form method="GET">
+
+                <div class="field">
+                    <label class="label">
+                        Buscar usuario por DNI
+                    </label>
+
+                    <div class="field has-addons">
+
+                        <div class="control">
+                            <input
+                                class="input"
+                                style="width: 250px;"
+                                type="text"
+                                name="dni"
+                                value="{{ request.args.get('dni', '') }}"
+                                placeholder="Ingrese DNI">
+                        </div>
+
+                        <div class="control ml-2">
+                            <button class="button is-primary" type="submit">
+                                Buscar
+                            </button>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+        <div class="box">
+
+            <table class="table is-fullwidth is-striped is-hoverable">
+
+                <thead>
+                    <tr>
+                        <th>DNI</th>
+                        <th>Usuario</th>
+                        <th>Beneficio</th>
+                        <th>Cantidad</th>
+                        <th>Motivo</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for beneficio in beneficios %}
+
+                    <tr>
+
+                        <td>
+                            {{ beneficio.cliente.dni }}
+                        </td>
+
+                        <td>
+                            {{ beneficio.cliente.nombre }}
+                            {{ beneficio.cliente.apellido }}
+                        </td>
+
+                        <td>
+                            {{ beneficio.tipo.value }}
+                        </td>
+
+                        <td>
+                            {{ beneficio.cantidad }}
+                        </td>
+
+                        <td>
+                            {{ beneficio.motivo }}
+                        </td>
+
+                        <td>
+                            {{ beneficio.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}
+                        </td>
+
+                    </tr>
+
+                    {% else %}
+
+                    <tr>
+                        <td colspan="6" class="has-text-centered">
+                            No hay créditos o descuentos registrados.
+                        </td>
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+</section>
+{% endblock %}

@@ -118,7 +118,7 @@ class Cliente(Usuario):
     apto_fisico: Mapped["AptoFisico"] = relationship(back_populates="cliente", uselist=False, cascade="all, delete-orphan")
     reservas: Mapped[List["Reserva"]] = relationship(back_populates="cliente", cascade="all, delete-orphan")
     colas: Mapped[list["Cola"]] = relationship(back_populates="cliente", cascade="all, delete-orphan")
-
+    creditos_descuentos: Mapped[List["CreditoDescuento"]] = relationship(back_populates="cliente",cascade="all, delete-orphan")
     __mapper_args__ = {
         "polymorphic_identity": RolUsuario.CLIENTE
     }

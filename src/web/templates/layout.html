@@ -357,6 +357,15 @@
                                     <span class="icon mr-2"><i class="fas fa-file-alt"></i></span>Auditoría de Logs
                                 </a>
                             </li>
+                            <li>
+                                <a href="{{ url_for('creditos_descuentos.listar_creditos_descuentos') }}"
+                                    class="py-2.5 px-3 {% if request.path.startswith('/creditos-descuentos') %}menu-item-active{% endif %}">
+                                    <span class="icon mr-2">
+                                        <i class="fas fa-hand-holding-dollar"></i>
+                                    </span>
+                                    Créditos y Descuentos
+                                </a>
+                            </li>
                             
                             {% endif %}
 
