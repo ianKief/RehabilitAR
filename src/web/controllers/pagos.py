@@ -42,8 +42,8 @@ def pagar_abono():
     reserva_data = session.get('reserva_mensual_post_data', {})
     clases_seleccionadas_ids = reserva_data.get('clases_seleccionadas', [])
     precio_clase_fija = obtener_precio_clase_actual("Fija")
+    valor_final = len(clases_seleccionadas_ids) * precio_clase_fija
     usar_descuento = request.form.get("usar_descuento")
-
     if usar_descuento:
         descuentos = devolver_beneficios_activos(
             user_id,

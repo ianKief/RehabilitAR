@@ -553,7 +553,6 @@ def reservar_mensual(id_clase):
                         dia_nombre=dias_semana_espanol[clase_base.fecha_clase.weekday()],
                         descuento_disponible=descuento_aplicable
                     )
-
 @reservas_bp.post("/<int:id_clase>/confirmar-abono")
 @requiere_rol(["CLIENTE"])
 def confirmar_abono(id_clase):
@@ -561,24 +560,53 @@ def confirmar_abono(id_clase):
     Paso intermedio: recibe la selección de clases, calcula el precio
     y muestra la página de confirmación antes de pagar.
     """
+
+    usuario_id = session.get("usuario_id")
+
     clases_seleccionadas_ids = request.form.getlist("clases_seleccionadas")
 
     if not clases_seleccionadas_ids:
         flash("No seleccionaste ninguna clase para reservar.", "warning")
-        return redirect(url_for('reservas.reservar_mensual', id_clase=id_clase))
+        return redirect(url_for(
+            'reservas.reservar_mensual',
+            id_clase=id_clase
+        ))
 
-    # Calculamos el precio y lo pasamos a la plantilla de confirmación
     precio_clase_fija = obtener_precio_clase_actual("Fija")
     valor_abono = len(clases_seleccionadas_ids) * precio_clase_fija
 
-    # Guardamos las clases seleccionadas en la sesión para el siguiente paso (pago)
-    session['reserva_mensual_post_data'] = {'clases_seleccionadas': clases_seleccionadas_ids}
+
+# Obtener descuentos acumulados del cliente
+    descuentos = devolver_beneficios_activos(
+        usuario_id,
+        TipoBeneficio.DESCUENTO
+    )
+
+    descuento_acumulado = sum(
+        descuento.porcentaje_descuento
+        for descuento in descuentos
+        if descuento.porcentaje_descuento
+    )
+
+    # Máximo permitido: 30%
+    descuento_aplicable = min(descuento_acumulado, 0.30)
+
+
+
+    # Guardamos las clases seleccionadas para el pago
+    session['reserva_mensual_post_data'] = {
+        'clases_seleccionadas': clases_seleccionadas_ids
+    }
+
 
     clase_base = obtener_clase_por_id(id_clase)
+
     return render_template(
         "pagos/confirmar_abono_desde_reserva.html",
         clase_base=clase_base,
-        valor_abono=valor_abono
+        valor_abono=valor_abono,
+        descuento_acumulado=descuento_acumulado,
+        descuento_aplicable=descuento_aplicable
     )
 
 @reservas_bp.get("/mis-clases")

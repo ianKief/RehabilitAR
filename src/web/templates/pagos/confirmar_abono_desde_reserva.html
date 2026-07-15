@@ -6,64 +6,201 @@
 <div class="columns is-centered">
     <div class="column">
         <div class="box">
+
             <h1 class="title is-3">
                 Conviertete en Cliente Abonado
             </h1>
+
             <p class="subtitle has-text-grey">
                 Al confirmar, activarás tu abono mensual y obtendrás todos los beneficios.
             </p>
+
             <hr>
+
             <div class="content">
                 <h2 class="title is-5">
                     Detalles de la Suscripción
                 </h2>
+
                 <ul>
-                    <li><strong>Clase Base:</strong> {{ clase_base.nombre }}</li>
-                    <li><strong>Día Fijo:</strong> {{ ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"][clase_base.fecha_clase.weekday()] }}</li>
-                    <li><strong>Horario Fijo:</strong> {{ clase_base.horario.strftime('%H:%M') }} hs</li>
+                    <li>
+                        <strong>Clase Base:</strong> {{ clase_base.nombre }}
+                    </li>
+
+                    <li>
+                        <strong>Día Fijo:</strong>
+                        {{ ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"][clase_base.fecha_clase.weekday()] }}
+                    </li>
+
+                    <li>
+                        <strong>Horario Fijo:</strong>
+                        {{ clase_base.horario.strftime('%H:%M') }} hs
+                    </li>
                 </ul>
             </div>
 
+
             <div class="notification is-primary is-light">
+
                 <p class="mb-2">
                     <strong>Valor mensual:</strong>
-                    $<span id="precio">{{ valor_abono | round(2) }}</span>
+                    $
+                    <span id="precio">
+                        {{ valor_abono }}
+                    </span>
                 </p>
-                <p>
-                    Con tu abono, tendrás <strong>reserva adelantada</strong> para todo el mes y <strong>prioridad en las listas de espera</strong>.
+
+
+                <p class="mt-3">
+                    Con tu abono, tendrás <strong>reserva adelantada</strong>
+                    para todo el mes y <strong>prioridad en las listas de espera</strong>.
                 </p>
+
             </div>
 
-            <form action="{{ url_for('pagos.pagar_abono') }}" method="POST">
-                <input type="hidden" name="dia_fijo" value="{{ clase_base.fecha_clase.weekday() }}">
-                <input type="hidden" name="id_clase_origen" value="{{ clase_base.id }}">
 
-                {% if tiene_descuento %}
-                    <div class="field">
-                        <label class="checkbox">
-                            <input type="checkbox" name="descuento" value="1" id="descuento">
-                            Usar mis descuentos disponibles (hasta {{ (descuento_max * 100) | round(0) }}%)
-                        </label>
-                    </div>
+
+            <form action="{{ url_for('pagos.pagar_abono') }}" method="POST">
+
+                <input type="hidden" 
+                       name="dia_fijo" 
+                       value="{{ clase_base.fecha_clase.weekday() }}">
+
+                <input type="hidden" 
+                       name="id_clase_origen" 
+                       value="{{ clase_base.id }}">
+
+
+
+                {% if descuento_acumulado > 0 %}
+
+                <div class="notification is-success is-light mt-4">
+
+                    <label class="checkbox">
+
+                        <input 
+                            type="checkbox"
+                            id="usar_descuento"
+                            name="usar_descuento"
+                            value="1"
+                            data-precio="{{ valor_abono }}"
+                            data-descuento="{{ descuento_aplicable }}"
+                        >
+
+                        Usar descuento acumulado
+                        (tenés 
+                        {{ (descuento_acumulado * 100)|round(0) }}%
+                        disponible,
+                        se aplicará
+                        {{ (descuento_aplicable * 100)|round(0) }}%
+                        máximo)
+
+                    </label>
+
+                </div>
+
                 {% endif %}
 
+
+
                 <div class="field is-grouped is-grouped-centered mt-5">
+
                     <div class="control">
-                        <button type="submit" class="button is-primary is-medium">
+
+                        <button 
+                            type="submit" 
+                            class="button is-primary is-medium">
+
                             Continuar y Pagar Abono
+
                         </button>
+
                     </div>
+
+
                     <div class="control">
-                        <a href="{{ url_for('reservas.calendario_cliente') }}" class="button is-light is-medium">
+
+                        <a href="{{ url_for('reservas.calendario_cliente') }}" 
+                           class="button is-light is-medium">
+
                             Cancelar
+
                         </a>
+
                     </div>
+
                 </div>
+
             </form>
+
+
+
             <p class="is-size-7 has-text-centered mt-4 has-text-grey">
+
                 Una vez aprobado el pago, serás redirigido para confirmar las reservas del mes.
+
             </p>
+
+
         </div>
     </div>
 </div>
+
+{% endblock %}
+
+
+
+{% block scripts %}
+
+<script>
+
+const checkbox = document.getElementById("usar_descuento");
+
+
+if (checkbox) {
+
+
+    const precioOriginal = Number(checkbox.dataset.precio);
+
+    const descuento = Number(checkbox.dataset.descuento);
+
+
+    const precio = document.getElementById("precio");
+
+    const precioDescuento = document.getElementById("precio_descuento");
+
+
+
+    checkbox.addEventListener("change", function() {
+
+
+        if (this.checked) {
+
+
+            const nuevoPrecio = precioOriginal * (1 - descuento);
+
+
+            precio.textContent = nuevoPrecio.toFixed(2);
+
+            precioDescuento.textContent = nuevoPrecio.toFixed(2);
+
+
+        } else {
+
+
+            precio.textContent = precioOriginal.toFixed(2);
+
+            precioDescuento.textContent = precioOriginal.toFixed(2);
+
+
+        }
+
+
+    });
+
+
+}
+
+</script>
+
 {% endblock %}
