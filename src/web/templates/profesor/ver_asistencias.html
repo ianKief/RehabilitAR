@@ -132,7 +132,10 @@
                                 <span class="tag is-success">Presente</span>
                             {% endif %}
                             {% if reserva.asiste.value == "ausente" %}
-                                <span class="tag is-warning">Ausente</span> <!--verificar-->
+                                <span class="tag is-warning">Ausente</span>
+                            {% endif %}
+                            {% if reserva.asiste.value == 'pendiente_de_pago' %}
+                                <span class="tag is-info">Pendiente de pago de seña</span>
                             {% endif %}
                         </div>
                     </div>
