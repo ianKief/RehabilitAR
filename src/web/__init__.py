@@ -106,9 +106,48 @@ def create_app():
 
     @app.route("/")
     def home():
+        from src.core.database import db
+        from src.core.clases.clases import Clase
+        from src.core.salas.salas import Sala
+        from src.core.usuarios.usuarios import Usuario
+        from src.core.reservas.reservas import Reserva, AsistenciaReserva
+        from sqlalchemy import func
+        import datetime
+
         user_id = session.get("usuario_id")
-        estado = estado_abono_usuario(user_id)
         rol = session.get("rol")
+
+        if rol == 'ADMINISTRADOR':
+            salas_disponibles = db.session.query(Sala).count()
+            clases_hoy = db.session.query(Clase).filter(Clase.fecha_clase == datetime.date.today()).count()
+            pacientes_activos = db.session.query(Usuario).filter_by(rol="CLIENTE", estado="ACTIVO").count()
+            proximas_reservas = db.session.query(Reserva).filter(Reserva.asiste != AsistenciaReserva.CANCELADA).count()
+            proximas_clases = (
+                db.session.query(Clase)
+                .join(Sala)
+                .filter(
+                    func.to_timestamp(
+                        func.concat(Clase.fecha_clase, ' ', Clase.horario), 
+                        'YYYY-MM-DD HH24:MI:SS'
+                    ) > datetime.datetime.now()
+                )
+                .order_by(Clase.fecha_clase, Clase.horario)
+                .limit(5)
+                .all()
+            )
+            
+            return render_template(
+                "home.html",
+                current_path=request.path,
+                rol=rol.lower(),
+                salas_disponibles=salas_disponibles,
+                clases_hoy=clases_hoy,
+                pacientes_activos=pacientes_activos,
+                proximas_reservas=proximas_reservas,
+                proximas_clases=proximas_clases
+            )
+
+        estado = estado_abono_usuario(user_id)
         if isinstance(rol, str):
             rol = rol.lower()
         return render_template("home.html", current_path=request.path,estado_abono=estado,rol=rol)

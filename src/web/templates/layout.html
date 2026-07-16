@@ -71,6 +71,9 @@
                     <a class="navbar-item py-3 px-4" href="{{ url_for('clases.listar_clases_admin') }}">
                         <span class="icon mr-2"><i class="far fa-calendar-alt"></i></span>Clases
                     </a>
+                    <a class="navbar-item py-3 px-4" href="{{ url_for('clases.listar_propuestas_pendientes') }}">
+                        <span class="icon mr-2"><i class="fas fa-inbox"></i></span>Propuestas Pendientes
+                    </a>
                     <a class="navbar-item py-3 px-4" href="{{ url_for('estadisticas.listar_estadisticas') }}">
                         <span class="icon mr-2"><i class="fas fa-chart-bar"></i></span>Estadísticas
                     </a>
@@ -310,34 +313,16 @@
                                 </a>
                             </li>
                             <li>
-                                <a id="btn-toggle-clases" class="py-2.5 px-3 has-text-weight-semibold" style="cursor: pointer;">
-                                    <span class="icon mr-2"><i class="fas fa-calendar-alt"></i></span>
-                                    Clases y Agenda
-                                    <span class="icon is-small is-pulled-right mt-1">
-                                        <i id="icono-flecha-clases" class="fas fa-angle-down"></i>
-                                    </span>
+                                <a href="{{ url_for('clases.listar_clases_admin') }}"
+                                    class="py-2.5 px-3 {% if request.path.startswith('/clases') and 'propuestas' not in request.path %}menu-item-active{% endif %}">
+                                    <span class="icon mr-2"><i class="fas fa-calendar-alt"></i></span>Clases
                                 </a>
-                                
-                                <ul id="submenu-clases" class="is-hidden ml-4 mt-2" style="border-left: 2px solid var(--bulma-border-weak);">
-                                    <li>
-                                        <a href="{{ url_for('clases.listar_clases_admin') }}" 
-                                        class="py-2 px-3 {% if request.path == url_for('clases.listar_clases_admin') or (request.path.startswith('/clases/admin') and 'propuestas' not in request.path) %}menu-item-active{% endif %}">
-                                            <span class="icon mr-2"><i class="fas fa-th-list"></i></span>Grilla de Clases
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="{{ url_for('clases.nueva_clase') }}" 
-                                        class="py-2 px-3 {% if request.path.startswith('/clases/crear') or request.path.startswith('/clases/nueva') %}menu-item-active{% endif %}">
-                                            <span class="icon mr-2"><i class="fas fa-plus-circle"></i></span>Crear Clase Nueva
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="{{ url_for('clases.listar_propuestas_pendientes') }}" 
-                                        class="py-2 px-3 {% if request.path.startswith('/admin/propuestas') or '/propuestas' in request.path %}menu-item-active{% endif %}">
-                                            <span class="icon mr-2"><i class="fas fa-inbox"></i></span>Propuestas Pendientes
-                                        </a>
-                                    </li>
-                                </ul>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('clases.listar_propuestas_pendientes') }}" 
+                                class="py-2.5 px-3 {% if request.path.startswith('/admin/propuestas') or '/propuestas' in request.path %}menu-item-active{% endif %}">
+                                    <span class="icon mr-2"><i class="fas fa-inbox"></i></span>Propuestas Pendientes
+                                </a>
                             </li>
                             <li>
                                 <a href="{{ url_for('estadisticas.listar_estadisticas') }}"
@@ -390,28 +375,16 @@
                                 </a>
                             </li>
                             <li>
-                                <a id="btn-toggle-propuestas-profesor" class="py-2.5 px-3 has-text-weight-semibold" style="cursor: pointer;">
-                                    <span class="icon mr-2"><i class="fas fa-chalkboard-teacher"></i></span>
-                                    Mis Propuestas
-                                    <span class="icon is-small is-pulled-right mt-1">
-                                        <i id="icono-flecha-propuestas-profesor" class="fas fa-angle-down"></i>
-                                    </span>
+                                <a href="{{ url_for('clases.proponer_clase_vista') }}" 
+                                class="py-2.5 px-3 {% if request.path == url_for('clases.proponer_clase_vista') %}menu-item-active{% endif %}">
+                                    <span class="icon mr-2"><i class="fas fa-plus-circle"></i></span>Proponer Clase
                                 </a>
-                                
-                                <ul id="submenu-propuestas-profesor" class="is-hidden ml-4 mt-2" style="border-left: 2px solid var(--bulma-border-weak);">
-                                    <li>
-                                        <a href="{{ url_for('clases.proponer_clase_vista') }}" 
-                                        class="py-2 px-3 {% if request.path == url_for('clases.proponer_clase_vista') %}menu-item-active{% endif %}">
-                                            <span class="icon mr-2"><i class="fas fa-plus-circle"></i></span>Proponer Clase
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="{{ url_for('clases.historial_propuestas_profesor') }}" 
-                                        class="py-2 px-3 {% if request.path == url_for('clases.historial_propuestas_profesor') %}menu-item-active{% endif %}">
-                                            <span class="icon mr-2"><i class="fas fa-history"></i></span>Historial de Propuestas
-                                        </a>
-                                    </li>
-                                </ul>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('clases.historial_propuestas_profesor') }}" 
+                                class="py-2.5 px-3 {% if request.path == url_for('clases.historial_propuestas_profesor') %}menu-item-active{% endif %}">
+                                    <span class="icon mr-2"><i class="fas fa-history"></i></span>Historial de Propuestas
+                                </a>
                             </li>
                             {% endif %}
                             <!-- Navegación para clientes (solo si son clientes) -->
@@ -680,13 +653,6 @@
     </script>
 
     <script>
-        // ==========================================
-        // LÓGICA DEL MENÚ DESPLEGABLE DE CLASES
-        // ==========================================
-        const btnToggleClases = document.getElementById('btn-toggle-clases');
-        const submenuClases = document.getElementById('submenu-clases');
-        const iconoFlechaClases = document.getElementById('icono-flecha-clases');
-
         if (btnToggleClases && submenuClases) {
             btnToggleClases.addEventListener('click', (e) => {
                 e.preventDefault();
