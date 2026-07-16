@@ -109,7 +109,7 @@ class SeedListaDeEspera ():
 
             clase_re_llena = Clase(
                 nombre= "Clase con 9 esperas",
-                especialidad= "Programación",
+                especialidad= "Tren Superior",
                 duracion=180,
                 sala = aula_re_llena,
                 descripcion = "Otorgamos una clase de 3 horas para 1 persona y 9 esperando para que nuestro cliente pueda ver el mail enviado al administrativo",
@@ -123,7 +123,7 @@ class SeedListaDeEspera ():
             # Esto lo agrego porque si hago el test en jueves y viernes no puedo comprobar la condición luego :P
             clase_re_llena2 = Clase(
                 nombre= "Clase con 9 esperas segunda edición",
-                especialidad= "Programación",
+                especialidad= "Tren Superior",
                 duracion=180,
                 sala = aula_re_llena,
                 descripcion = "Otorgamos una clase de 3 horas para 1 persona y 9 esperando para que nuestro cliente pueda ver el mail enviado al administrativo",
@@ -136,7 +136,7 @@ class SeedListaDeEspera ():
 
             clase_que_se_da_cuando_otra_1 = Clase(
                 nombre= "Clase asíncrona 1",
-                especialidad= "Programación",
+                especialidad= "Tren Superior",
                 duracion=180,
                 sala = aula_re_llena,
                 descripcion = "Otorgamos una clase de 3 horas que se da cuando otra clase, para ver qué onda",
@@ -148,7 +148,7 @@ class SeedListaDeEspera ():
             self.db.session.add(clase_que_se_da_cuando_otra_1)
             clase_que_se_da_cuando_otra_2 = Clase(
                 nombre= "Clase asíncrona 2",
-                especialidad= "Programación",
+                especialidad= "Tren Superior",
                 duracion=180,
                 sala = otra_aula,
                 descripcion = "Otorgamos otra clase de 3 horas que se da cuando otra clase, para ver qué onda",
@@ -163,7 +163,7 @@ class SeedListaDeEspera ():
             # Estas son otras dos clases por si las 2 anteriores caen en feriado
             clase_que_se_da_cuando_otra_1_2 = Clase(
                 nombre= "Clase asíncrona 1",
-                especialidad= "Programación",
+                especialidad= "Tren Superior",
                 duracion=180,
                 sala = aula_re_llena,
                 descripcion = "Otorgamos una clase de 3 horas que se da cuando otra clase, para ver qué onda",
@@ -175,7 +175,7 @@ class SeedListaDeEspera ():
             self.db.session.add(clase_que_se_da_cuando_otra_1_2)
             clase_que_se_da_cuando_otra_2_2 = Clase(
                 nombre= "Clase asíncrona 2",
-                especialidad= "Programación",
+                especialidad= "Tren Superior",
                 duracion=180,
                 sala = otra_aula,
                 descripcion = "Otorgamos otra clase de 3 horas que se da cuando otra clase, para ver qué onda",

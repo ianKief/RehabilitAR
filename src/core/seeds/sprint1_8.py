@@ -122,7 +122,7 @@ class SeedAsistenciaYSeguimientoSprint1 ():
             # Acá carga los datos de la clase vieja
             clase_vieja = Clase(
                 nombre= "Clase 0 de profesor 1 con reservas",
-                especialidad= "Programación",
+                especialidad= "Tren Superior",
                 duracion=180,
                 descripcion = "Esta clase ya sucedió hace un par de días",
                 fecha_clase = datetime.now(tz_arg).replace(tzinfo=None).date() - timedelta(days=2),
