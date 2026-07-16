@@ -69,6 +69,39 @@ class UsuarioSeeder:
             )
             self.db.session.add(recepcionista)
 
+            # 5. Creación de usuarios para escenarios de inicio de sesión
+
+            # Escenario 2: Inicio de sesión exitoso (con código) - 2FA
+            verificar_cliente_existente = self.db.session.query(Usuario).filter_by(email='verificarcliente@gmail.com').first()
+            if not verificar_cliente_existente:
+                cliente_2fa = Cliente(
+                    nombre="Cliente",
+                    apellido="Verificacion",
+                    dni="11111111",
+                    email="verificarcliente@gmail.com",
+                    password="123456",
+                    estado=Estado.ACTIVO,
+                    # Simula 2FA verificado hace 31 días. La lógica de 31 días se maneja en la aplicación.
+                    # Se asume que un cliente activo con este email es para probar 2FA.
+                )
+                self.db.session.add(cliente_2fa)
+                self.db.session.flush() # Para que el objeto tenga un ID si es necesario más adelante
+
+            # Escenario 6: Inicio de sesión fallido por cuenta bloqueada
+            bloqueado_cliente_existente = self.db.session.query(Usuario).filter_by(email='clientebloqueado@gmail.com').first()
+            if not bloqueado_cliente_existente:
+                cliente_bloqueado = Cliente(
+                    nombre="Cliente",
+                    apellido="Bloqueado",
+                    dni="22222222",
+                    email="clientebloqueado@gmail.com",
+                    password="contraseña123",
+                    estado=Estado.BLOQUEADO,
+                    # La cantidad de intentos fallidos se maneja a nivel de aplicación.
+                )
+                self.db.session.add(cliente_bloqueado)
+                self.db.session.flush()
+
             if admin_existente and cliente_existente and profesor_existente:
                 print("💡 Usuarios base ya existentes, no se realizaron cambios.")
                 return

@@ -829,14 +829,11 @@ def _procesar_compensacion_alumnos(clase, ahora):
         db.session.add(nuevo_credito)
         
         # Notificar al cliente
-        asunto = f"AVISO IMPORTANTE: Clase Suspendida - {clase.nombre}"
+        asunto = f"Clase Suspendida: {clase.nombre}"
         cuerpo = (
-            f"Estimado paciente,\n\n"
-            f"Le informamos que la clase de '{clase.nombre}' programada para el día "
-            f"{clase.fecha_clase.strftime('%d/%m/%Y')} a las {clase.horario.strftime('%H:%M')} hs ha sido SUSPENDIDA.\n\n"
-            f"Se ha acreditado automáticamente un crédito en su cuenta para que pueda reprogramar su turno.\n\n"
-            f"Disculpe las molestias.\n"
-            f"Atentamente, Administración de RehabilitAR."
+            f"La clase de '{clase.nombre}' del {clase.fecha_clase.strftime('%d/%m/%Y')} a las "
+            f"{clase.horario.strftime('%H:%M')}hs fue suspendida. Se acreditó un crédito en su cuenta para reprogramar. "
+            f"Disculpe las molestias. Administración de RehabilitAR."
         )
         enviar_notificaciones(reserva.cliente, asunto, cuerpo, TipoNotificacion.CLASE_SUSPENDIDA)
 
