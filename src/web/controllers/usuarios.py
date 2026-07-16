@@ -21,10 +21,12 @@ def crear_usuario():
         email = request.form.get('email')
         password = request.form.get('password')
         rol = request.form.get('rol')
+        apellido = request.form.get('apellido')
+        dni = request.form.get('dni')
         
         # Validaciones
         # 1. Validar que no falte ningun campo obligatorio
-        if not all([nombre, email, password, rol]):
+        if not all([nombre, email, password, rol, apellido, dni]):
             return render_template('usuarios/crear.html', error="Por favor, complete todos los campos obligatorios.")
 
         # 2. Validar que el password tenga al menos 6 caracteres
@@ -37,7 +39,7 @@ def crear_usuario():
             return render_template('usuarios/crear.html', error="El correo electrónico debe ser del dominio @gmail.com, @hotmail.com o @outlook.com.")
         
         try:
-            nuevo_usuario = crear(nombre=nombre, email=email, password=password, rol=rol, estado=EstadoUsuario.ACTIVO)
+            nuevo_usuario = crear(nombre=nombre, email=email, password=password, rol=rol, estado=EstadoUsuario.ACTIVO, apellido=apellido, dni=dni)
             msg = Message(
             subject="RehabilitAR - Cuenta Creada",
             recipients=[email]
@@ -58,7 +60,7 @@ def crear_usuario():
             flash(str(e), 'error')
             return render_template('usuarios/crear.html')
         
-        registrar_log(TipoAccion.CREACION_USUARIO_ADMIN, id_entidad_objetivo=nuevo_usuario.id, detalles={'rol': rol, 'email': email})
+        registrar_log(TipoAccion.CREACION_USUARIO_ADMIN, id_entidad_objetivo=nuevo_usuario.id, detalles={'rol': rol, 'email': email, 'apellido': apellido, 'dni': dni})
         flash("Usuario creado con éxito.", "success")
         return render_template('usuarios/crear.html')
     
