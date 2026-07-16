@@ -451,7 +451,7 @@ def proponer_clase_vista():
     # Validación de seguridad por si no tiene configurada la especialidad en la BD
     if not profesor or not profesor.especialidad:
         flash("Tu usuario no tiene una especialidad asignada. Contactá al administrador.", "danger")
-        return redirect(url_for('dashboard')) # O tu vista del home del profesor
+        return redirect(url_for('home')) # O tu vista del home del profesor
 
     # 2. En lugar de listar todas, armamos la lista únicamente con SU especialidad
     # De esta manera, el bucle for del HTML funciona idéntico pero con una sola opción
