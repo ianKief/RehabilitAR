@@ -29,6 +29,7 @@ from src.web.functions import devolver_enlace_absoluto_actual
 from src.core.auditoria import registrar_log, TipoAccion
 from src.core.usuarios import obtener_usuario_por_id_core
 from src.web.functions import es_dni
+from src.core.notificaciones import enviar_notificaciones
 
 bp = Blueprint("pagos", __name__, url_prefix="/pagos")
 
@@ -277,8 +278,13 @@ def cobrar_saldo_pendiente ():
     from src.core.usuarios import conseguir_cliente_por_dni
     clase_id = request.form.get("clase_id")
     dni_cliente = request.form.get('dni')
+    id_cliente = conseguir_cliente_por_dni(dni_cliente)
 
-    resolver_pago_pendiente (clase_id, conseguir_cliente_por_dni(dni_cliente))
+    try:
+        resolver_pago_pendiente (clase_id, id_cliente)
+        registrar_log(TipoAccion.PAGO_SEÑA, id_entidad_objetivo=id_cliente, detalles={"mensaje": "Pago de seña exitoso"})
+    except:
+        registrar_log(TipoAccion.PAGO_SEÑA, id_entidad_objetivo=id_cliente, detalles={"mensaje": "Pago de seña fallido"})
 
     flash ("Se ha registrado el pago exitosamente", "success")
     return redirect(url_for("home"))
